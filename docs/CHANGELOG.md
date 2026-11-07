@@ -24,6 +24,10 @@ Before the first release the firmware was developed on two lines: a "main line" 
 
 The unit reports its version as `FM-1_7XXYYZZ` (0.13.0 is `FM-1_7001300`); the installer checks it.
 
+## Next (development builds from 0.17.1)
+
+- **THEORY spells chords in thirds.** A note outside the key is named from the chord's root, so F7 in G Dorian reads F A C **Eb** (it read D#), and a borrowed root is lowered: **Bb** in C major, not A#, with its numeral counted from B.
+
 ## 0.17.0 (the builds 0.16.17 .. 0.16.29 are its steps)
 
 Released 2026-11-07. Pieces that sound finished (Song or Loop, the circle moves, phrases that end at home), Bass steps, the Library, more saved with a piece (FILTERS, SCREAM, drum drift, chord types, bass steps), power on where you left off, THEORY drawn like a theory book, a MIDI CC for any setting, newer FM-1s (the UC25HQ80 chip) and full speed after V16, and the boot stub. Each build below, newest first.

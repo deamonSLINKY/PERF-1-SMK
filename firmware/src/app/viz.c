@@ -779,7 +779,7 @@ static const char *th_respell(const th_key_t *k, int root, const char *name, cha
 {
     const char *suf = name + (EN_NOTE_NAME[root][1] ? 2 : 1);
     char *o = b;
-    th_spell(k, root, o);
+    th_tone(k, root, root, o);                   /* a borrowed root lowered: Bb, not A# */
     o += th_len(o);
     while (*suf && o < b + 30)
         *o++ = *suf++;
@@ -996,7 +996,7 @@ static void vz_theory(void)
         const int pc = TH_PC(i), in = (int)(scale >> pc & 1u), ch = (int)(chord >> pc & 1u);
         const int borrowed = ch && !in;
         if (borrowed)
-            th_spell(&k, pc, tx);
+            th_tone(&k, root, pc, tx);           /* spelled from the chord's root: F7's Eb, not D# */
         else
             th_label(&k, pc, tx);
         if (ch)
@@ -1026,7 +1026,7 @@ static void vz_theory(void)
                 const int pc = (root + j) % 12;
                 if (!(chord >> pc & 1u))
                     continue;
-                th_spell(&k, pc, tx);
+                th_tone(&k, root, pc, tx);
                 xx = cv_text(xx, 57, &FONT_XS, tx, (scale >> pc & 1u) ? K_TEXT : TH_RED) + 5;
             }
         }

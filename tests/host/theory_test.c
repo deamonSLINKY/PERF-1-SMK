@@ -96,6 +96,36 @@ int main(void)
     th_key(scale(8, AEO, 7), 8, 1, &k);
     check("G# minor's raised seventh: F##", (th_spell(&k, 7, b), b), "F##");
 
+    /* chords spelled in thirds from their root (0.17.1: F7 in G Dorian read F A C D#) */
+    {
+        static const struct { int kr; const int *iv; int root; int pcs[4]; int np; const char *want; int letter; } C[] = {
+            {7, DOR, 5, {5, 9, 0, 3}, 4, "F A C Eb", 3},          /* DISCO 03: F7 leaning into Bb */
+            {0, ION, 10, {10, 2, 5, 0}, 3, "Bb D F", 6},          /* borrowed bVII */
+            {0, ION, 8, {8, 0, 3, 0}, 3, "Ab C Eb", 5},           /* borrowed bVI */
+            {0, ION, 4, {4, 8, 11, 2}, 4, "E G# B D", 2},         /* V of the next: E7 A7 D7 */
+            {0, ION, 9, {9, 1, 4, 7}, 4, "A C# E G", 5},
+            {0, ION, 2, {2, 6, 9, 0}, 4, "D F# A C", 1},
+            {9, AEO, 4, {4, 8, 11, 2}, 4, "E G# B D", 2},         /* A minor's V7 */
+            {3, AEO, 1, {1, 5, 8, 0}, 3, "Db F Ab", 1},           /* Eb minor, bVII */
+        };
+        unsigned c;
+        for (c = 0; c < sizeof C / sizeof C[0]; c++) {
+            char got[40] = "", t[8];
+            int i;
+            th_key(scale(C[c].kr, C[c].iv, 7), C[c].kr, C[c].kr == 3, &k);
+            for (i = 0; i < C[c].np; i++) {
+                th_tone(&k, C[c].root, C[c].pcs[i], t);
+                if (i)
+                    strcat(got, " ");
+                strcat(got, t);
+            }
+            check("chord spelled in thirds", got, C[c].want);
+            n++, bad += th_letter(&k, C[c].root) != C[c].letter;
+            if (th_letter(&k, C[c].root) != C[c].letter)
+                printf("  letter of %s: %d, want %d\n", C[c].want, th_letter(&k, C[c].root), C[c].letter);
+        }
+    }
+
     /* the circle's labels */
     th_key(scale(4, ION, 7), 4, 0, &k);
     check("E major's circle: Bb outside", (th_label(&k, 10, b), b), "Bb");

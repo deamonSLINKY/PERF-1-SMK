@@ -134,6 +134,43 @@ static int th_spell(const th_key_t *k, int pc, char *o)
     return 1;
 }
 
+/* a chord's root named in the key: in it, the key's letter; outside it (bVII, bVI, bIII borrowed), lowered from the parent's note
+ * above (Bb in C, not A#), else the semitone below raised. l, a: its letter and accidental. */
+static void th_root(const th_key_t *k, int root, int *l, int *a)
+{
+    const int lo = (root + 11) % 12, hi = (root + 1) % 12;
+    root %= 12;
+    if (k->let[root] >= 0)
+        *l = k->let[root], *a = k->acc[root];
+    else if (k->let[hi] >= 0 && k->acc[hi] > -2)
+        *l = k->let[hi], *a = k->acc[hi] - 1;
+    else
+        *l = k->let[lo], *a = k->acc[lo] + 1;
+}
+
+/* a chord tone named by its interval from the root, the way chords are spelled in thirds (F7 = F A C Eb, E7 = E G# B D):
+ * the root's letter plus the interval's (b9/9 one up, 3rds two, 4th three, b5/5/#5 four, 6th five, 7ths six); a spelling that
+ * would need three accidentals falls back to th_spell. */
+static void th_tone(const th_key_t *k, int root, int pc, char *o)
+{
+    static const int8_t OFF[12] = {0, 1, 1, 2, 2, 3, 4, 4, 4, 5, 6, 6};
+    int rl, ra, l, a;
+    root %= 12, pc %= 12;
+    th_root(k, root, &rl, &ra);
+    if (pc == root) {
+        th_put(o, rl, ra);
+        return;
+    }
+    l = (rl + OFF[(pc - root + 12) % 12]) % 7;
+    a = ((pc - TH_NAT[l]) % 12 + 12) % 12;
+    if (a > 6)
+        a -= 12;
+    if (a < -2 || a > 2)
+        th_spell(k, pc, o);
+    else
+        th_put(o, l, a);
+}
+
 /* the circle's label for a pitch class: the key's spelling for the parent's notes, the major keys' names for the rest */
 static void th_label(const th_key_t *k, int pc, char *o)
 {
@@ -163,11 +200,11 @@ static char *th_sig_text(int sig, char *o)
     return o;
 }
 
-/* the letter a pitch class takes in the key (borrowed notes included): for the Roman numeral's degree */
+/* the letter a chord root takes in the key (borrowed roots lowered, th_root): for the Roman numeral's degree */
 static int th_letter(const th_key_t *k, int pc)
 {
-    char b[6];
-    th_spell(k, pc, b);
-    return b[0] == 'C' ? 0 : b[0] == 'D' ? 1 : b[0] == 'E' ? 2 : b[0] == 'F' ? 3 : b[0] == 'G' ? 4 : b[0] == 'A' ? 5 : 6;
+    int l, a;
+    th_root(k, pc, &l, &a);
+    return l;
 }
 #endif
