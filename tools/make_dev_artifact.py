@@ -199,6 +199,23 @@ def main():
         emu_html = ('<p><a class="pill ok" href="emu/index.html">Open the emulator for this build</a></p>'
                     '<p class="note">The browser emulator built from this tree (web/emu/build.sh). If it does not start here, the viewer may block '
                     'WebAssembly: use the GitHub Pages emulator for the released version instead.</p>')
+        studio = SRC / "web" / "studio" / "index.html"
+        params = SRC / "build" / "params.json"
+        if studio.exists() and params.exists():     # the studio (web/studio), on this build's emulator (../emu/), put together as scripts/make_vis_site.py does
+            sys.path.insert(0, str(SRC / "web"))
+            sys.path.insert(0, str(SRC / "tools"))
+            from make_site import strip_module      # noqa: E402
+            from make_params import param_enum      # noqa: E402
+            lib = "\n".join(strip_module((SRC / "web" / f).read_text(encoding="utf-8"))
+                            for f in ("fm1backup.js", "fm1piece.js", "fm1card.js", "fm1share.js", "fm1idle.js", "fm1midi.js"))
+            pg = studio.read_text(encoding="utf-8").replace("/*PARAMS*/", params.read_text(encoding="utf-8")).replace("/*LIB*/", lib)
+            pg = pg.replace("/*PENUM*/", json.dumps(param_enum())).replace("<title>PERF-1 studio</title>", "<title>PERF-1 " + html.escape(version) + " studio</title>")
+            (out / "studio").mkdir()
+            (out / "studio" / "index.html").write_text(pg, encoding="utf-8", newline="\n")
+            files["studio/index.html"] = str(out / "studio" / "index.html")
+            emu_html += ('<p><a class="pill ok" href="studio/index.html">Open the studio for this build</a></p>'
+                         '<p class="note">The piece over its bars, edited and played on this emulator (web/studio). Its links to the other site pages '
+                         '(Library &amp; pieces, Send to the FM-1) need the local site.</p>')
     else:
         emu_html = '<p class="note">No emulator in this build: run web/emu/build.sh before this script.</p>'
 
