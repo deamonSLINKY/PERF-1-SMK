@@ -186,7 +186,7 @@ __attribute__((used, visibility("default"))) int web_st_put(void)
  * its notes (4), the pad's (4), the bass's last bar (16) and step, the acid's line (length, step, gate, accents, slides: 2 each; offsets, octaves:
  * 16 each), the pluck's loop (rungs, levels: 16 each; its slot), the pattern each lane plays (6), playing, the genre, the piece, the chord's tones,
  * each lane's step (6), the pool (2), the root (P_ROOT), the bass mode */
-static uint8_t st_lv[132];
+static uint8_t st_lv[144];
 __attribute__((used, visibility("default"))) uint8_t *web_st_live(void)
 {
     uint8_t *b = st_lv;
@@ -207,6 +207,19 @@ __attribute__((used, visibility("default"))) uint8_t *web_st_live(void)
     b[122] = (uint8_t)proj.pool; b[123] = (uint8_t)(proj.pool >> 8);
     b[124] = (uint8_t)proj.par[P_ROOT]; b[125] = (uint8_t)proj.par[P_BL_MODE];
     b[126] = (uint8_t)proj.par[P_AC_LOCK]; b[127] = (uint8_t)proj.par[P_CM_LOCK];
+    {   /* (128 ..) the parts' levels now, 0..255 (the desk's meters): pad, bass, acid, pluck, the loudest drum; the compressor's reduction (dB x 8), the output's peak */
+        float d = 0.0f;
+        const float lv[5] = {en_pad_level, en_bass_level, en_acid_level, en_cm_level, 0.0f};
+        for (k = 0; k < EN_NDRUM; k++)
+            if (en_drum_glow[k] > d)
+                d = en_drum_glow[k];
+        for (k = 0; k < 5; k++) {
+            const float v = (k == 4 ? d : lv[k]) * 255.0f;
+            b[128 + k] = (uint8_t)(v < 0.0f ? 0.0f : v > 255.0f ? 255.0f : v);
+        }
+        b[133] = (uint8_t)(en_comp_gr * 8.0f < 0.0f ? 0.0f : en_comp_gr * 8.0f > 255.0f ? 255.0f : en_comp_gr * 8.0f);
+        b[134] = (uint8_t)(en_out_peak * 255.0f < 0.0f ? 0.0f : en_out_peak * 255.0f > 255.0f ? 255.0f : en_out_peak * 255.0f);
+    }
     return b;
 }
 __attribute__((used, visibility("default"))) void web_st_boot(void)

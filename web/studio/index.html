@@ -116,6 +116,9 @@
   .strip .mute[aria-pressed=true] { background: var(--bass); color: #fff; border-color: var(--bass); }
   .deskside { display: flex; flex-direction: column; gap: 8px; }
   .deskside .ctls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  canvas.pic { width: 100%; display: block; border-radius: 6px; margin: 0 0 8px; background: #121318; border: 1px solid var(--line); touch-action: none; }
+  .meter { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--c); transition: width .06s linear; }
   /* the song: the set list's sixteen places as blocks */
   #song .bar { margin-bottom: 8px; }
   .places { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
@@ -407,13 +410,15 @@ function parseLive(b) {
   return { t: (b[0] | b[1] << 8 | b[2] << 16 | b[3] << 24) >>> 0, step: b[4], pat: b[5], prog: s8(b[6]), croot: b[7], chord: sl(8, 4), pad: sl(12, 4),
            bsHist: sl(16, 16), bsPos: s8(b[32]), acLen: b[33] || 16, acPos: b[34], acGate: u16(35), acAcc: u16(37), acSlide: u16(39),
            acOff: sl(41, 16), acOct: sl(57, 16), cmRung: sl(73, 16), cmLvl: sl(89, 16), cmPos: b[105], laneSrc: sl(106, 6), playing: b[112],
-           genre: b[113], piece: b[114], chordN: b[115], lanePos: sl(116, 6), pool: u16(122), root: b[124], blMode: b[125] };
+           genre: b[113], piece: b[114], chordN: b[115], lanePos: sl(116, 6), pool: u16(122), root: b[124], blMode: b[125],
+           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0 };
 }
 let hist = {}, slotT = 0, slotNow = -2, lastBar = -1;
 function resetHistory() { hist = {}; slotT = 0; slotNow = -2; lastBar = -1; }
 let loomPos = -1;                                            // the playhead: a loom bar and its fraction
 function onLive(b) {
   live = parseLive(b);
+  document.querySelectorAll("#desk .meter[data-k]").forEach((m) => { m.firstChild.style.width = Math.min(100, Math.sqrt(live.lv[+m.dataset.k] / 255) * 130) + "%"; });
   if (!io) return;
   const tl = timeline(), nb = loomBars(tl), bar = Math.floor(live.t / 16), frac = (live.t % 16) / 16;
   let lb;
@@ -975,7 +980,7 @@ function drawFacts() {
   if ($("facts").dataset.h !== fh) { $("facts").innerHTML = fh; $("facts").dataset.h = fh; }
 }
 let raf = 0;
-function refresh() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (view === "loom") drawLoom(); drawEditor(); drawFacts(); syncCtls(); syncQuick(); }); }
+function refresh() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (view === "loom") drawLoom(); drawEditor(); drawFacts(); syncCtls(); syncQuick(); drawPics(); }); }
 setInterval(() => { if (live && live.playing) refresh(); }, 66);
 window.addEventListener("resize", refresh);
 
@@ -1293,15 +1298,30 @@ function soundRender() {
   const tab = D.tabs.find((t) => t.name === LANE_TAB[sel]), col = (LANES.find((l) => l.id === sel) || {}).col;
   if (!tab || !io) { $("sound").innerHTML = ""; return; }
   const plain = tab.sections.filter((x) => !/ lane$/.test(x.name)), lanes = tab.sections.filter((x) => / lane$/.test(x.name));
-  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + '</h3><div class="ctls">' + x.knobs.map((k) => ctlHTML(k.p, k.label, col)).join("") + "</div></div>").join("");
+  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + picFor(tab.name, x, col) + '<div class="ctls">' + x.knobs.map((k) => ctlHTML(k.p, k.label, col)).join("") + "</div></div>").join("");
   if (lanes.length) {                                         // the drums' six lanes: a row each
-    h += '<div class="sec"><h3>Each lane</h3><table class="lanes6"><tr><th></th>' + lanes[0].knobs.map((k) => "<th>" + shortLabel(k.label).replace("Probability", "Chance").replace("Length", "Steps") + "</th>").join("") + "</tr>" +
+    const kp = (x, re) => (x.knobs.find((k) => re.test(k.label)) || {}).p;
+    h += '<div class="sec"><h3>Each lane</h3>' + picHTML("kit", lanes.flatMap((x) => [kp(x, /^Level/), kp(x, /^Tune/), kp(x, /^Decay/)]), col, 130) + '<table class="lanes6"><tr><th></th>' + lanes[0].knobs.map((k) => "<th>" + shortLabel(k.label).replace("Probability", "Chance").replace("Length", "Steps") + "</th>").join("") + "</tr>" +
       lanes.map((x) => "<tr><th>" + x.name.replace(/ lane$/, "").toUpperCase() + "</th>" + x.knobs.map((k) => "<td>" + ctlHTML(k.p, k.label, col) + "</td>").join("") + "</tr>").join("") + "</table></div>";
   }
   const fx = { pad: [-1], chords: [-1], bass: [-2, -4, -5, -6, -7], acid: [-3, -4, -5, -6, -7] }[sel];
   if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3><div class="ctls">' + fx.map((p) => ctlHTML(p, null, col)).join("") + "</div></div>";
   $("sound").innerHTML = h + '<p class="muted">Drag a control (Shift: finer), turn the mouse wheel over it, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
-  syncCtls();
+  syncCtls(); drawPics();
+}
+// the picture a section of a page gets (by its page and section, its knobs found by their labels), or none
+function picFor(tabName, x, col) {
+  const k = (re) => { const q = x.knobs.find((y) => re.test(y.label)); return q ? q.p : NaN; };
+  const n = x.name;
+  if (tabName === "Pad" && /^Envelope/.test(n)) return picHTML("env4", [k(/^Attack/), k(/^Hold/), k(/^Release/), k(/^Rest/)], col);
+  if (tabName === "Pad" && n === "LFO") return picHTML("lfo", [k(/^Depth/), k(/^Shape/), k(/^Target/), PE.P_PL_RATE], col, 110);
+  if (tabName === "Bass" && n === "Bass") return picHTML("filt", [k(/^Cutoff/), k(/^Reso/), -2, NaN], col);
+  if (tabName === "Bass" && n === "Envelope") return picHTML("env3", [k(/^Trigger/), k(/^Attack/), k(/^Decay/), k(/^Amount/)], col);
+  if (tabName === "Bass" && n === "LFO") return picHTML("lfo", [k(/^Depth/), k(/^Shape/), k(/^Target/), PE.P_DL_RATE], col, 110);
+  if (tabName === "Acid" && n === "Acid") return picHTML("filt", [k(/^Cutoff/), k(/^Reso/), -3, k(/^Env mod/)], col);
+  if (tabName === "Acid" && /^Envelope/.test(n)) return picHTML("adec", [k(/^Decay/), k(/^Accent/), k(/^Slide/)], col);
+  if (tabName === "Pluck" && n === "Behaviour") return picHTML("dec1", [k(/^Decay/)], col, 100);
+  return "";
 }
 document.querySelector(".edhead .views").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-pane]");
@@ -1325,7 +1345,7 @@ function deskStrips() {
     if (t === "Drums") { ["Kick", "Snare", "Hats", "Perc"].forEach((k) => extra.push([knobIn("Drums", new RegExp("^" + k + "$"), /^Kit/), k])); extra.push([knobIn("Drums", /^Drive$/), "Drive"]); extra.push([knobIn("Drums", /^Swing$/), "Swing"]); }
     else if (t === "Vinyl") { sec("Vinyl").forEach((k) => extra.push([k.p, k.label])); }
     else { extra.push([knobIn(t, /^Sound$/), "Sound"]); extra.push([knobIn(t, /^Octave$/), "Octave"]); }
-    return { n, c, lvl: lv ? lv.p : -1, pan: pn ? pn.p : -1, send: sd ? sd.p : -1, extra: extra.filter((x) => x[0] >= 0) };
+    return { n, c, k: ["Pad", "Bass", "Acid", "Pluck", "Drums"].indexOf(t), lvl: lv ? lv.p : -1, pan: pn ? pn.p : -1, send: sd ? sd.p : -1, extra: extra.filter((x) => x[0] >= 0) };
   });
 }
 const muteMem = {};
@@ -1334,14 +1354,20 @@ function deskRender() {
   let h = deskStrips().map((st) => '<div class="strip" style="--c:' + st.c + '"><div class="cap"></div><h3>' + st.n +
     (st.lvl >= 0 ? '<button class="small mute" data-p="' + st.lvl + '" title="Mute (the level to 0, and back)">M</button>' : "") + '</h3><div class="body">' +
     (st.lvl >= 0 ? '<div class="fader" tabindex="0" role="slider" aria-label="' + st.n + ' level" data-p="' + st.lvl + '"><i></i><b></b></div><div class="lv"></div>' : "") +
+    (st.k >= 0 ? '<div class="meter" data-k="' + st.k + '" title="What it plays now"><i></i></div>' : "") +
     (st.pan >= 0 ? ctlHTML(st.pan, "Pan", st.c) : "") + (st.send >= 0 ? ctlHTML(st.send, "Send", st.c) : "") + st.extra.map(([p, l]) => ctlHTML(p, l, st.c)).join("") + "</div></div>").join("");
   const sp = tabOf("Space & master"), tg = tabOf("Tempo & global"), skip = new Set([PE.P_THEME, PE.P_MIDI, PE.P_TUNE]);
-  h += '<div class="deskside">' + [...sp.sections, ...tg.sections].map((x) => {
+  const all = sp.sections.flatMap((x) => x.knobs), kk = (re, secRe) => { for (const x of sp.sections) if (!secRe || secRe.test(x.name)) { const q = x.knobs.find((y) => re.test(y.label)); if (q) return q.p; } return NaN; };
+  const strips = deskStrips().slice(0, 5);
+  h += '<div class="deskside"><div class="sec"><h3>The stage</h3>' + picHTML("stereo", strips.flatMap((st) => [st.pan, st.send]), COL.acc, 170) + "</div>" + [...sp.sections, ...tg.sections].map((x) => {
     const ks = x.knobs.filter((k) => !skip.has(k.p));
-    return ks.length ? '<div class="sec"><h3>' + shortLabel(x.name) + '</h3><div class="ctls">' + ks.map((k) => ctlHTML(k.p, k.label)).join("") + "</div></div>" : "";
+    let pic = "";
+    if (x.name === "Space") pic = picHTML("space", [kk(/^Echo$/), kk(/^Echo time/), kk(/^Reverb$/), kk(/^Size/), kk(/^Damping/, /^Reverb/), kk(/^Predelay/, /^Reverb/)], COL.pad, 120);
+    if (/^Master/.test(x.name)) pic = picHTML("comp", [kk(/^Ratio/), kk(/^Thresh/), kk(/^Make-up/), kk(/^Ceiling/)], COL.acc, 150);
+    return ks.length ? '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + pic + '<div class="ctls">' + ks.map((k) => ctlHTML(k.p, k.label)).join("") + "</div></div>" : "";
   }).join("") + "</div>";
   $("desk").innerHTML = h;
-  syncCtls();
+  syncCtls(); drawPics();
 }
 $("desk").addEventListener("click", (e) => {
   const b = e.target.closest(".mute");
@@ -1546,6 +1572,263 @@ $("saveEmu").addEventListener("click", async () => {
   say(r.ok ? "Saved: " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + " is in the emulator's bank (this browser). The Library & pieces page can send it to the FM-1." : "The emulator is writing; try again in a moment.", !r.ok);
   if (view === "song") songRender();
 });
+
+
+/* ======================================================================== pictures: a section's settings drawn, its knobs as handles on the drawing
+ * Each kind draws from the piece's values and answers its handles: {x, y, px, py (the settings a drag moves along x and y), ax, ay (the pixel spans of
+ * their ranges: [at min, at max]), name}. A drag moves the handle's settings; hovering names it; the knobs under the picture stay in step. */
+const PICS = {};
+const hexA = (c, a) => c + Math.round(a * 255).toString(16).padStart(2, "0");
+const pv = (p) => (Number.isFinite(p) ? parV(p) : 0);
+const pf = (p) => (Number.isFinite(p) ? (parV(p) - meta(p).min) / Math.max(1, meta(p).max - meta(p).min) : 0);   // 0..1
+function picHTML(kind, ps, col, h) {
+  return '<canvas class="pic" data-pic="' + kind + '" data-ps="' + ps.map((p) => (Number.isFinite(p) ? p : "x")).join(",") + '" data-col="' + (col || COL.acc) + '" style="height:' + (h || 120) + 'px"></canvas>';
+}
+function drawPic(cv) {
+  if (!io) return;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (!W) return;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext("2d"), ps = cv.dataset.ps.split(",").map((x) => (x === "x" ? NaN : +x)), col = cv.dataset.col;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
+  g.strokeStyle = "#1c1e24"; g.lineWidth = 1;                // the screen's grid (as the unit's picture pages: 8 by 4)
+  for (let i = 1; i < 8; i++) { g.beginPath(); g.moveTo(Math.round(i * W / 8) + 0.5, 0); g.lineTo(Math.round(i * W / 8) + 0.5, H); g.stroke(); }
+  for (let i = 1; i < 4; i++) { g.beginPath(); g.moveTo(0, Math.round(i * H / 4) + 0.5); g.lineTo(W, Math.round(i * H / 4) + 0.5); g.stroke(); }
+  const hs = (PICS[cv.dataset.pic] || (() => []))(g, W, H, ps, col) || [];
+  cv._hs = hs;
+  for (const h of hs) {                                        // the handles: a ring, amber when in hand or hovered
+    const hot = cv._hot === h.name;
+    g.beginPath(); g.arc(h.x, h.y, hot ? 7 : 5.5, 0, Math.PI * 2);
+    g.fillStyle = hot ? COL.acc : COL.bg; g.fill(); g.lineWidth = 2; g.strokeStyle = hot ? COL.acc : COL.ink; g.stroke();
+  }
+  const hot = hs.find((h) => h.name === cv._hot);
+  if (hot) {                                                   // what the handle in hand is, and its values
+    const t = hot.name + "  " + [hot.px, hot.py].filter((p) => Number.isFinite(p)).map((p) => valText(p, parV(p))).join(" · ");
+    g.font = FONT(700, 12); const tw = g.measureText(t).width;
+    g.fillStyle = "rgba(14,15,18,.85)"; g.fillRect(W - tw - 14, 4, tw + 10, 18); g.fillStyle = COL.acc; g.fillText(t, W - tw - 9, 17);
+  }
+}
+const drawPics = () => document.querySelectorAll("canvas.pic").forEach(drawPic);
+function label(g, t, x, y, c) { g.font = "600 10px 'Chakra Petch', sans-serif"; g.fillStyle = c || COL.dim; g.fillText(t, x, y); }
+function curve(g, pts, col, fillTo) {                          // a line through the points, a faint fill under it
+  g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  if (fillTo !== undefined) { g.save(); g.lineTo(pts[pts.length - 1][0], fillTo); g.lineTo(pts[0][0], fillTo); g.closePath(); g.fillStyle = hexA(col, 0.16); g.fill(); g.restore();
+    g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); }
+  g.strokeStyle = col; g.lineWidth = 2; g.stroke();
+}
+// the pad's breath: attack up, hold, release down, rest
+PICS.env4 = (g, W, H, [A, Hd, R, Rs], col) => {
+  const pad = 12, seg = (W - 2 * pad) / 4.3, top = 26, base = H - 16;
+  const xa = pad + pf(A) * seg, xh = xa + pf(Hd) * seg, xr = xh + pf(R) * seg + 2, xs = xr + pf(Rs) * seg;
+  const pts = [[pad, base], [xa, top], [xh, top]];
+  for (let i = 1; i <= 16; i++) { const t = i / 16; pts.push([xh + (xr - xh) * t, top + (base - top) * (1 - Math.pow(1 - t, 2.2))]); }
+  pts.push([xs, base]);
+  curve(g, pts, col, base);
+  label(g, "ATTACK", pad + 2, H - 4); label(g, "HOLD", xa + 2, H - 4); label(g, "RELEASE", xh + 4, H - 4); label(g, "REST", xr + 4, H - 4);
+  label(g, "THE BREATH: A PAD NOTE'S LIFE", pad, 14);
+  return [{ name: "Attack", x: xa, y: top, px: A, ax: [pad, pad + seg] }, { name: "Hold", x: xh, y: top, px: Hd, ax: [xa, xa + seg] },
+          { name: "Release", x: xr, y: base, px: R, ax: [xh + 2, xh + seg + 2] }, { name: "Rest", x: xs, y: base, px: Rs, ax: [xr, xr + seg] }];
+};
+// the bass's envelope: attack to its amount, decay; when it starts again (Trigger)
+PICS.env3 = (g, W, H, [T, A, Dc, Am], col) => {
+  const pad = 12, seg = (W - 2 * pad) / 2.4, top = 26, base = H - 16, yp = base - (0.1 + 0.9 * pf(Am)) * (base - top);
+  const xa = pad + pf(A) * seg * 0.6, xd = xa + (0.08 + pf(Dc)) * seg;
+  const pts = [[pad, base], [xa, yp]];
+  for (let i = 1; i <= 20; i++) { const t = i / 20; pts.push([xa + (xd - xa) * t, yp + (base - yp) * (1 - Math.exp(-3.2 * t)) / (1 - Math.exp(-3.2))]); }
+  curve(g, pts, col, base);
+  label(g, "THE FILTER'S ENVELOPE · AGAIN ON EACH " + String(valText(T, parV(T))).toUpperCase(), pad, 14);
+  return [{ name: "Attack · amount", x: xa, y: yp, px: A, ax: [pad, pad + seg * 0.6], py: Am, ay: [base - 0.1 * (base - top), top] },
+          { name: "Decay", x: xd, y: base, px: Dc, ax: [xa + 0.08 * seg, xa + 1.08 * seg] }];
+};
+// a filter: its response over the frequencies (type from FILTERS), the cutoff and resonance as one handle; the acid's envelope as an arrow
+PICS.filt = (g, W, H, [C, Q, Ty, Em], col) => {
+  const pad = 12, w = W - 2 * pad, top = 22, base = H - 14, xc = pad + pf(C) * w, q = pf(Q), type = Number.isFinite(Ty) ? parV(Ty) : 0;
+  const ydb = (db) => top + (14 - Math.max(-36, Math.min(14, db))) / 50 * (base - top);
+  const resp = (d) => {                                        // d: octaves from the cutoff (about); dB
+    const bump = q * 13 * Math.exp(-Math.pow(d * 2.6, 2));
+    switch (type) {
+      case 1: return (d < 0 ? d * 22 : 0) + bump;
+      case 2: return -Math.abs(d) * 16 + bump * 1.2;
+      case 3: return -34 * Math.exp(-Math.pow(d * 3.2 / (0.4 + q), 2));
+      case 4: return bump * 1.15 + 1;
+      default: return (d > 0 ? -d * 22 : 0) + bump;
+    }
+  };
+  const pts = [];
+  for (let x = pad; x <= pad + w; x += 2) pts.push([x, ydb(resp((x - xc) / w * 7))]);
+  curve(g, pts, col, base);
+  g.strokeStyle = "#3a3e4a"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(pad, ydb(0)); g.lineTo(pad + w, ydb(0)); g.stroke(); g.setLineDash([]);
+  label(g, (["LOW-PASS", "HIGH-PASS", "BAND-PASS", "NOTCH", "PEAK"][type] || "") + "  ·  LOW ← FREQUENCY → HIGH", pad, 14);
+  const hs = [{ name: "Cutoff · resonance", x: xc, y: ydb(resp(0)), px: C, ax: [pad, pad + w], py: Q, ay: [ydb(0), ydb(13)] }];
+  if (Number.isFinite(Em)) {                                   // the envelope opens it this far on each note
+    const xe = xc + pf(Em) * w * 0.45, ye = base - 10;
+    g.strokeStyle = COL.acc; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(xc, ye); g.lineTo(xe, ye); g.stroke(); g.setLineDash([]);
+    g.beginPath(); g.moveTo(xe, ye); g.lineTo(xe - 6, ye - 4); g.lineTo(xe - 6, ye + 4); g.closePath(); g.fillStyle = COL.acc; g.fill();
+    label(g, "ENV MOD", xc + 4, ye - 5, COL.acc);
+    hs.push({ name: "Env mod", x: xe, y: ye, px: Em, ax: [xc, xc + w * 0.45] });
+  }
+  return hs;
+};
+// the acid's note: its decay, an accented note taller and longer, the slide's time into the next
+PICS.adec = (g, W, H, [Dc, Ac, Sl], col) => {
+  const pad = 12, seg = (W - 2 * pad) * 0.42, top = 24, base = H - 16, yN = base - 0.55 * (base - top), yA = base - (0.55 + 0.45 * pf(Ac)) * (base - top);
+  const xd = pad + (0.1 + pf(Dc) * 0.9) * seg, xda = pad + (0.1 + pf(Dc) * 0.9) * seg * (1 + 0.5 * pf(Ac));
+  const dec = (y0, x1) => { const p = []; for (let i = 0; i <= 20; i++) { const t = i / 20; p.push([pad + (x1 - pad) * t, y0 + (base - y0) * (1 - Math.exp(-3 * t)) / (1 - Math.exp(-3))]); } return p; };
+  g.setLineDash([4, 3]); curve(g, dec(yA, xda), COL.ink); g.setLineDash([]);
+  curve(g, dec(yN, xd), col, base);
+  const sx = pad + seg + 30, sw = (W - sx - pad), xs = sx + (0.08 + 0.92 * pf(Sl)) * sw * 0.8, ys0 = base - 12, ys1 = top + 18;
+  g.strokeStyle = col; g.lineWidth = 3; g.beginPath(); g.moveTo(sx, ys0); g.lineTo(sx + 14, ys0); g.lineTo(xs, ys1); g.lineTo(xs + 18, ys1); g.stroke();
+  label(g, "A NOTE (ACCENTED: DASHED)", pad, 14); label(g, "SLIDE INTO THE NEXT", sx, 14);
+  return [{ name: "Decay", x: xd, y: base, px: Dc, ax: [pad + 0.1 * seg, pad + seg] }, { name: "Accent", x: pad, y: yA, py: Ac, ay: [yN, top] },
+          { name: "Slide", x: xs, y: ys1, px: Sl, ax: [sx + 0.08 * sw * 0.8, sx + sw * 0.8] }];
+};
+// one decay (the pluck's)
+PICS.dec1 = (g, W, H, [Dc], col) => {
+  const pad = 12, w = (W - 2 * pad) * 0.8, top = 24, base = H - 16, xd = pad + (0.06 + 0.94 * pf(Dc)) * w;
+  const pts = [[pad, base], [pad + 2, top]];
+  for (let i = 1; i <= 24; i++) { const t = i / 24; pts.push([pad + 2 + (xd - pad - 2) * t, top + (base - top) * (1 - Math.exp(-4 * t)) / (1 - Math.exp(-4))]); }
+  curve(g, pts, col, base);
+  label(g, "A PLUCKED NOTE", pad, 14);
+  return [{ name: "Decay", x: xd, y: base, px: Dc, ax: [pad + 0.06 * w, pad + w] }];
+};
+// an LFO: its shape over two bars at its rate (a click on the picture: the next shape), its depth as the swing
+const cyclesPerBar = (t) => {
+  t = String(t || "");
+  let m = /^(\d+) bars?$/.exec(t);
+  if (m) return 1 / +m[1];
+  m = /^1\/(\d+)(T|\.)?$/.exec(t);
+  if (!m) return 1;
+  let c = +m[1] / 4;                                           // a note of 1/n: n/4 a beat... per bar of four beats: n
+  c = +m[1];
+  return m[2] === "T" ? c * 1.5 : m[2] === "." ? c / 1.5 : c;
+};
+PICS.lfo = (g, W, H, [Dp, Sh, Tg, Rt], col) => {
+  const pad = 12, w = W - 2 * pad, mid = H / 2 + 6, amp = (0.05 + 0.95 * pf(Dp)) * (H / 2 - 18), shape = parV(Sh), cyc = cyclesPerBar(valText(Rt, parV(Rt))) * 2;
+  g.strokeStyle = "#3a3e4a"; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(pad + w / 2, 18); g.lineTo(pad + w / 2, H - 4); g.stroke(); g.setLineDash([]);
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1, steps = [];
+  const val = (ph) => {
+    const f = ph - Math.floor(ph);
+    switch (shape) {
+      case 1: return f < 0.5 ? 4 * f - 1 : 3 - 4 * f;
+      case 2: return 2 * f - 1;
+      case 3: return f < 0.5 ? 1 : -1;
+      case 4: { const k = Math.floor(ph); while (steps.length <= k) steps.push(rnd()); return steps[k]; }
+      case 5: { const k = Math.floor(ph); while (steps.length <= k + 1) steps.push(rnd()); const t = f * f * (3 - 2 * f); return steps[k] * (1 - t) + steps[k + 1] * t; }
+      default: return Math.sin(ph * Math.PI * 2);
+    }
+  };
+  const pts = [];
+  for (let x = 0; x <= w; x += 1.5) pts.push([pad + x, mid - val(x / w * cyc) * amp]);
+  curve(g, pts, col);
+  label(g, String(P[PE.P_PL_SHAPE] ? valText(Sh, shape) : "").toUpperCase() + " · " + valText(Rt, parV(Rt)) + " · TO " + String(valText(Tg, parV(Tg))).toUpperCase() + "  (2 BARS; CLICK: NEXT SHAPE)", pad, 14);
+  const xq = pad + Math.min(w, w / Math.max(cyc, 0.5) / 4);
+  return [{ name: "Depth", x: xq, y: mid - amp, py: Dp, ay: [mid - 0.05 * (H / 2 - 18), mid - (H / 2 - 18)], click: Sh }];
+};
+// the master bus: in against out (the compressor's ratio over its threshold, the make-up, the limiter's ceiling); its reduction now beside
+PICS.comp = (g, W, H, [Ra, Th, Mk, Ce], col) => {
+  const pad = 14, sz = Math.min(W - 60, H - 24), x0 = pad, y0 = H - 10, X = (db) => x0 + (db + 48) / 48 * sz, Y = (db) => y0 - (db + 48) / 48 * sz;
+  const r = (() => { const t = String(valText(Ra, parV(Ra))); const m = /^([\d.]+):1$/.exec(t); return m ? +m[1] : 1; })();
+  const T = -40 + pf(Th) * 40, M = pf(Mk) * 12, C = -12 + pf(Ce) * 12;
+  g.strokeStyle = "#3a3e4a"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(X(-48), Y(-48)); g.lineTo(X(0), Y(0)); g.stroke(); g.setLineDash([]);
+  const pts = [];
+  for (let i = -48; i <= 0; i += 1) { let o = i < T ? i : T + (i - T) / r; o = Math.min(C, o + M); pts.push([X(i), Y(Math.max(-48, o))]); }
+  curve(g, pts, col, y0);
+  g.strokeStyle = COL.bass; g.beginPath(); g.moveTo(X(-48), Y(C)); g.lineTo(X(0), Y(C)); g.stroke();
+  label(g, "IN → OUT · " + valText(Ra, parV(Ra)) + (r === 1 ? " (OFF)" : ""), x0, 14); label(g, "CEILING", X(-48) + 4, Y(C) - 4, COL.bass);
+  if (live) {                                                  // the reduction now (dB) and the output's peak
+    const gr = (live.gr || 0) / 8, gx = x0 + sz + 18;
+    g.fillStyle = "#22252c"; g.fillRect(gx, y0 - sz, 10, sz); g.fillStyle = COL.acc; g.fillRect(gx, y0 - sz, 10, Math.min(sz, gr / 12 * sz));
+    g.fillStyle = "#22252c"; g.fillRect(gx + 16, y0 - sz, 10, sz); g.fillStyle = COL.acid; const pk = (live.peak || 0) / 255 * sz; g.fillRect(gx + 16, y0 - pk, 10, pk);
+    label(g, "GR", gx - 1, y0 + 9); label(g, "OUT", gx + 13, y0 + 9);
+  }
+  const ok = (y) => Math.max(y0 - sz, Math.min(y0, y));
+  return [{ name: "Threshold", x: X(T), y: ok(Y(Math.min(C, T + M))), px: Th, ax: [X(-40), X(0)] },
+          { name: "Make-up", x: X(0) - 4, y: ok(Y(Math.min(C, T + (0 - T) / r + M))), py: Mk, ay: [Y(Math.min(C, T + (0 - T) / r)), Y(Math.min(C, T + (0 - T) / r + 12))] },
+          { name: "Ceiling", x: X(-30), y: Y(C), py: Ce, ay: [Y(-12), Y(0)] }];
+};
+// the space: the echo's repeats at its time, the reverb's tail after its predelay, as long as its size, its damping darkening the end
+PICS.space = (g, W, H, [Ec, Et, Rv, Sz, Dm, Pd], col) => {
+  const pad = 12, w = W - 2 * pad, base = H - 14, top = 24, bar = w / 2;
+  const tlab = String(valText(Et, parV(Et))), m = /^(\d+)\/(\d+)(\.)?$/.exec(tlab);
+  const et = m ? (+m[1] / +m[2]) * (m[3] ? 1.5 : 1) : /bar/.test(tlab) ? 1 : 0.25;
+  g.fillStyle = COL.ink; g.fillRect(pad, top, 4, base - top);  // the note
+  let h = pf(Ec) * (base - top), x = pad + et * bar;
+  const hs = [];
+  for (let k = 0; k < 8 && x < pad + w; k++, x += et * bar, h *= 0.62) {
+    g.fillStyle = hexA(col, 0.8); g.fillRect(x, base - h, 4, h);
+    if (!k) hs.push({ name: "Echo", x: x + 2, y: base - h, py: Ec, ay: [base, top] });
+  }
+  const xp = pad + 6 + pf(Pd) * bar * 0.12, len = (0.1 + pf(Sz)) * bar * 1.3, rh = pf(Rv) * (base - top), grd = g.createLinearGradient(xp, 0, xp + len, 0);
+  grd.addColorStop(0, hexA(COL.pad, 0.55)); grd.addColorStop(1, hexA(COL.pad, 0.55 * (1 - 0.8 * pf(Dm))));
+  g.beginPath(); g.moveTo(xp, base);
+  for (let i = 0; i <= 30; i++) { const t = i / 30; g.lineTo(xp + len * t, base - rh * Math.exp(-3 * t)); }
+  g.lineTo(xp + len, base); g.closePath(); g.fillStyle = grd; g.fill();
+  label(g, "A NOTE, ITS ECHOES (" + tlab + ") AND THE REVERB'S TAIL · 2 BARS", pad, 14);
+  hs.push({ name: "Reverb · predelay", x: xp, y: base - rh, py: Rv, ay: [base, top], px: Pd, ax: [pad + 6, pad + 6 + bar * 0.12] });
+  hs.push({ name: "Size", x: xp + len, y: base - 3, px: Sz, ax: [xp + 0.1 * bar * 1.3, xp + 1.1 * bar * 1.3] });
+  return hs;
+};
+// the desk's stereo map: each part a dot, left to right its place (pan), up its send to the echo and the reverb
+PICS.stereo = (g, W, H, ps) => {
+  const pad = 18, w = W - 2 * pad, top = 20, base = H - 16, names = ["PAD", "BASS", "ACID", "PLUCK", "DRUMS"], cols = [COL.pad, COL.bass, COL.acid, COL.pluck, COL.drum];
+  g.strokeStyle = "#3a3e4a"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(pad + w / 2, top); g.lineTo(pad + w / 2, base); g.stroke(); g.setLineDash([]);
+  label(g, "LEFT", pad, base + 12); label(g, "RIGHT", pad + w - 28, base + 12); label(g, "↑ SEND (ECHO, REVERB)", pad, 14);
+  const hs = [];
+  for (let i = 0; i < 5; i++) {
+    const pp = ps[2 * i], sp = ps[2 * i + 1];
+    if (!Number.isFinite(pp)) continue;
+    const x = pad + pf(pp) * w, y = base - pf(sp) * (base - top), lv = live ? (live.lv || [])[i] || 0 : 0;
+    g.beginPath(); g.arc(x, y, 10 + lv / 255 * 10, 0, Math.PI * 2); g.fillStyle = hexA(cols[i], 0.25); g.fill();
+    g.font = FONT(700, 10); g.fillStyle = cols[i]; g.fillText(names[i], x + 10, y - 10 + i * 11);   // (stacked: parts often sit together)
+    hs.push({ name: names[i] + " pan · send", x, y, px: pp, ax: [pad, pad + w], py: sp, ay: [base, top] });
+  }
+  return hs;
+};
+// the drums' lanes: each hit's shape (its decay, its tune as the pitch it falls from), as loud as its level
+PICS.kit = (g, W, H, ps, col) => {
+  const pad = 8, cw = (W - 2 * pad) / 6, top = 22, base = H - 14, hs = [];
+  label(g, "EACH LANE'S HIT: LEVEL (HEIGHT), DECAY (LENGTH), TUNE (THE PITCH LINE)", pad, 14);
+  for (let l = 0; l < 6; l++) {
+    const L = ps[3 * l], Tn = ps[3 * l + 1], Dc = ps[3 * l + 2], x0 = pad + l * cw + 6, w = cw - 14, hh = (0.15 + 0.85 * pf(L)) * (base - top), len = (0.15 + 0.85 * pf(Dc)) * w;
+    const pts = [[x0, base], [x0 + 1, base - hh]];
+    for (let i = 1; i <= 16; i++) { const t = i / 16; pts.push([x0 + len * t, base - hh * Math.exp(-3.5 * t)]); }
+    curve(g, pts, col, base);
+    const ty = top + 10 + (1 - pf(Tn)) * (base - top - 20);
+    g.strokeStyle = COL.ink; g.lineWidth = 1; g.beginPath(); g.moveTo(x0, ty); g.lineTo(x0 + len, ty + 10); g.stroke();
+    label(g, D.lanes[l].toUpperCase().slice(0, 6), x0, base + 11);
+    hs.push({ name: D.lanes[l] + " level · decay", x: x0 + len, y: base - hh, px: Dc, ax: [x0 + 0.15 * w, x0 + w], py: L, ay: [base - 0.15 * (base - top), top] });
+    hs.push({ name: D.lanes[l] + " tune", x: x0 + 4, y: ty, py: Tn, ay: [base - 10, top + 10] });
+  }
+  return hs;
+};
+// the hand on a picture
+let pdrag = null;
+const picAt = (cv, e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+const nearest = (cv, x, y) => { let best = null, bd = 18; for (const h of cv._hs || []) { const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = h; } } return best; };
+const fromSpan = (p, v, span) => meta(p).min + (v - span[0]) / (span[1] - span[0] || 1) * (meta(p).max - meta(p).min);
+document.addEventListener("pointerdown", (e) => {
+  const cv = e.target.closest && e.target.closest("canvas.pic");
+  if (!cv || !io) return;
+  e.preventDefault();                                         // (a drag on a picture never selects the page's text)
+  const [x, y] = picAt(cv, e), h = nearest(cv, x, y);
+  if (!h) { const lf = (cv._hs || []).find((k) => Number.isFinite(k.click)); if (lf) setFromCtl(lf.click, (parV(lf.click) + 1) % (meta(lf.click).max + 1)); return; }
+  pdrag = { cv, h };
+  cv._hot = h.name; cv.setPointerCapture(e.pointerId); e.preventDefault();
+});
+document.addEventListener("pointermove", (e) => {
+  const cv = pdrag ? pdrag.cv : e.target.closest && e.target.closest("canvas.pic");
+  if (!cv) return;
+  const [x, y] = picAt(cv, e);
+  if (!pdrag) { const h = nearest(cv, x, y), n = h ? h.name : null; if (cv._hot !== n) { cv._hot = n; drawPic(cv); } cv.style.cursor = h ? "grab" : "default"; return; }
+  const h = pdrag.h;
+  let ch = false;
+  if (Number.isFinite(h.px)) ch = parSetV(h.px, fromSpan(h.px, x, h.ax)) || ch;
+  if (Number.isFinite(h.py)) ch = parSetV(h.py, fromSpan(h.py, y, h.ay)) || ch;
+  if (ch) changed();
+});
+document.addEventListener("pointerup", () => { if (pdrag) { pdrag = null; drawPics(); } });
 
 refresh();
 </script>
