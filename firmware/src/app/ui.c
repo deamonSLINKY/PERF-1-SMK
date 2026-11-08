@@ -4912,6 +4912,8 @@ static void draw_help(void)
 
 /* the FX menu (FX on): the 27 keys, F3 at the top left, down the columns; an effect held, lit */
 static void console_fx(void);
+static void con_tile(int k, const char *lb, uint16_t kc, int on, int locked);
+static int32_t con_chip(int32_t x, const char *t, int lit);
 static void draw_fx(void)
 {
     int k;
@@ -4984,12 +4986,8 @@ static void console_fx(void)
     static const char *const BANK[4] = {"FX", "BEAT", "FLEX", "SNIPS"};
     int k;
     int32_t x = 2;
-    for (k = 0; k < 4; k++) {                    /* the banks: the dial walks them */
-        const int32_t w = text_w(&FONT_XS, BANK[k]) + 10;
-        cv_rect(x, 1, w, 12, k == fx_bank ? K_ACC : K_PANEL);
-        cv_text(x + 5, -2, &FONT_XS, BANK[k], k == fx_bank ? K_BG : K_DIM);
-        x += w + 2;
-    }
+    for (k = 0; k < 4; k++)                      /* the banks: the dial walks them */
+        x = con_chip(x, BANK[k], k == fx_bank);
     {
         const char *hd = fx_bank == 3 ? "HOLD TO PLAY" : ui.lock_mode ? "LOCK: TAP A KEY" : "TAP LATCHES";
         cv_text(236 - text_w(&FONT_XS, hd), -2, &FONT_XS, hd, ui.lock_mode ? K_ACC : K_DIM);
@@ -5002,6 +5000,7 @@ static void console_fx(void)
         const char *lb, *t = EN_NOTE_NAME[pc];   /* (the note without its octave: the columns say where) */
         uint16_t kc;
         int on, locked = 0;
+        (void)tx, (void)ty, (void)base, (void)t;
         if (fx_bank == 3) {
             lb = en_dj_name(k), kc = KC_MOVE, on = (int)(ui.keys >> k & 1u);
         } else if (fx_bank == 0 && k == FILL_KEY) {
@@ -5014,13 +5013,7 @@ static void console_fx(void)
             lb = key_flex(k) >= 0 ? FLEX_LABEL[key_flex(k)] : FX_LABEL[KEY_FX[fx_bank][k]];
             kc = fx_color(KEY_FX[fx_bank][k]), on = key_on(k), locked = key_locked(k);
         }
-        cv_rect(tx, ty, 76, 13, on ? kc : base);
-        if (!on)
-            cv_rect(tx, ty, 2, 13, kc);
-        if (locked)                              /* latched: a dark line along its foot */
-            cv_rect(tx + 2, ty + 11, 72, 2, K_BG);
-        cv_text(tx + 4, ty - 1, &FONT_XS, t, on ? K_BG : K_DIM);
-        cv_text(tx + 20, ty - 1, &FONT_XS, lb, on ? K_BG : kc);
+        con_tile(k, lb, kc, on, locked);         /* (latched: a dark line along its foot) */
     }
 }
 
@@ -5372,6 +5365,28 @@ static void draw_shift(void)
                                       "SEQ          LINKS ON / OFF", "FX           EDIT PAGES"};
     const char *const *l = ui.view == V_SEQ ? SQ : ui.fx_menu && !ui.fx_page ? FXG : GEN;
     int k;
+    if (LOOK_CONSOLE) {                          /* (0.17.9) a tab; each line the key on a chip, what it does beside it */
+        const int32_t x = con_chip(2, "SHIFT", 1);
+        cv_text(x + 2, -2, &FONT_XS, "SEL HELD +", K_DIM);
+        for (k = 0; k < 8; k++) {
+            const char *q = ui.view == V_ACLINE && l == GEN && k == 0 ? "MUTATE    WHAT IT CHANGES" : l[k];
+            char key[16];
+            int j = 0;
+            const int32_t y = 17 + k * 15;
+            if (!q[0])
+                continue;
+            while (*q && !(q[0] == ' ' && q[1] == ' ') && j < 15)   /* the key: up to the gap */
+                key[j++] = *q++;
+            key[j] = 0;
+            while (*q == ' ')
+                q++;
+            cv_rect(4, y, 232, 13, k & 1 ? mix(K_BG, K_PANEL, 6) : K_PANEL);
+            cv_rect(4, y, 2, 13, K_ACC);
+            cv_text(10, y - 1, &FONT_XS, key, K_ACC);
+            cv_text(100, y - 1, &FONT_XS, q, K_TEXT);
+        }
+        return;
+    }
     cv_text(4, 1, &FONT_XS, "SHIFT: SEL +", K_ACC);
     for (k = 0; k < 8; k++)
         if (l[k][0])
@@ -5405,14 +5420,44 @@ static void cpu_line(char *c)
     c[n] = 0;
 }
 
+/* the Console look's key tiles (0.17.9: the FX menu's, the mix's): key k in the menus' columns (F3 top left, down), its note, its label in its
+ * colour on a stripe; the whole tile lit while on, a dark foot while latched; the black keys' rows darker */
+static void con_tile(int k, const char *lb, uint16_t kc, int on, int locked)
+{
+    const int32_t tx = 2 + (k / 9) * 79, ty = 16 + (k % 9) * 14;
+    const int pc = (5 + k) % 12;
+    const int black = pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10;
+    const uint16_t base = black ? mix(K_BG, K_PANEL, 7) : K_PANEL;
+    cv_rect(tx, ty, 76, 13, on ? kc : base);
+    if (!on)
+        cv_rect(tx, ty, 2, 13, kc);
+    if (locked)
+        cv_rect(tx + 2, ty + 11, 72, 2, K_BG);
+    cv_text(tx + 4, ty - 1, &FONT_XS, EN_NOTE_NAME[pc], on ? K_BG : K_DIM);
+    cv_text(tx + 20, ty - 1, &FONT_XS, lb, on ? K_BG : kc);
+}
+static int32_t con_chip(int32_t x, const char *t, int lit)   /* a tab along the top: lit (the accent, dark text) or not; where it ends */
+{
+    const int32_t w = text_w(&FONT_XS, t) + 10;
+    cv_rect(x, 1, w, 12, lit ? K_ACC : K_PANEL);
+    cv_text(x + 5, -2, &FONT_XS, t, lit ? K_BG : K_DIM);
+    return x + w + 2;
+}
+
 /* the track mix (GLO held): the keys, as the FX menu's, each its track's mute (M:) or solo (S:), lit while on */
 static void draw_mix(void)
 {
     int k;
     char c[40];
-    cv_text(4, 1, &FONT_XS, "MIX: GLO + KEY", K_ACC);
     cpu_line(c);
-    cv_text(118, 1, &FONT_XS, c, K_DIM);
+    if (LOOK_CONSOLE) {                          /* (0.17.9) a tab, what the keys do, the load at the right */
+        const int32_t x = con_chip(2, "MIX", 1);
+        cv_text(x + 2, -2, &FONT_XS, "GLO + KEY", K_DIM);
+        cv_text(236 - text_w(&FONT_XS, c), -2, &FONT_XS, c, K_DIM);
+    } else {
+        cv_text(4, 1, &FONT_XS, "MIX: GLO + KEY", K_ACC);
+        cv_text(118, 1, &FONT_XS, c, K_DIM);
+    }
     if (ui.dj_on) {                            /* the auto-DJ: where it is, under the load */
         char d[24];
         const char *pn = ui.dj_phase == 0 ? "DJ GROOVE " : ui.dj_phase == 1 ? "DJ BREAK " : "DJ BUILD ";
@@ -5430,7 +5475,9 @@ static void draw_mix(void)
             d[n++] = (char)('0' + DJ_ROUNDS[ui.dj_rounds & 3]);
             d[n] = 0;
         }
-        cv_text(118, 8, &FONT_XS, d, K_ACC);
+        if (LOOK_CONSOLE)                        /* (the Console look: in place of the load, which it sits over) */
+            cv_rect(118, 0, 120, 14, K_BG);
+        cv_text(LOOK_CONSOLE ? 236 - text_w(&FONT_XS, d) : 118, LOOK_CONSOLE ? -2 : 8, &FONT_XS, d, K_ACC);
     }
     for (k = 0; k < NKEYS; k++) {
         int code = MIXK[k], on = mix_state(k);
@@ -5491,6 +5538,10 @@ static void draw_mix(void)
             const uint16_t kc = code < 8 || code == 16 ? KC_MUTE : (code >= 8 && code < 16) || code == 17 ? KC_FILTER :
                                 (code >= 20 && code <= 23) ? KC_REPEAT : (code >= 25 && code <= 27) ? KC_GATE :
                                 code == 24 || code == 28 || code == 30 ? KC_MOVE : KC_BUILD;
+            if (LOOK_CONSOLE) {
+                con_tile(k, lb, kc, on, 0);
+                continue;
+            }
             if (on)
                 cv_round(x - 1, y - 1, 77, 14, 2, kc);
             else
@@ -5599,6 +5650,59 @@ static void sc_screen(void)                      /* the screen: dark, eight colu
         cv_rect(SC_X + k * SC_W / 8, sc_oy, 1, sc_oh, mix(SC_SCREEN, K_LINE, k == 4 ? 9 : 5));
     for (k = 1; k < 4; k++)
         cv_rect(SC_X, sc_oy + k * sc_oh / 4, SC_W, 1, mix(SC_SCREEN, K_LINE, 5));
+}
+
+/* the step pages and Answer (0.17.9): sixteen steps as a roll, the line pages' look. A block a note at its height (lv: 0 a rest, 1 soft, 2 a note,
+ * 3 an accent, taller), a slide a line into its note (slide_in: bit s, step s glides in from the one before); the step chosen lit with a mark at
+ * its foot, the step playing white with a mark at its head, past the length dim. lo, span: the notes' range (span 0: from the notes) */
+static void step_roll(int32_t y0, int32_t h, uint16_t col, const int16_t *pit, const uint8_t *lv, uint32_t slide_in, int len, int cur, int pos, int lo,
+                      int span)
+{
+    const int32_t x0 = 8, cw = 14;
+    int st, px = -1, py = 0;
+    if (span <= 0) {
+        int hi = -1000;
+        lo = 1000;
+        for (st = 0; st < 16; st++)
+            if (lv[st]) {
+                lo = pit[st] < lo ? pit[st] : lo;
+                hi = pit[st] > hi ? pit[st] : hi;
+            }
+        span = hi - lo;
+    }
+    if (span < 7)
+        span = 7;
+    cv_rect(x0 - 2, y0, 16 * cw + 4, h, mix(K_PANEL, col, 2));
+    for (st = 0; st < 16; st++) {
+        const int32_t x = x0 + st * cw;
+        if (st == cur)
+            cv_rect(x, y0, cw, h, mix(K_PANEL, col, 5));
+        else if (st >= len)
+            cv_rect(x, y0, cw, h, mix(K_BG, K_PANEL, 6));
+        cv_rect(x, y0, 1, h, st % 4 ? mix(K_PANEL, K_LINE, 8) : K_LINE);
+        if (st == pos)
+            cv_rect(x + 1, y0, cw - 1, 2, K_TEXT);
+        if (st == cur)
+            cv_rect(x + 1, y0 + h - 2, cw - 1, 2, K_ACC);
+    }
+    for (st = 0; st < 16; st++) {
+        const int32_t x = x0 + st * cw + 2;
+        int32_t y;
+        uint16_t c;
+        if (!lv[st]) {
+            px = -1;
+            continue;
+        }
+        y = y0 + h - 9 - (int32_t)(pit[st] - lo) * (h - 16) / span;
+        y = y < y0 + 4 ? y0 + 4 : y > y0 + h - 9 ? y0 + h - 9 : y;
+        c = st >= len ? K_LINE : st == pos ? K_TEXT : lv[st] == 3 ? col : lv[st] == 1 ? mix(K_PANEL, col, 6) : mix(K_PANEL, col, 11);
+        if (px >= 0 && (slide_in >> st & 1u)) {  /* a slide: a line from the note before into this one */
+            cv_line(px, py + 1, x, y + 1, c);
+            cv_line(px, py + 2, x, y + 2, c);
+        }
+        cv_rect(x, y - (lv[st] == 3 ? 1 : 0), cw - 4, lv[st] == 3 ? 6 : 4, c);
+        px = x + cw - 5, py = y;
+    }
 }
 static void scope_dot(float u, uint16_t col)     /* the dot at u (0..1 across) riding the trace */
 {
@@ -5853,8 +5957,21 @@ static void draw_scope(int kind)
         const char *tx = ORD[(proj.par[P_AC_EVERY] < 0 ? 0 : proj.par[P_AC_EVERY] > 7 ? 7 : proj.par[P_AC_EVERY]) + (proj.par[P_AC_CHANCE] ? 8 : 0)];
         sc_title("ANSWER", K_ACID);
         sc_sub(resp ? "THE LINE ASKS, THEN ANSWERS" : "OFF: TURN ANSWER", K_DIM);
+        int16_t ap[2][16];
+        uint8_t al[2][16];
+        int lo = 127, hi = 0;
+        for (row = 0; row < 2; row++)            /* (both on one scale, so an octave up is seen up) */
+            for (s = 0; s < 16; s++) {
+                const int n = en_acid_preview(s, row ? resp : 0);
+                ap[row][s] = (int16_t)(n < 0 ? 0 : n);
+                al[row][s] = (uint8_t)(n >= 0 ? 2 : 0);
+                if (n >= 0) {
+                    lo = n < lo ? n : lo;
+                    hi = n > hi ? n : hi;
+                }
+            }
         for (row = 0; row < 2; row++) {
-            const int32_t top = row ? 78 : 30, h = 36;
+            const int32_t top = row ? 83 : 31, h = 36;
             const int r = row ? resp : 0;
             if (row && resp) {
                 char lb[28];
@@ -5866,29 +5983,15 @@ static void draw_scope(int kind)
                 while (*d && j < 26)
                     lb[j++] = *d++;
                 lb[j] = 0;
-                cv_text(4, top - 8, &FONT_XS, lb, en_acid_ans ? K_TEXT : K_ACC);
+                cv_text(4, top - 14, &FONT_XS, lb, en_acid_ans ? K_TEXT : K_ACC);
             } else {
-                cv_text(4, top - 8, &FONT_XS, row ? RN[0] : "CALL", en_acid_ans && !row ? K_DIM : row ? K_ACC : K_ACID);
+                cv_text(4, top - 14, &FONT_XS, row ? RN[0] : "CALL", en_acid_ans && !row ? K_DIM : row ? K_ACC : K_ACID);
             }
             if (row)
-                cv_text(236 - text_w(&FONT_XS, tx), top - 8, &FONT_XS, tx, K_DIM);
-            cv_rect(10, top + h, 220, 1, K_LINE);
-            for (s = 0; s < 16; s++) {
-                const int n = en_acid_preview(s, r);
-                const int32_t x = 12 + s * 13;
-                if (s >= len) {
-                    cv_rect(x + 4, top + h - 1, 3, 1, K_LINE);
-                    continue;
-                }
-                if (n < 0) {
-                    cv_rect(x + 4, top + h - 1, 3, 1, K_LINE);
-                } else {
-                    const int32_t y = top + h - 3 - (int32_t)(n - 28) * (h - 5) / 68;
-                    cv_rect(x, y, 10, 3, row ? K_ACC : K_ACID);
-                }
-                if (en_playing && s == (int)en_acid_pos)
-                    cv_rect(x, top + h + 2, 10, 1, K_TEXT);
-            }
+                cv_text(236 - text_w(&FONT_XS, tx), top - 14, &FONT_XS, tx, K_DIM);
+            (void)r;
+            step_roll(top, h, row ? K_ACC : K_ACID, ap[row], al[row], row ? 0u : ((uint32_t)en_acid_slide << 1) & 0xFFFFu, len, -1,
+                      en_playing ? (int)en_acid_pos : -1, lo, hi - lo);   /* (the call's slides; an answer's are its own) */
         }
         return;
     }
@@ -5996,27 +6099,15 @@ static void draw_scope(int kind)
         as_sync();
         sc_title("ACID STEPS", K_ACID);
         sc_sub(proj.par[P_AC_LOCK] ? "FROZEN" : "FREE: IT EVOLVES", proj.par[P_AC_LOCK] ? K_ACC : K_DIM);
-        for (s = 0; s < 16; s++) {
-            const int32_t x0 = 16 + s * 13;
-            const int kind_s = as_kind(s), cur = s == (int)(ui.astp & 15u), beyond = s >= len;
-            const int p = ui.as_off[s] + 7 * ui.as_oct[s];
-            const int32_t h = 6 + p * 2;
-            if (cur)
-                cv_rect(x0 - 1, 24, 13, 84, K_PANEL);
-            if (s % 4 == 0)
-                cv_rect(x0 - 1, 23, 1, 86, K_LINE);
-            if (kind_s) {
-                const uint16_t c = beyond ? K_DIM : kind_s == 2 || kind_s == 4 ? K_ACC : K_ACID;
-                cv_rect(x0, 100 - h, 9, h, c);
-                if (kind_s >= 3)
-                    cv_rect(x0 + 9, 100 - h, 4, 3, beyond ? K_DIM : K_ACID);     /* the slide: into the next */
-            } else {
-                cv_rect(x0 + 3, 99, 4, 1, K_LINE);
+        {   /* the roll: a step's height its note and octave, an accent taller, a slide drawn into the next (0.17.9) */
+            int16_t pit[16];
+            uint8_t lv[16];
+            for (s = 0; s < 16; s++) {
+                const int k = as_kind(s);
+                pit[s] = (int16_t)(ui.as_off[s] + 7 * ui.as_oct[s]);
+                lv[s] = (uint8_t)(!k ? 0 : k == 2 || k == 4 ? 3 : 2);
             }
-            if (en_playing && s == (int)en_acid_pos)
-                cv_rect(x0, 104, 9, 2, K_TEXT);
-            if (cur)
-                cv_rect(x0 - 1, 107, 13, 1, K_ACC);
+            step_roll(22, 86, K_ACID, pit, lv, ((uint32_t)ui.as_slide << 1) & 0xFFFFu, len, ui.astp & 15, en_playing ? (int)en_acid_pos : -1, 0, 0);
         }
         {
             static const char *const KN[5] = {"REST", "NOTE", "ACCENT", "SLIDE", "ACCENT + SLIDE"};
@@ -6116,24 +6207,18 @@ static void draw_scope(int kind)
         const int on = proj.par[P_BL_MODE] == EN_BL_STEPS;
         sc_title("BASS STEPS", K_BASS);
         sc_sub(on ? "PLAYING" : "OFF: AN EDIT PLAYS THEM", on ? K_ACC : K_DIM);
-        for (s = 0; s < 16; s++) {
-            const int v = en_bs[s], kd = EN_BS_KIND(v), cur = s == (int)(ui.bstp & 15u);
-            const int32_t x0 = 16 + s * 13, h = 8 + (int32_t)(EN_BS_NOTE(v) + 7 * EN_BS_OCT(v)) * 3;
-            if (cur)
-                cv_rect(x0 - 1, 24, 13, 84, K_PANEL);
-            if (s % 4 == 0)
-                cv_rect(x0 - 1, 23, 1, 86, K_LINE);
-            if (kd) {
-                cv_rect(x0, 100 - h, 9, h, kd == 2 || kd == 4 ? K_ACC : K_BASS);
-                if (kd >= 3 && s > 0)
-                    cv_rect(x0 - 4, 100 - h, 4, 2, K_TEXT);   /* (a glide: joined to the step before) */
-            } else {
-                cv_rect(x0 + 3, 99, 4, 1, K_LINE);
+        {   /* the roll: a step's height its note and octave, an accent taller, a glide drawn in from the step before (0.17.9) */
+            int16_t pit[16];
+            uint8_t lv[16];
+            uint32_t gl = 0;
+            for (s = 0; s < 16; s++) {
+                const int v = en_bs[s], kd = EN_BS_KIND(v);
+                pit[s] = (int16_t)(EN_BS_NOTE(v) + 7 * EN_BS_OCT(v));
+                lv[s] = (uint8_t)(!kd || kd > 4 ? 0 : kd == 2 || kd == 4 ? 3 : 2);
+                if (kd == 3 || kd == 4)
+                    gl |= 1u << s;
             }
-            if (on && en_playing && s == (int)en_bs_pos)
-                cv_rect(x0, 104, 9, 2, K_TEXT);
-            if (cur)
-                cv_rect(x0 - 1, 107, 13, 1, K_ACC);
+            step_roll(22, 86, K_BASS, pit, lv, gl, 16, ui.bstp & 15, on && en_playing ? (int)en_bs_pos : -1, 0, 0);
         }
         {
             static const char *const KN[5] = {"REST", "NOTE", "ACCENT", "GLIDE", "ACC+GLIDE"};
@@ -6155,22 +6240,14 @@ static void draw_scope(int kind)
         char tx[24];
         sc_title("PLUCK STEPS", KC_COLOR);
         sc_sub(proj.par[P_CM_LOCK] ? "FROZEN" : "FREE: DEJA VU'S LOOP", proj.par[P_CM_LOCK] ? K_ACC : K_DIM);
-        for (s = 0; s < 16; s++) {
-            const int32_t x0 = 16 + s * 13;
-            const int lv = en_cm_lvl[s], cur = s == (int)(ui.pstp & 15u);
-            const int32_t h = 8 + (int32_t)en_cm_rung[s] * 6;
-            if (cur)
-                cv_rect(x0 - 1, 24, 13, 84, K_PANEL);
-            if (s % 4 == 0)
-                cv_rect(x0 - 1, 23, 1, 86, K_LINE);
-            if (lv)
-                cv_rect(x0, 100 - h, 9, h, lv == 3 ? K_ACC : lv == 1 ? mix(K_BG, KC_COLOR, 8) : KC_COLOR);
-            else
-                cv_rect(x0 + 3, 99, 4, 1, K_LINE);
-            if (en_playing && s == (int)en_cm_pos)
-                cv_rect(x0, 104, 9, 2, K_TEXT);
-            if (cur)
-                cv_rect(x0 - 1, 107, 13, 1, K_ACC);
+        {   /* the roll: a step's height its rung, an accent taller, a soft one dim (0.17.9) */
+            int16_t pit[16];
+            uint8_t lv[16];
+            for (s = 0; s < 16; s++) {
+                pit[s] = (int16_t)en_cm_rung[s];
+                lv[s] = (uint8_t)(en_cm_lvl[s] & 3);
+            }
+            step_roll(22, 86, KC_COLOR, pit, lv, 0, 16, ui.pstp & 15, en_playing ? (int)en_cm_pos : -1, 0, 0);
         }
         {
             static const char *const LN[4] = {"REST", "SOFT", "NOTE", "ACCENT"};

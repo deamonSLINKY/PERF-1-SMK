@@ -111,3 +111,31 @@ wait 1500
 shot looks_help.png
 release LFO
 wait 300
+# the step pages and Answer as rolls (0.17.9): a block a note, an accent taller, a slide a line into its note
+turn SELECT 13 100
+wait 1200
+expect view 15
+shot looks_acsteps.png
+turn SELECT 4 100
+wait 1200
+expect view 19
+shot looks_cmsteps.png
+turn SELECT -9 100
+wait 1200
+expect view 10
+shot looks_blsteps.png
+turn SELECT 4 100
+wait 1200
+expect view 14
+shot looks_answer.png
+# the overlays: GLO held (the mix) and SEL held (the shift), the FX menu's tiles and tabs
+press GLO
+wait 700
+shot looks_mix.png
+release GLO
+wait 300
+press SEL
+wait 700
+shot looks_shift.png
+release SEL
+wait 300
