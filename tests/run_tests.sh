@@ -47,6 +47,7 @@ run core2 sh -c "$CC -O2 -ffp-contract=off -std=c11 -Wall -Wextra -DEN_HOST -Ifi
     [ \"\${s#* }\" = \"\${d#* }\" ] && [ \"\${s#* }\" = \"\${t#* }\" ] && [ \"\${s#* }\" = \"\${m#* }\" ] && echo \$s \$d \$t \$m"
 run storage sh -c "$CC -O2 -o $OUT/storage_test tests/storage_test.c && $OUT/storage_test"
 if command -v node >/dev/null 2>&1; then run websyx node tests/web_syx_test.js; fi
+if command -v node >/dev/null 2>&1; then run webmidi node tests/web_midi_test.js; fi
 if command -v node >/dev/null 2>&1; then run webbackup node tests/web_backup_test.js; fi
 if command -v node >/dev/null 2>&1; then run webota node tests/web_ota_test.mjs; fi
 if command -v node >/dev/null 2>&1; then run webidle node tests/web_idle_test.mjs; fi

@@ -2,7 +2,7 @@
 <!-- SPDX-License-Identifier: GPL-3.0-only
      PERF-1 studio: a piece over its bars (the Loom), every lane in its colour, played by the emulator (../emu/: the whole firmware in WebAssembly),
      and edited where the piece can hold it: the six drum patterns and their step tricks, the bass steps, the frozen acid and pluck lines, the
-     progression. A PERF-1 line is one bar written in scale steps above the chord's root, so the Loom draws it folded onto every chord it plays over.
+     progression; and a MIDI file put into a piece (fm1midi.js). A PERF-1 line is one bar written in scale steps above the chord's root, so the Loom draws it folded onto every chord it plays over.
      The site script (scripts/make_vis_site.py) puts in the firmware's parameter data at /*PARAMS*/, every P_ name at /*PENUM*/ and the shared
      libraries (fm1piece.js, fm1share.js ...) at /*LIB*/. The emulator's studio exports are web/emu/amb_web.c's web_st_*. -->
 <html lang="en">
@@ -64,6 +64,13 @@
   #facts b { font: 600 .9rem "Chakra Petch", sans-serif; color: var(--ink); }
   #facts span { color: var(--dim); }
   details.card { margin-top: 12px; }
+  #imp { margin-bottom: 12px; border-color: var(--acc); }
+  #imp .lbl { font: 600 .72rem "Chakra Petch", sans-serif; color: var(--dim); letter-spacing: .08em; }
+  #imptracks { border-collapse: collapse; font-size: .95rem; width: 100%; }
+  #imptracks td, #imptracks th { text-align: left; padding: 3px 10px 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  #imptracks th { font: 600 .72rem "Chakra Petch", sans-serif; color: var(--dim); letter-spacing: .08em; }
+  #impreport { color: var(--ink); margin: .4rem 0 .6rem; white-space: pre-line; }
+  input[type=number] { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: .3em .4em; font: inherit; }
   details summary { cursor: pointer; font-family: "Chakra Petch", sans-serif; font-weight: 600; letter-spacing: .04em; }
   details li { margin: 3px 0; }
   .muted { color: var(--dim); }
@@ -81,7 +88,9 @@
     <span class="sp"></span>
     <button id="load">Open a .piece or code</button>
     <input type="file" id="file" accept=".piece" hidden>
-    <button id="midi" disabled title="Next: a MIDI file into a piece (drums to the patterns, the bass to its steps, a melody to the acid or the pluck, the chords to the progression)">MIDI file</button>
+    <button id="midi" title="A MIDI file into the piece: drums to the patterns, the bass to its steps, a line to the acid or the pluck, the chords to the progression">MIDI file</button>
+    <input type="file" id="mfile" accept=".mid,.midi,.MID,audio/midi" hidden>
+    <button id="undo" hidden>Undo the import</button>
     <!-- TRACK CODES: when the firmware's track codes land (ui.c code_start: a short code such as AB3KD-7QX2M packing a generated track's seed,
          genre, key and settings), this button takes one: decode it as the firmware does, web_st_open its genre and piece (the recipe), then put its
          key, mode and tempo in with st_put. Until then it waits. -->
@@ -90,6 +99,19 @@
     <button id="code" disabled>Copy code</button>
   </div>
   <div id="msg"></div>
+  <section class="card" id="imp" hidden>
+    <div class="edhead"><h2>MIDI FILE</h2><span id="impname" class="muted"></span></div>
+    <table id="imptracks"></table>
+    <div class="bar" style="margin:.6rem 0">
+      <span class="lbl">KEY</span><select id="impRoot" aria-label="Root"></select><select id="impMode" aria-label="Mode"></select>
+      <label class="muted"><input type="checkbox" id="impKey" checked> write the key</label>
+      <label class="muted"><input type="checkbox" id="impTempo" checked> and the tempo (<span id="impBpm"></span>)</label>
+      <span class="lbl">FROM BAR</span><input type="number" id="impBar" min="1" value="1" style="width:4.5em" aria-label="Read from bar">
+      <span class="lbl">LINES FROM</span><select id="impLine" aria-label="The bar the lines come from"></select>
+    </div>
+    <p id="impreport"></p>
+    <div class="bar"><button id="impgo" class="go">Put it in the piece</button><button id="impcancel">Cancel</button></div>
+  </section>
   <section class="loomwrap">
     <canvas id="loom" height="560" aria-label="The Loom: every lane of the piece over its bars"></canvas>
     <div id="start">
@@ -867,6 +889,104 @@ $("file").addEventListener("change", async () => {
   if (!f) return;
   try { await pieceIn(pcDecodeAny(new Uint8Array(await f.arrayBuffer()))); } catch (err) { say(err.message, true); }
   $("file").value = "";
+});
+
+/* ======================================================================== a MIDI file into the piece (fm1midi.js) */
+const ROLE_NAME = { skip: "leave out", drums: "Drums", bass: "Bass", acid: "Acid", pluck: "Pluck", chords: "Chords" };
+let mf = null, mfRoles = [], undoIo = null;
+$("impRoot").innerHTML = NOTE.map((n, i) => '<option value="' + i + '">' + n + "</option>").join("");
+$("impMode").innerHTML = P[PE.P_MODE].t.map((n, i) => '<option value="' + i + '">' + n + "</option>").join("");
+function impOpts() {
+  const bar = Math.max(0, Math.min(mf.bars - 1, (+$("impBar").value || 1) - 1));
+  return { roles: mfRoles, bar, line: +$("impLine").value, root: +$("impRoot").value, mode: +$("impMode").value };
+}
+function impLines() {                                         // the bars the lines may come from (from the first bar read)
+  const o = impOpts(), n = Math.min(8, mf.bars - o.bar), was = $("impLine").value;
+  $("impLine").innerHTML = '<option value="-1">the busiest</option>' + Array.from({ length: n }, (_, i) => '<option value="' + i + '">bar ' + (o.bar + i + 1) + "</option>").join("");
+  if ([...$("impLine").options].some((x) => x.value === was)) $("impLine").value = was;
+}
+function impPreview() {
+  if (!mf) return;
+  const R = midiToPiece(mf, impOpts());
+  const what = [];
+  if (R.pats) what.push("drum patterns");
+  if (R.bass) what.push("bass steps");
+  if (R.acid) what.push("acid line");
+  if (R.pluck) what.push("pluck line");
+  if (R.prog) what.push("progression");
+  if ($("impKey").checked) what.push("key " + NOTE[+$("impRoot").value] + " " + P[PE.P_MODE].t[+$("impMode").value]);
+  if ($("impTempo").checked) what.push(Math.max(P[PE.P_TEMPO].min, Math.min(P[PE.P_TEMPO].max, R.tempo)) + " BPM");
+  $("impreport").textContent = (what.length ? "Writes: " + what.join(", ") + ".\n" : "Nothing to write: give a track a part.\n") + R.report.join("\n");
+  $("impgo").disabled = !what.length;
+  return R;
+}
+function impShow() {
+  $("impname").textContent = mf.name + " · " + mf.tracks.length + " tracks · " + mf.bars + " bars · " + mf.sig.join("/");
+  $("impBpm").textContent = Math.round(mf.bpm) + " BPM";
+  $("imptracks").innerHTML = "<tr><th>TRACK</th><th>CH</th><th>NOTES</th><th>RANGE</th><th>INTO</th></tr>" + mf.tracks.map((t, i) => {
+    const g = midiGuess(t), nm = (k) => NOTE[k % 12] + (Math.floor(k / 12) - 1);
+    return "<tr><td>" + (t.name || "track " + (i + 1)).replace(/[<&]/g, "") + "</td><td>" + [...t.chans].map((c) => c + 1).join(" ") + "</td><td>" + g.n + "</td><td>" + nm(g.lo) + " – " + nm(g.hi) +
+      '</td><td><select data-track="' + i + '">' + MIDI_ROLES.map((r) => '<option value="' + r + '"' + (mfRoles[i] === r ? " selected" : "") + ">" + ROLE_NAME[r] + "</option>").join("") + "</select></td></tr>";
+  }).join("");
+  $("impBar").max = mf.bars;
+  impLines();
+  $("imp").hidden = false;
+  impPreview();
+}
+$("midi").addEventListener("click", () => $("mfile").click());
+$("mfile").addEventListener("change", async () => {
+  const f = $("mfile").files[0];
+  $("mfile").value = "";
+  if (!f) return;
+  try {
+    mf = midiParse(new Uint8Array(await f.arrayBuffer()));
+    mf.name = f.name;
+    if (!mf.tracks.length) throw new Error("no notes in that file");
+    mfRoles = mf.tracks.map((t) => midiGuess(t).role);
+    const seen = {};                                          // one track a line (the first of each; chords and drums may be several)
+    mfRoles = mfRoles.map((r) => (r === "bass" || r === "acid" || r === "pluck" ? (seen[r] ? "skip" : (seen[r] = 1, r)) : r));
+    const k = midiKey(mf, (i) => mfRoles[i] === "drums");
+    $("impRoot").value = k.root; $("impMode").value = k.mode; $("impBar").value = 1;
+    impShow();
+    say("Check what each track goes into, then put it in the piece.");
+  } catch (err) { say(err.message, true); }
+});
+$("imptracks").addEventListener("change", (e) => { const t = e.target.closest("select"); if (t) { mfRoles[+t.dataset.track] = t.value; impPreview(); } });
+["impRoot", "impMode", "impKey", "impTempo", "impLine"].forEach((id) => $(id).addEventListener("change", impPreview));
+$("impBar").addEventListener("change", () => { impLines(); impPreview(); });
+$("impcancel").addEventListener("click", () => { $("imp").hidden = true; mf = null; });
+$("impgo").addEventListener("click", async () => {
+  if (!node) await switchOn();
+  if (!io) return;
+  const R = impPreview(), o = impOpts();
+  undoIo = io.slice();
+  const lift = (k) => { if (par(k) === 0) setPar(k, P[PE[k]].def || 50); };   // a part written into a silent layer: its level up
+  if (R.pats) {
+    for (let p = 0; p < NPAT; p++) for (let l = 0; l < NL; l++) patSet(p, l, R.pats[p][l]);
+    for (let l = 0; l < NL; l++) for (let s = 0; s < 16; s++) modSet(l, s, R.mods[l][s]);
+    setPar("P_PATTERN", 0); lift("P_PULSE");
+  }
+  if (R.bass) { io.set(R.bass, IO_BS); setPar("P_BL_MODE", BL_STEPS); lift("P_BASS"); }
+  if (R.acid) { acidSet(R.acid); setPar("P_AC_LOCK", 1); lift("P_ACID"); }
+  if (R.pluck) { pluckSet(R.pluck); freezePluck(); lift("P_CM_LVL"); }
+  if (R.prog) {
+    const unit = bitGet(prg(), 41, 2);
+    prg().fill(0); prk().fill(0);
+    R.prog.forEach((s, i) => { bitPut(prg(), 3 * i, 3, s.deg); bitPut(prg(), 24 + 2 * i, 2, BARS.indexOf(s.bars)); bitPut(prk(), 3 * i, 3, s.kind); });
+    bitPut(prg(), 40, 1, 1); bitPut(prg(), 41, 2, unit);
+  }
+  if ($("impKey").checked) { setPar("P_ROOT", o.root); setPar("P_MODE", o.mode); const pool = midiPool(o.mode); io[0] = pool & 255; io[1] = pool >> 8; }
+  if ($("impTempo").checked) setPar("P_TEMPO", R.tempo);
+  resetHistory();
+  changed();
+  $("imp").hidden = true; $("undo").hidden = false;
+  say("Put in: " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + " now plays the file's parts (in the emulator). Undo the import to go back.");
+});
+$("undo").addEventListener("click", () => {
+  if (!undoIo) return;
+  io = undoIo; undoIo = null; $("undo").hidden = true;
+  resetHistory(); changed();
+  say("The import is undone.");
 });
 refresh();
 </script>
