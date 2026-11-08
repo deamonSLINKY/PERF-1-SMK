@@ -62,10 +62,10 @@ class Amb extends AudioWorkletProcessor {
     } else if (this.studio && m.type === "st_save" && this.ex.web_st_save) {
       this.port.postMessage({ type: "st", id: m.id, ok: this.ex.web_st_save() });
     } else if (this.studio && m.type === "st_set" && this.ex.web_st_set) {
-      const sl = new Uint8Array(this.mem.buffer, this.ex.web_st_sl(), 17);   // the set list: sixteen places and Play (written when m.sl comes)
-      if (m.sl) sl.set(new Uint8Array(m.sl).subarray(0, 17));
+      const n = this.ex.web_st_sl_len ? this.ex.web_st_sl_len() : 17, sl = new Uint8Array(this.mem.buffer, this.ex.web_st_sl(), n);   // the set list: places, Play, bars, parts, end (written when m.sl comes)
+      if (m.sl) sl.set(new Uint8Array(m.sl).subarray(0, n));
       this.ex.web_st_set(m.sl ? 1 : 0);
-      this.port.postMessage({ type: "st", id: m.id, ok: 1, sl: new Uint8Array(this.mem.buffer, this.ex.web_st_sl(), 17).slice() });
+      this.port.postMessage({ type: "st", id: m.id, ok: 1, sl: new Uint8Array(this.mem.buffer, this.ex.web_st_sl(), n).slice() });
     } else if (this.studio && m.type === "st_roll" && this.ex.web_st_roll) {
       this.ex.web_st_roll();                                  // a new take: the engine's own parts anew, the piece as it is
       this.port.postMessage({ type: "st", id: m.id, ok: 1 });

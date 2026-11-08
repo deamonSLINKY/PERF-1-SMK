@@ -121,6 +121,7 @@
   .meter i { display: block; height: 100%; width: 0; background: var(--c); transition: width .06s linear; }
   /* the song: the set list's sixteen places as blocks */
   #song .bar { margin-bottom: 8px; }
+  #songline { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; }
   .places { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
   @media (max-width: 900px) { .places { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   .place { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 8px; min-height: 108px; cursor: pointer; position: relative; }
@@ -411,7 +412,7 @@ function parseLive(b) {
            bsHist: sl(16, 16), bsPos: s8(b[32]), acLen: b[33] || 16, acPos: b[34], acGate: u16(35), acAcc: u16(37), acSlide: u16(39),
            acOff: sl(41, 16), acOct: sl(57, 16), cmRung: sl(73, 16), cmLvl: sl(89, 16), cmPos: b[105], laneSrc: sl(106, 6), playing: b[112],
            genre: b[113], piece: b[114], chordN: b[115], lanePos: sl(116, 6), pool: u16(122), root: b[124], blMode: b[125],
-           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0 };
+           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0, slPos: b.length > 136 ? b[135] : 255, slBar: b.length > 136 ? b[136] : 255 };
 }
 let hist = {}, slotT = 0, slotNow = -2, lastBar = -1;
 function resetHistory() { hist = {}; slotT = 0; slotNow = -2; lastBar = -1; }
@@ -1487,48 +1488,63 @@ function scopeStart() {
 setInterval(() => { if (ac && node && !analyser) scopeStart(); }, 500);
 
 
-/* ======================================================================== the SONG: the set list (sixteen places, project.c glob.sl) as blocks to arrange
- * Play on: the auto-DJ and PRESETS go through it, as on the FM-1's set list page. A place plays its piece as saved in the bank (Save in the emulator). */
-let setList = null, setSel = 0;
+/* ======================================================================== the SONG: the set list (project.c glob: sixteen places) as a song
+ * (0.17.13, song mode) Each place plays its piece for its bars (Auto: the auto-DJ's rounds) with the parts it leaves out; Play goes Off, Loop (round
+ * again) or Once (stop after the last). A place plays its piece as saved in the bank (Save in the emulator). The timeline draws the song: a block a
+ * place as long as its bars, a lane a part (left out: empty), the place and bar playing. */
+let song = null, setSel = 0;
 const GENRE_COL = [COL.pad, COL.acid, COL.drum, COL.bass, COL.pluck];
+const SONG_BARS = [0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128];
+const PARTS = [["PAD", COL.pad], ["BASS", COL.bass], ["ACID", COL.acid], ["PLUCK", COL.pluck], ["DRUMS", COL.drum]];
 function bankOf(g) {                                          // a genre's bank as the emulator keeps it (this browser), or empty
   try { const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}")[S.objOf(g)]; return raw ? Uint8Array.from(atob(raw), (c) => c.charCodeAt(0)) : new Uint8Array(0); } catch { return new Uint8Array(0); }
 }
+const songFrom = (b) => ({ places: Array.from(b.slice(0, 16)), on: b[16], bars: b.length >= 50 ? Array.from(b.slice(17, 33)) : new Array(16).fill(0),
+                         mutes: b.length >= 50 ? Array.from(b.slice(33, 49)) : new Array(16).fill(0), end: b.length >= 50 ? b[49] : 0, full: b.length >= 50 });
+const songBytes = (x) => Uint8Array.from([...x.places, x.on ? 1 : 0, ...x.bars, ...x.mutes, x.end ? 1 : 0]);
 async function songLoad() {
   if (view !== "song") return;
-  if (!node) { $("song").innerHTML = '<p class="muted">Switch on to see and arrange the set.</p>'; return; }
+  if (!node) { $("song").innerHTML = '<p class="muted">Switch on to see and arrange the song.</p>'; return; }
   const r = await ask({ type: "st_set" });
-  setList = Array.from(r.sl);
+  song = songFrom(r.sl);
   songRender();
 }
 async function songWrite(msg) {
-  const r = await ask({ type: "st_set", sl: Uint8Array.from(setList) });
-  setList = Array.from(r.sl);
+  const r = await ask({ type: "st_set", sl: songBytes(song) });
+  song = songFrom(r.sl);
   songRender();
   if (msg) say(msg);
 }
+const placeBars = (i) => song.bars[i] || 16;                  // (an Auto place drawn as sixteen bars, hatched: the auto-DJ decides)
 function songRender() {
-  if (!setList) return;
-  const places = setList.slice(0, 16), on = setList[16];
-  let h = '<div class="bar"><button id="slOn" aria-pressed="' + !!on + '">' + (on ? "▶ Play the set: on" : "Play the set: off") + "</button>" +
-    '<button id="slPut">Put the open piece in place ' + (setSel + 1) + "</button><button id=\"slOpen\">Open place " + (setSel + 1) + "</button>" +
-    '<button id="slLeft">◀ Move</button><button id="slRight">Move ▶</button><button id="slClear">Clear place ' + (setSel + 1) + "</button>" +
-    '<span class="muted">Drag a block to move it. With Play on, the auto-DJ and PRESETS go through the places in order.</span></div><div class="places">';
-  places.forEach((x, i) => {
-    const q = x ? pcSetPlaces([x])[0] : null, now = q && io && q.genre === cur.genre && q.slot === cur.piece;
-    if (!q) { h += '<div class="place empty' + (i === setSel ? " sel" : "") + '" data-i="' + i + '" draggable="true"><div class="n">' + (i + 1) + "</div><div>empty</div></div>"; return; }
-    const bank = bankOf(q.genre), saved = !pcBankCheck(bank, q.genre) && ((pcSaved(bank) >> q.slot) & 1);
-    h += '<div class="place' + (i === setSel ? " sel" : "") + (now ? " now" : "") + '" data-i="' + i + '" draggable="true" style="--c:' + GENRE_COL[q.genre % 5] + '"><div class="n">' + (i + 1) +
-      '</div><div class="g">' + S.genreName(q.genre) + '</div><div class="pc">' + S.pieceName(q.genre, q.slot) + '</div><canvas data-mini="' + i + '" width="160" height="36"></canvas><div class="st">' + (saved ? "saved" : "its recipe") + "</div></div>";
+  if (!song) return;
+  const sel = setSel, q = song.places[sel] ? pcSetPlaces([song.places[sel]])[0] : null, mode = !song.on ? 0 : song.end ? 2 : 1;
+  const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), total = used.reduce((a, i) => a + (song.bars[i] || 0), 0), autos = used.filter((i) => !song.bars[i]).length;
+  let h = '<div class="bar"><span class="lbl">PLAY</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
+    '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? "" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
+    '<canvas id="songline" height="150" aria-label="The song: a block a place, as long as its bars, a lane a part"></canvas>' +
+    '<div class="bar" style="margin-top:8px"><span class="lbl">PLACE ' + (sel + 1) + "</span>" + (q ? "<b>" + S.genreName(q.genre) + " " + S.pieceName(q.genre, q.slot) + "</b>" : '<span class="muted">empty</span>') +
+    '<span class="lbl">&nbsp;BARS</span><select id="slBars" aria-label="Place ' + (sel + 1) + ' bars"' + (q ? "" : " disabled") + ">" + SONG_BARS.map((b) => '<option value="' + b + '"' + (song.bars[sel] === b ? " selected" : "") + ">" + (b ? b + " bars" : "Auto") + "</option>").join("") + "</select>" +
+    '<span class="lbl">&nbsp;PARTS</span>' + PARTS.map(([n], k) => '<button class="small" data-part="' + k + '" aria-pressed="' + !((song.mutes[sel] >> k) & 1) + '"' + (q ? "" : " disabled") + ">" + n + "</button>").join("") + "</div>" +
+    '<div class="bar"><button id="slPut">Put the open piece in place ' + (sel + 1) + '</button><button id="slOpen"' + (q ? "" : " disabled") + ">Open it</button>" +
+    '<button id="slLeft">◀ Move</button><button id="slRight">Move ▶</button><button id="slClear">Clear place ' + (sel + 1) + "</button>" +
+    '<span class="muted">Click a block (or a place below) to pick it; drag the places to reorder. Parts lit play; the others are left out of that place.</span></div><div class="places">';
+  song.places.forEach((x, i) => {
+    const pq = x ? pcSetPlaces([x])[0] : null, now = live && live.playing && live.slPos === i;
+    if (!pq) { h += '<div class="place empty' + (i === sel ? " sel" : "") + '" data-i="' + i + '" draggable="true"><div class="n">' + (i + 1) + "</div><div>empty</div></div>"; return; }
+    const bank = bankOf(pq.genre), saved = !pcBankCheck(bank, pq.genre) && ((pcSaved(bank) >> pq.slot) & 1);
+    h += '<div class="place' + (i === sel ? " sel" : "") + (now ? " now" : "") + '" data-i="' + i + '" draggable="true" style="--c:' + GENRE_COL[pq.genre % 5] + '"><div class="n">' + (i + 1) + " · " + (song.bars[i] ? song.bars[i] + " bars" : "auto") +
+      '</div><div class="g">' + S.genreName(pq.genre) + '</div><div class="pc">' + S.pieceName(pq.genre, pq.slot) + '</div><canvas data-mini="' + i + '" width="160" height="36"></canvas><div class="st">' + (saved ? "saved" : "its recipe") +
+      (song.mutes[i] ? " · without " + PARTS.filter((_, k) => (song.mutes[i] >> k) & 1).map(([n]) => n.toLowerCase()).join(", ") : "") + "</div></div>";
   });
   $("song").innerHTML = h + "</div>";
-  places.forEach((x, i) => {                                  // each saved piece's drums (the pattern it plays), small
+  song.places.forEach((x, i) => {                             // each saved piece's drums (the pattern it plays), small
     const cv = $("song").querySelector('canvas[data-mini="' + i + '"]');
     if (!cv) return;
-    const q = pcSetPlaces([x])[0], bank = bankOf(q.genre), g = cv.getContext("2d");
+    const pq = pcSetPlaces([x])[0], bank = bankOf(pq.genre), g = cv.getContext("2d");
     g.fillStyle = "#121318"; g.fillRect(0, 0, 160, 36);
     let pc = null;
-    try { pc = pcFromBank(bank, q.genre, q.slot); } catch { pc = null; }
+    try { pc = pcFromBank(bank, pq.genre, pq.slot); } catch { pc = null; }
     if (!pc) { g.fillStyle = "#3a3e4a"; g.font = "600 10px 'Chakra Petch', sans-serif"; g.fillText("as the genre makes it", 6, 22); return; }
     const pat = Math.max(0, Math.min(5, pcGet(pc, PE.P_PATTERN, 0) || 0));
     for (let l = 0; l < 6; l++) {
@@ -1537,30 +1553,90 @@ function songRender() {
     }
     g.globalAlpha = 1;
   });
+  songLine();
 }
+let songHit = [];
+function songLine() {                                         // the song as a timeline: a block a place, its lanes, the place and bar playing
+  const cv = $("songline");
+  if (!cv || !song) return;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = 150;
+  if (!W) return;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
+  const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), LX = 60, top = 22, lh = (H - top - 8) / 5;
+  PARTS.forEach(([n, c], k) => { g.fillStyle = c; g.fillRect(6, top + k * lh + 3, 3, lh - 6); g.font = FONT(700, 10); g.fillStyle = COL.dim; g.fillText(n, 13, top + k * lh + lh / 2 + 4); });
+  songHit = [];
+  if (!used.length) { g.fillStyle = COL.dim; g.font = "500 14px 'Barlow Semi Condensed', sans-serif"; g.fillText("No places yet: open a piece and put it in place 1.", LX, H / 2); return; }
+  const total = used.reduce((a, i) => a + placeBars(i), 0), bw = (W - LX - 8) / total;
+  let x = LX;
+  for (const i of used) {
+    const pq = pcSetPlaces([song.places[i]])[0], w = placeBars(i) * bw, auto = !song.bars[i], gc = GENRE_COL[pq.genre % 5];
+    g.fillStyle = i === setSel ? "#2a2416" : "#181a1f"; g.fillRect(x + 1, 2, w - 2, H - 4);
+    g.fillStyle = gc; g.fillRect(x + 1, 2, w - 2, 3);
+    g.font = FONT(700, 11); g.fillStyle = COL.ink; g.save(); g.beginPath(); g.rect(x + 1, 0, w - 2, H); g.clip();
+    g.fillText((i + 1) + " " + S.genreName(pq.genre) + " " + S.pieceName(pq.genre, pq.slot) + "  " + (auto ? "auto" : song.bars[i] + " bars"), x + 5, 17);
+    PARTS.forEach(([n, c], k) => {                            // a part's lane: lit where it plays
+      if ((song.mutes[i] >> k) & 1) { g.strokeStyle = "#2e313a"; g.setLineDash([2, 3]); g.strokeRect(x + 3.5, top + k * lh + 3.5, w - 7, lh - 7); g.setLineDash([]); return; }
+      g.fillStyle = hexA(c, auto ? 0.28 : 0.55); g.fillRect(x + 3, top + k * lh + 3, w - 6, lh - 6);
+      if (auto) { g.strokeStyle = hexA(c, 0.5); g.lineWidth = 1; for (let hx = x + 3; hx < x + w - 6; hx += 8) { g.beginPath(); g.moveTo(hx, top + k * lh + lh - 3); g.lineTo(hx + 6, top + k * lh + 3); g.stroke(); } }
+    });
+    g.restore();
+    if (i === setSel) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.strokeRect(x + 1, 1, w - 2, H - 2); }
+    if (live && live.playing && live.slPos === i && song.on) {   // the bar playing in it
+      const bx = x + Math.min(placeBars(i), (live.slBar === 255 ? 0 : live.slBar) + (live.step || 0) / 16) * bw;
+      g.fillStyle = COL.acc; g.fillRect(Math.round(bx) - 1, 2, 2, H - 4);
+    }
+    songHit.push([x, w, i]);
+    x += w;
+  }
+}
+setInterval(() => { if (view === "song" && song && live && live.playing) songLine(); }, 100);
 $("song").addEventListener("click", async (e) => {
+  if (e.target.id === "songline") {                           // a block on the timeline picks its place
+    const r = e.target.getBoundingClientRect(), x = e.clientX - r.left, hit = songHit.find(([x0, w]) => x >= x0 && x < x0 + w);
+    if (hit) { setSel = hit[2]; songRender(); }
+    return;
+  }
   const pl = e.target.closest(".place");
   if (pl) { setSel = +pl.dataset.i; songRender(); return; }
-  const id = e.target.id;
-  if (!setList || !id) return;
-  if (id === "slOn") { setList[16] = setList[16] ? 0 : 1; await songWrite(setList[16] ? "The set plays: the auto-DJ and PRESETS go through its places." : "The set is off."); }
-  else if (id === "slPut") { if (!io) return; setList[setSel] = cur.genre * 10 + cur.piece + 1; await songWrite("Place " + (setSel + 1) + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + ". It plays as saved: Save in the emulator keeps your edits."); }
-  else if (id === "slClear") { setList[setSel] = 0; await songWrite(); }
+  const b = e.target.closest("button");
+  if (!song || !b) return;
+  if (b.dataset.mode !== undefined) {
+    const k = +b.dataset.mode;
+    song.on = k ? 1 : 0; song.end = k === 2 ? 1 : 0;
+    return songWrite(["The song is off: the pieces play on their own.", "The song plays, round and round: each place its bars, its parts.", "The song plays once: each place its bars, then it stops."][k]);
+  }
+  if (b.dataset.part !== undefined) {
+    song.mutes[setSel] ^= 1 << +b.dataset.part;
+    return songWrite("Place " + (setSel + 1) + ": " + (PARTS.filter((_, k) => !((song.mutes[setSel] >> k) & 1)).map(([n]) => n.toLowerCase()).join(", ") || "no parts") + ".");
+  }
+  const id = b.id;
+  if (id === "slPut") { if (!io) return; song.places[setSel] = cur.genre * 10 + cur.piece + 1; await songWrite("Place " + (setSel + 1) + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + ". It plays as saved: Save in the emulator keeps your edits."); }
+  else if (id === "slClear") { song.places[setSel] = 0; song.bars[setSel] = 0; song.mutes[setSel] = 0; await songWrite(); }
   else if (id === "slLeft" || id === "slRight") {
     const j = setSel + (id === "slLeft" ? -1 : 1);
     if (j < 0 || j > 15) return;
-    [setList[setSel], setList[j]] = [setList[j], setList[setSel]]; setSel = j; await songWrite();
-  } else if (id === "slOpen") { const q = setList[setSel] ? pcSetPlaces([setList[setSel]])[0] : null; if (q) await openPiece(q.genre, q.slot); songRender(); }
+    for (const a of [song.places, song.bars, song.mutes]) [a[setSel], a[j]] = [a[j], a[setSel]];
+    setSel = j; await songWrite();
+  } else if (id === "slOpen") { const pq = song.places[setSel] ? pcSetPlaces([song.places[setSel]])[0] : null; if (pq) await openPiece(pq.genre, pq.slot); songRender(); }
+});
+$("song").addEventListener("change", (e) => {
+  if (e.target.id !== "slBars" || !song) return;
+  song.bars[setSel] = +e.target.value;
+  songWrite("Place " + (setSel + 1) + ": " + (song.bars[setSel] ? song.bars[setSel] + " bars, exactly" : "Auto (the auto-DJ's rounds)") + ".");
 });
 let dragFrom = -1;
 $("song").addEventListener("dragstart", (e) => { const pl = e.target.closest(".place"); if (pl) { dragFrom = +pl.dataset.i; e.dataTransfer.effectAllowed = "move"; } });
 $("song").addEventListener("dragover", (e) => { if (dragFrom >= 0 && e.target.closest(".place")) e.preventDefault(); });
 $("song").addEventListener("drop", async (e) => {
   const pl = e.target.closest(".place");
-  if (!pl || dragFrom < 0 || !setList) return;
+  if (!pl || dragFrom < 0 || !song) return;
   e.preventDefault();
-  const to = +pl.dataset.i, x = setList.splice(dragFrom, 1)[0];
-  setList.splice(to, 0, x); setSel = to; dragFrom = -1;
+  const to = +pl.dataset.i;
+  for (const a of [song.places, song.bars, song.mutes]) { const x = a.splice(dragFrom, 1)[0]; a.splice(to, 0, x); }
+  setSel = to; dragFrom = -1;
   await songWrite();
 });
 $("saveEmu").addEventListener("click", async () => {

@@ -7,7 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const src = fs.readFileSync(path.join(__dirname, "..", "web", "fm1piece.js"), "utf8").replace(/^export /gm, "");
-const M = new Function(src + "; return { PC_HDR, PC_REC, PC_LEN, PC_PRG, PC_REC_PAR, PC_RECIPE, PC_VOX_LEN, PC_GLOB_LEN, pcBankCheck, pcSaved, pcFromBank, pcGet, pcSet, pcEncode, pcDecode, pcDecodeAny, pcToCode, pcFromCode, pcIntoBank, pcVoiceName, pcUserSlot, pcVoices, pcVoicePlan, pcVoicesWith, pcParseAbout, pcAboutMsg, pcSetEncode, pcSetDecode, pcSetPlaces, pcGlobWith, pcGlobList, pcSetVoices, pcHash, pcKindsOf, pcKindsWith, PC_KND_MAGIC, pcFxOf, pcExtrasWith, pcBassOf, pcBassWith };")();
+const M = new Function(src + "; return { PC_HDR, PC_REC, PC_LEN, PC_PRG, PC_REC_PAR, PC_RECIPE, PC_VOX_LEN, PC_GLOB_LEN, PC_GLOB_SONG, pcBankCheck, pcSaved, pcFromBank, pcGet, pcSet, pcEncode, pcDecode, pcDecodeAny, pcToCode, pcFromCode, pcIntoBank, pcVoiceName, pcUserSlot, pcVoices, pcVoicePlan, pcVoicesWith, pcParseAbout, pcAboutMsg, pcSetEncode, pcSetDecode, pcSetPlaces, pcGlobWith, pcGlobList, pcSetVoices, pcHash, pcKindsOf, pcKindsWith, PC_KND_MAGIC, pcFxOf, pcExtrasWith, pcBassOf, pcBassWith };")();
 let bad = 0;
 const check = (name, ok) => { console.log((ok ? "  ok   " : "  FAIL ") + name); if (!ok) bad++; };
 const eq = (a, b) => a.length === b.length && Array.from(a).every((x, i) => x === b[i]);
@@ -110,10 +110,23 @@ const voiceOf = (name, k) => { const v = new Uint8Array(128).map((_, i) => (i * 
   const defs = { tune: 0, midi: 1, theme: 0 };
   const g0 = M.pcGlobWith(new Uint8Array(0), set, defs);
   check("into an empty player's record: the defaults, the list, Play and Mix", g0.length === M.PC_GLOB_LEN && g0[6] === 1 && eq(g0.slice(12, 28), set.list) && g0[28] === 1 && g0[30] === 3 &&
-    JSON.stringify(M.pcGlobList(g0)) === JSON.stringify({ list: set.list, on: true, mix: 3 }));
+    (({ list, on, mix }) => JSON.stringify({ list, on, mix }))(M.pcGlobList(g0)) === JSON.stringify({ list: set.list, on: true, mix: 3 }));
   const gx = g0.slice(); gx[4] = 7; gx[8] = 3; gx[29] = 1;
   const g1 = M.pcGlobWith(gx, { ...set, on: false, mix: 0 }, defs);
   check("into one with the player's tuning, theme and Zoom: kept", g1[4] === 7 && g1[8] === 3 && g1[29] === 1 && g1[28] === 0 && g1[30] === 0);
+  // song mode (0.17.13): a place's bars, the parts it leaves out, the end; the record 68 bytes when it has them or was that long
+  const bars = [8, 16, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128], mutes = [0, 0x10, 0, 0x1F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const gs = M.pcGlobWith(gx, { ...set, bars, mutes, end: 1 }, defs), ls = M.pcGlobList(gs);
+  check("a song: 68 bytes, the bars at 32, the parts at 48, Once at 64; the player's kept", gs.length === M.PC_GLOB_SONG && eq(gs.slice(32, 48), bars) && eq(gs.slice(48, 64), mutes) && gs[64] === 1 && gs[4] === 7 &&
+    eq(ls.bars, bars) && eq(ls.mutes, mutes) && ls.end === 1 && eq(ls.list, set.list));
+  const gp = M.pcGlobWith(gs, { ...set, on: false, mix: 0 }, defs);
+  check("a set without song settings into a 68-byte record: still 68, its places Auto with every part in, the end kept", gp.length === M.PC_GLOB_SONG &&
+    gp.slice(32, 64).every((v) => !v) && gp[64] === 1);
+  check("a 32-byte record (0.17.12 and older) reads: every place Auto, nothing out, Loop", JSON.stringify(M.pcGlobList(g0).bars) === JSON.stringify(new Array(16).fill(0)) &&
+    M.pcGlobList(g0).end === 0 && M.pcGlobList(g0).list.length === 16 && M.pcGlobList(new Uint8Array(12)).list.every((v) => !v));
+  const ssong = M.pcSetDecode(M.pcSetEncode({ ...set, bars, mutes, end: 1 })), sold = M.pcSetDecode(M.pcSetEncode(set));
+  check("a set file carries its places' bars, parts and Once (the note); one without them reads Auto, Loop", eq(ssong.bars, bars) && eq(ssong.mutes, mutes) && ssong.end === 1 &&
+    sold.bars.every((v) => !v) && sold.mutes.every((v) => !v) && sold.end === 0 && !("sb" in ssong.meta));
   const sv = M.pcSetVoices(vox, [v1, pc.voice, voiceOf("NEW TWO", 4)]);
   check("a set's voices: one loaded, two to the next empty slots", JSON.stringify(sv.map) === JSON.stringify([1, 2, 3]) && M.pcVoices(sv.vox).length === 4);
   const sfull = M.pcSetVoices(full, [pc.voice]);
@@ -210,6 +223,11 @@ const voiceOf = (name, k) => { const v = new Uint8Array(128).map((_, i) => (i * 
     check("the simulator reads a shared set list: its places, Play and Mix", run("set", [
       "loadobj 0 " + path.join(dir, "bank_new.bin"), "loadobj 4 " + path.join(dir, "glob_new.bin"), "seed 0", "reboot", "wait 2000",
       "expect setsl0 4", "expect setsl1 23", "expect setsl3 182", "expect setsl2 0", "expect seton 1", "expect mix 2", "expect saved 8"]));
+    // and a song (0.17.13): the places' bars and parts and Once, in the 68-byte record
+    fs.writeFileSync(path.join(dir, "glob_song.bin"), M.pcGlobWith(new Uint8Array(0), { ...sset, bars: [8, 16, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], mutes: [0, 0x14, 0, 0x1F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], end: 1 }, { tune: 0, midi: 1, theme: 0 }));
+    check("the simulator reads a shared song: each place's bars and parts, Once", run("song", [
+      "loadobj 0 " + path.join(dir, "bank_new.bin"), "loadobj 4 " + path.join(dir, "glob_song.bin"), "seed 0", "reboot", "wait 2000",
+      "expect setsl1 23", "expect setbars0 8", "expect setbars1 16", "expect setbars3 4", "expect setbars2 0", "expect setmute1 20", "expect setmute3 31", "expect setend 1"]));
   }
   console.log(bad ? "web piece: FAILED" : "web piece: ok");
   process.exit(bad ? 1 : 0);
