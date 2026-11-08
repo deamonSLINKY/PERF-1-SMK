@@ -120,6 +120,11 @@ __attribute__((used, visibility("default"))) int web_st_read(void)
     const uint8_t k_pend = pending_px;
     int k;
     keep();
+    /* (keep() asks the engine for the bass steps and a frozen line, and a piece just taken up has only posted them to it: the engine takes them
+     * at its next block. The studio puts them in through the piece, never the panel, so the piece's own are the ones: proj's, as take() set them.) */
+    for (k = 0; k < 16; k++) s->bs[k] = proj.bs[k];
+    for (k = 0; k < 18; k++) s->acl[k] = proj.acl[k];
+    for (k = 0; k < 12; k++) s->cml[k] = proj.cml[k];
     for (k = 0; k < (int)IMG_REC; k++) k_rec[k] = rec[k];
     for (k = 0; k < EN_PRG_LEN; k++) k_tail[k] = tail[k];
     for (k = 0; k < (int)PX_LEN; k++) k_px[k] = px[i][k];
@@ -226,4 +231,47 @@ __attribute__((used, visibility("default"))) int web_st_code_now(void) { return 
 __attribute__((used, visibility("default"))) void web_st_roll(void)
 {
     track_fresh(1, 1);
+}
+/* a note heard as the studio's editors place it: a voice (EN_V_*) and its note and velocity (0: off), or a drum (voice 9: lane, velocity) */
+__attribute__((used, visibility("default"))) void web_st_note(int voice, int note, int vel)
+{
+    if (voice == 9) {
+        if (vel > 0)
+            en_drum_tap(note, vel);
+    } else
+        en_note_v(voice, note, vel);
+}
+/* the playing piece saved into its genre's bank, as SAVE on the Global page does, and written to the (emulator's) flash at once */
+__attribute__((used, visibility("default"))) int web_st_save(void)
+{
+    if (ui.store_wait)
+        return 0;
+    project_piece_save();
+    {   /* (its bass steps and frozen lines as the piece has them, not as the engine may not have taken them yet: see web_st_read) */
+        slot_t *s = &proj.slot[proj.piece];
+        int k;
+        for (k = 0; k < 16; k++) s->bs[k] = proj.bs[k];
+        for (k = 0; k < 18; k++) s->acl[k] = proj.acl[k];
+        for (k = 0; k < 12; k++) s->cml[k] = proj.cml[k];
+        pack_slot(s, proj.piece);
+    }
+    project_flush();
+    return 1;
+}
+/* the set list (glob): sixteen places (genre * 10 + piece + 1, 0 empty) and Play; write 1: st_sl into it (and the flash), then read back */
+static uint8_t st_sl[SL_N + 1];
+__attribute__((used, visibility("default"))) uint8_t *web_st_sl(void) { return st_sl; }
+__attribute__((used, visibility("default"))) void web_st_set(int write)
+{
+    int k;
+    if (write) {
+        for (k = 0; k < SL_N; k++)
+            glob.sl[k] = st_sl[k] <= EN_NGENRE * NPIECES ? st_sl[k] : 0;
+        glob.sl_on = st_sl[SL_N] ? 1 : 0;
+        project_globals();
+        project_flush_globals();
+    }
+    for (k = 0; k < SL_N; k++)
+        st_sl[k] = glob.sl[k];
+    st_sl[SL_N] = glob.sl_on;
 }

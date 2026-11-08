@@ -116,6 +116,19 @@
   .strip .mute[aria-pressed=true] { background: var(--bass); color: #fff; border-color: var(--bass); }
   .deskside { display: flex; flex-direction: column; gap: 8px; }
   .deskside .ctls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* the song: the set list's sixteen places as blocks */
+  #song .bar { margin-bottom: 8px; }
+  .places { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+  @media (max-width: 900px) { .places { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .place { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 8px; min-height: 108px; cursor: pointer; position: relative; }
+  .place.sel { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc) inset; }
+  .place.empty { border-style: dashed; color: #555a66; }
+  .place.now::after { content: "▶"; position: absolute; right: 8px; top: 6px; color: var(--acc); font-size: .8rem; }
+  .place .n { font: 600 .7rem "Chakra Petch", sans-serif; color: var(--dim); }
+  .place .g { font: 700 .9rem "Chakra Petch", sans-serif; letter-spacing: .05em; border-left: 3px solid var(--c, var(--line)); padding-left: 5px; margin-top: 2px; }
+  .place .pc { font-size: .85rem; color: var(--ink); }
+  .place canvas { width: 100%; height: 36px; display: block; margin-top: 4px; }
+  .place .st { font-size: .72rem; color: var(--dim); }
 </style>
 </head>
 <body>
@@ -147,6 +160,7 @@
     <span class="sp"></span>
     <button id="roll" disabled title="A new take: the engine plays its own parts anew (the dice lanes), the piece as it is">⟳ New take</button>
     <button id="mine" disabled title="Keep what the engine plays now: its bass, acid and pluck lines and the chords it walked become the piece's own">Make it mine</button>
+    <button id="saveEmu" disabled title="Save the piece into its genre's bank in the emulator (as SAVE on the FM-1): it is kept in this browser, plays as saved in the set, and the Library &amp; pieces page can send it">Save in the emulator</button>
     <button id="undoB" disabled title="Undo (Ctrl+Z)">↶ Undo</button>
     <button id="redoB" disabled title="Redo (Ctrl+Shift+Z)">↷ Redo</button>
   </div>
@@ -164,10 +178,11 @@
     <p id="impreport"></p>
     <div class="bar"><button id="impgo" class="go">Put it in the piece</button><button id="impcancel">Cancel</button></div>
   </section>
-  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button></div>
+  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button><button role="tab" data-view="song" aria-selected="false">SONG</button></div>
   <section class="loomwrap">
     <canvas id="loom" height="560" aria-label="The Loom: every lane of the piece over its bars"></canvas>
     <div id="desk" hidden></div>
+    <div id="song" hidden></div>
     <canvas id="scope" height="64" aria-label="What comes out: the waveform and the spectrum"></canvas>
     <div id="start">
       <button id="power" class="go">Switch on</button>
@@ -684,6 +699,18 @@ function edDrums(g, W, RH, rows) {
   $("edhelp").textContent = "Click a step with the brush: HIT puts a hit in or takes it out; LEVEL goes normal, ghost, soft, accent; RATCHET off, x2, x3, x4, x6, flam, swells; PUSH moves it later in twelfths of a step. " +
     "Six patterns, one set of tricks a lane (shared by all six: the firmware keeps one set). ▶ marks the pattern the piece plays.";
 }
+function hearStep(id, x) {                                    // a placed note, heard on the chord playing now (the pad's voice keys, the drum's pad)
+  if (!node || !io) return;
+  if (id === "drums") { node.port.postMessage({ type: "st_note", voice: 9, note: x.lane, vel: x.vel || 100 }); return; }
+  const c = ctxAt(loomPos >= 0 ? Math.floor(loomPos) : 0, timeline()), st = scale(), root = par("P_ROOT");
+  const base = (lo) => lo + ((root + semis(st, c.ri)) % 12), rel = (n) => semis(st, c.ri + n) - semis(st, c.ri);
+  let voice, m;
+  if (id === "bass") { voice = 1; m = base(36) + rel(x.note) + 12 * (x.oct - 1); }
+  else if (id === "acid") { voice = 2; m = base(48) + rel(x.off) + 12 * (x.oct - 1); }
+  else { voice = 4; m = base(60) + rel(2 * (x.rung % c.nt)) + 12 * Math.floor(x.rung / c.nt) - 12; }
+  node.port.postMessage({ type: "st_note", voice, note: m, vel: x.acc ? 120 : 92 });
+  setTimeout(() => node && node.port.postMessage({ type: "st_note", voice, note: m, vel: 0 }), 240);
+}
 function clickDrums(s, r, right) {
   const m = patGet(ED.pat, r), md = modGet(r, s);
   if (right || ED.brush === "hit") patSet(ED.pat, r, m ^ (1 << s));
@@ -693,6 +720,7 @@ function clickDrums(s, r, right) {
     else if (ED.brush === "ratchet") modSet(r, s, (md & 0xF8) | (((md & 7) + 1) % 8));
     else modSet(r, s, (md & 0xC7) | ((((md >> 3) & 7) + 1) % 8) << 3);
   }
+  if ((patGet(ED.pat, r) >> s) & 1) hearStep("drums", { lane: r, vel: [100, 45, 75, 127][(modGet(r, s) >> 6) & 3] });
   changed();
 }
 // ---- bass: eight scale steps above the chord's root, three octaves
@@ -725,6 +753,7 @@ function clickBass(s, r, right) {
   else if (x.kind >= 1 && x.kind <= 4 && x.note === n && Math.min(2, x.oct) === o) io[IO_BS + s] = x.kind === 4 ? 0 : bsMake(x.kind + 1, n, o);
   else io[IO_BS + s] = bsMake(1, n, o);
   if (par("P_BL_MODE") !== BL_STEPS) { setPar("P_BL_MODE", BL_STEPS); say("The bass line now plays its steps (mode: Steps)."); }
+  { const y = bsOf(io[IO_BS + s]); if (y.kind >= 1 && y.kind <= 4) hearStep("bass", { note: y.note, oct: y.oct, acc: y.kind === 2 || y.kind === 4 }); }
   changed();
 }
 // ---- acid: sixteen scale steps above the chord, an octave a step, accent and slide
@@ -760,6 +789,7 @@ function clickAcid(s, r, right, below) {
   }
   acidSet(line);
   if (!par("P_AC_LOCK")) setPar("P_AC_LOCK", 1);
+  if (x.gate) hearStep("acid", x);
   changed();
 }
 // ---- pluck: rungs of the chord's ladder (the chord's tones, up), a level
@@ -788,6 +818,7 @@ function clickPluck(s, r, right) {
   else { x.rung = rung; x.lvl = 2; }
   pluckSet(line);
   if (!par("P_CM_LOCK")) freezePluck();
+  if (x.lvl) hearStep("pluck", { rung: x.rung, acc: x.lvl === 3 });
   changed();
 }
 // ---- chords: the eight slots
@@ -1117,12 +1148,21 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ======================================================================== controls: a setting as the unit's knob (a bar to drag, a list of names) */
-const parV = (p) => P[p].min + io[REC_PAR + p];
-const parSetV = (p, v) => { v = Math.max(P[p].min, Math.min(P[p].max, Math.round(v))); if (parV(p) === v) return false; io[REC_PAR + p] = v - P[p].min; return true; };
-const valText = (p, v) => (P[p].t ? (P[p].t[v - P[p].min] ?? String(v)) : String(v));
+const FT = ["Low-pass", "High-pass", "Band-pass", "Notch", "Peak"];
+const FXMETA = [{ n: "Pad filter", min: 0, max: 4, def: 0, t: FT }, { n: "Bass filter", min: 0, max: 4, def: 0, t: FT }, { n: "Acid filter", min: 0, max: 4, def: 0, t: FT },
+                { n: "Drive", min: 0, max: 100, def: 0 }, { n: "Scream", min: 0, max: 100, def: 0 }, { n: "Wow", min: 0, max: 100, def: 0 }, { n: "Target", min: 0, max: 2, def: 0, t: ["Acid", "Bass", "Both"] }];
+const meta = (p) => (p >= 0 ? P[p] : FXMETA[-p - 1]);       // a setting, or (negative) one of the FILTERS and SCREAM pages' seven (the piece's extras)
+const parV = (p) => (p >= 0 ? P[p].min + io[REC_PAR + p] : io[IO_FX - p - 1]);
+const parSetV = (p, v) => {
+  v = Math.max(meta(p).min, Math.min(meta(p).max, Math.round(v)));
+  if (parV(p) === v) return false;
+  if (p >= 0) io[REC_PAR + p] = v - P[p].min; else { io[IO_FX - p - 1] = v; io[IO_FXON] = 1; }
+  return true;
+};
+const valText = (p, v) => (meta(p).t ? (meta(p).t[v - meta(p).min] ?? String(v)) : String(v));
 const shortLabel = (l) => String(l).replace(/\s*\(.*\)\s*$/, "");
 function ctlHTML(p, label, col) {
-  const q = P[p];
+  const q = meta(p);
   if (!q) return "";
   const lab = shortLabel(label || q.n).replace(/[<&]/g, "");
   if (q.t && q.t.length > 2)
@@ -1134,14 +1174,14 @@ function ctlHTML(p, label, col) {
 function syncCtls() {                                         // every control on the page to the piece's values
   if (!io) return;
   document.querySelectorAll(".ctl[data-p]").forEach((el) => {
-    const p = +el.dataset.p, v = parV(p), q = P[p];
+    const p = +el.dataset.p, v = parV(p), q = meta(p);
     if (el.classList.contains("list")) { const sl = el.querySelector("select"); if (document.activeElement !== sl && +sl.value !== v) sl.value = v; return; }
     el.querySelector(".v").textContent = valText(p, v);
     el.querySelector("i").style.width = (100 * (v - q.min) / Math.max(1, q.max - q.min)) + "%";
     el.setAttribute("aria-valuenow", v);
   });
   document.querySelectorAll(".fader[data-p]").forEach((el) => {
-    const p = +el.dataset.p, q = P[p], f = (parV(p) - q.min) / Math.max(1, q.max - q.min);
+    const p = +el.dataset.p, q = meta(p), f = (parV(p) - q.min) / Math.max(1, q.max - q.min);
     el.querySelector("i").style.height = "calc(" + (f * 100) + "% - 6px)"; el.querySelector("b").style.bottom = (f * 100) + "%";
     el.setAttribute("aria-valuenow", parV(p));
     const lv = el.parentElement.querySelector(".lv"); if (lv) lv.textContent = parV(p);
@@ -1156,21 +1196,21 @@ document.addEventListener("pointerdown", (e) => {
   const p = +el.dataset.p, r = el.getBoundingClientRect();
   drag = { el, p, x: e.clientX, y: e.clientY, v0: parV(p), moved: false, fader: el.classList.contains("fader"), r };
   el.setPointerCapture(e.pointerId); el.focus(); e.preventDefault();
-  if (drag.fader) setFromCtl(p, P[p].min + (r.bottom - e.clientY) / r.height * (P[p].max - P[p].min));
+  if (drag.fader) setFromCtl(p, meta(p).min + (r.bottom - e.clientY) / r.height * (meta(p).max - meta(p).min));
 });
 document.addEventListener("pointermove", (e) => {
   if (!drag) return;
-  const q = P[drag.p], range = q.max - q.min;
+  const q = meta(drag.p), range = q.max - q.min;
   if (drag.fader) { setFromCtl(drag.p, q.min + (drag.r.bottom - e.clientY) / drag.r.height * range); return; }
   const dx = e.clientX - drag.x;
   if (Math.abs(dx) > 2) drag.moved = true;
   if (drag.moved) setFromCtl(drag.p, drag.v0 + dx / Math.max(80, drag.r.width) * range * (e.shiftKey ? 0.2 : 1));
 });
 document.addEventListener("pointerup", () => {
-  if (drag && !drag.moved && !drag.fader) { const q = P[drag.p]; if (q.max - q.min === 1) setFromCtl(drag.p, parV(drag.p) ? q.min : q.max); }   // a switch: a click turns it over
+  if (drag && !drag.moved && !drag.fader) { const q = meta(drag.p); if (q.max - q.min === 1) setFromCtl(drag.p, parV(drag.p) ? q.min : q.max); }   // a switch: a click turns it over
   drag = null;
 });
-document.addEventListener("dblclick", (e) => { const el = e.target.closest(".ctl:not(.list), .fader"); if (el && io) setFromCtl(+el.dataset.p, P[+el.dataset.p].def); });
+document.addEventListener("dblclick", (e) => { const el = e.target.closest(".ctl:not(.list), .fader"); if (el && io) setFromCtl(+el.dataset.p, meta(+el.dataset.p).def); });
 document.addEventListener("wheel", (e) => {
   const el = e.target.closest(".ctl:not(.list), .fader");
   if (!el || !io) return;
@@ -1183,8 +1223,8 @@ document.addEventListener("keydown", (e) => {
   const p = +el.dataset.p, st = e.shiftKey ? 10 : 1;
   const k = { ArrowRight: st, ArrowUp: st, ArrowLeft: -st, ArrowDown: -st }[e.key];
   if (k) { e.preventDefault(); setFromCtl(p, parV(p) + k); }
-  else if (e.key === "Home") setFromCtl(p, P[p].min);
-  else if (e.key === "End") setFromCtl(p, P[p].max);
+  else if (e.key === "Home") setFromCtl(p, meta(p).min);
+  else if (e.key === "End") setFromCtl(p, meta(p).max);
 });
 document.addEventListener("change", (e) => {
   const sl = e.target.closest(".ctl.list select");
@@ -1203,6 +1243,8 @@ function soundRender() {
     h += '<div class="sec"><h3>Each lane</h3><table class="lanes6"><tr><th></th>' + lanes[0].knobs.map((k) => "<th>" + shortLabel(k.label).replace("Probability", "Chance").replace("Length", "Steps") + "</th>").join("") + "</tr>" +
       lanes.map((x) => "<tr><th>" + x.name.replace(/ lane$/, "").toUpperCase() + "</th>" + x.knobs.map((k) => "<td>" + ctlHTML(k.p, k.label, col) + "</td>").join("") + "</tr>").join("") + "</table></div>";
   }
+  const fx = { pad: [-1], chords: [-1], bass: [-2, -4, -5, -6, -7], acid: [-3, -4, -5, -6, -7] }[sel];
+  if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3><div class="ctls">' + fx.map((p) => ctlHTML(p, null, col)).join("") + "</div></div>";
   $("sound").innerHTML = h + '<p class="muted">Drag a control (Shift: finer), turn the mouse wheel over it, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
   syncCtls();
 }
@@ -1258,8 +1300,8 @@ document.querySelector(".views").addEventListener("click", (e) => {
   if (!b) return;
   view = b.dataset.view;
   document.querySelectorAll(".views button[data-view]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
-  $("loom").hidden = view !== "loom"; $("desk").hidden = view !== "desk";
-  deskRender(); refresh();
+  $("loom").hidden = view !== "loom"; $("desk").hidden = view !== "desk"; $("song").hidden = view !== "song";
+  deskRender(); songLoad(); refresh();
 });
 
 /* ---- the top's quick settings: tempo, key */
@@ -1268,7 +1310,7 @@ $("qMode").innerHTML = P[PE.P_MODE].t.map((n, i) => '<option value="' + i + '">'
 function syncQuick() {
   if (!io) return;
   ["qTempo", "qRoot", "qMode"].forEach((id) => { $(id).disabled = false; });
-  ["send", "roll", "mine"].forEach((id) => { $(id).disabled = !node; });
+  ["send", "roll", "mine", "saveEmu"].forEach((id) => { $(id).disabled = !node; });
   if (document.activeElement !== $("qTempo")) $("qTempo").value = par("P_TEMPO");
   $("qRoot").value = par("P_ROOT"); $("qMode").value = par("P_MODE");
 }
@@ -1361,6 +1403,93 @@ function scopeStart() {
   })();
 }
 setInterval(() => { if (ac && node && !analyser) scopeStart(); }, 500);
+
+
+/* ======================================================================== the SONG: the set list (sixteen places, project.c glob.sl) as blocks to arrange
+ * Play on: the auto-DJ and PRESETS go through it, as on the FM-1's set list page. A place plays its piece as saved in the bank (Save in the emulator). */
+let setList = null, setSel = 0;
+const GENRE_COL = [COL.pad, COL.acid, COL.drum, COL.bass, COL.pluck];
+function bankOf(g) {                                          // a genre's bank as the emulator keeps it (this browser), or empty
+  try { const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}")[S.objOf(g)]; return raw ? Uint8Array.from(atob(raw), (c) => c.charCodeAt(0)) : new Uint8Array(0); } catch { return new Uint8Array(0); }
+}
+async function songLoad() {
+  if (view !== "song") return;
+  if (!node) { $("song").innerHTML = '<p class="muted">Switch on to see and arrange the set.</p>'; return; }
+  const r = await ask({ type: "st_set" });
+  setList = Array.from(r.sl);
+  songRender();
+}
+async function songWrite(msg) {
+  const r = await ask({ type: "st_set", sl: Uint8Array.from(setList) });
+  setList = Array.from(r.sl);
+  songRender();
+  if (msg) say(msg);
+}
+function songRender() {
+  if (!setList) return;
+  const places = setList.slice(0, 16), on = setList[16];
+  let h = '<div class="bar"><button id="slOn" aria-pressed="' + !!on + '">' + (on ? "▶ Play the set: on" : "Play the set: off") + "</button>" +
+    '<button id="slPut">Put the open piece in place ' + (setSel + 1) + "</button><button id=\"slOpen\">Open place " + (setSel + 1) + "</button>" +
+    '<button id="slLeft">◀ Move</button><button id="slRight">Move ▶</button><button id="slClear">Clear place ' + (setSel + 1) + "</button>" +
+    '<span class="muted">Drag a block to move it. With Play on, the auto-DJ and PRESETS go through the places in order.</span></div><div class="places">';
+  places.forEach((x, i) => {
+    const q = x ? pcSetPlaces([x])[0] : null, now = q && io && q.genre === cur.genre && q.slot === cur.piece;
+    if (!q) { h += '<div class="place empty' + (i === setSel ? " sel" : "") + '" data-i="' + i + '" draggable="true"><div class="n">' + (i + 1) + "</div><div>empty</div></div>"; return; }
+    const bank = bankOf(q.genre), saved = !pcBankCheck(bank, q.genre) && ((pcSaved(bank) >> q.slot) & 1);
+    h += '<div class="place' + (i === setSel ? " sel" : "") + (now ? " now" : "") + '" data-i="' + i + '" draggable="true" style="--c:' + GENRE_COL[q.genre % 5] + '"><div class="n">' + (i + 1) +
+      '</div><div class="g">' + S.genreName(q.genre) + '</div><div class="pc">' + S.pieceName(q.genre, q.slot) + '</div><canvas data-mini="' + i + '" width="160" height="36"></canvas><div class="st">' + (saved ? "saved" : "its recipe") + "</div></div>";
+  });
+  $("song").innerHTML = h + "</div>";
+  places.forEach((x, i) => {                                  // each saved piece's drums (the pattern it plays), small
+    const cv = $("song").querySelector('canvas[data-mini="' + i + '"]');
+    if (!cv) return;
+    const q = pcSetPlaces([x])[0], bank = bankOf(q.genre), g = cv.getContext("2d");
+    g.fillStyle = "#121318"; g.fillRect(0, 0, 160, 36);
+    let pc = null;
+    try { pc = pcFromBank(bank, q.genre, q.slot); } catch { pc = null; }
+    if (!pc) { g.fillStyle = "#3a3e4a"; g.font = "600 10px 'Chakra Petch', sans-serif"; g.fillText("as the genre makes it", 6, 22); return; }
+    const pat = Math.max(0, Math.min(5, pcGet(pc, PE.P_PATTERN, 0) || 0));
+    for (let l = 0; l < 6; l++) {
+      const m = pc.rec[2 + 2 * (pat * 6 + l)] | (pc.rec[3 + 2 * (pat * 6 + l)] << 8);
+      for (let st = 0; st < 16; st++) if ((m >> st) & 1) { g.fillStyle = COL.drum; g.globalAlpha = l ? 0.75 : 1; g.fillRect(2 + st * 9.75, 2 + l * 5.5, 7, 4.5); }
+    }
+    g.globalAlpha = 1;
+  });
+}
+$("song").addEventListener("click", async (e) => {
+  const pl = e.target.closest(".place");
+  if (pl) { setSel = +pl.dataset.i; songRender(); return; }
+  const id = e.target.id;
+  if (!setList || !id) return;
+  if (id === "slOn") { setList[16] = setList[16] ? 0 : 1; await songWrite(setList[16] ? "The set plays: the auto-DJ and PRESETS go through its places." : "The set is off."); }
+  else if (id === "slPut") { if (!io) return; setList[setSel] = cur.genre * 10 + cur.piece + 1; await songWrite("Place " + (setSel + 1) + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + ". It plays as saved: Save in the emulator keeps your edits."); }
+  else if (id === "slClear") { setList[setSel] = 0; await songWrite(); }
+  else if (id === "slLeft" || id === "slRight") {
+    const j = setSel + (id === "slLeft" ? -1 : 1);
+    if (j < 0 || j > 15) return;
+    [setList[setSel], setList[j]] = [setList[j], setList[setSel]]; setSel = j; await songWrite();
+  } else if (id === "slOpen") { const q = setList[setSel] ? pcSetPlaces([setList[setSel]])[0] : null; if (q) await openPiece(q.genre, q.slot); songRender(); }
+});
+let dragFrom = -1;
+$("song").addEventListener("dragstart", (e) => { const pl = e.target.closest(".place"); if (pl) { dragFrom = +pl.dataset.i; e.dataTransfer.effectAllowed = "move"; } });
+$("song").addEventListener("dragover", (e) => { if (dragFrom >= 0 && e.target.closest(".place")) e.preventDefault(); });
+$("song").addEventListener("drop", async (e) => {
+  const pl = e.target.closest(".place");
+  if (!pl || dragFrom < 0 || !setList) return;
+  e.preventDefault();
+  const to = +pl.dataset.i, x = setList.splice(dragFrom, 1)[0];
+  setList.splice(to, 0, x); setSel = to; dragFrom = -1;
+  await songWrite();
+});
+$("saveEmu").addEventListener("click", async () => {
+  if (!node || !io) return;
+  clearTimeout(putTimer);
+  node.port.postMessage({ type: "st_put", io: io.slice(), id: ++reqId });      // (the last edit in first: the engine takes its lines and steps at
+  await new Promise((res) => setTimeout(res, 120));                             //  its next blocks, and SAVE reads them back from it)
+  const r = await ask({ type: "st_save" });
+  say(r.ok ? "Saved: " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + " is in the emulator's bank (this browser). The Library & pieces page can send it to the FM-1." : "The emulator is writing; try again in a moment.", !r.ok);
+  if (view === "song") songRender();
+});
 
 refresh();
 </script>
