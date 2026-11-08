@@ -78,6 +78,7 @@ if [ -f build/amb.fwsc ]; then
     run boot-stub sh -c "$CC -O2 -o $OUT/boot_stub_test tests/boot_stub_test.c && $OUT/boot_stub_test"
     run theory sh -c "$CC -std=c99 -Wno-unused-function -o $OUT/theory_test tests/host/theory_test.c && $OUT/theory_test"
     run installer python3 tests/install_test.py
+    run smklog python3 tests/smklog_test.py
     # The SMK-37 build (BOARD_SMK37): the flash map and store owner, the package layout, the OTA staging and
     # the loader windows, on SMK-layout packages made here from the FM-1 binaries (layout and protocol under test)
     run smk37-flash sh -c "$CC -O2 -Wall -DBOARD_SMK37=1 -Ifirmware/hal -o $OUT/smk_flash_test tests/smk_flash_test.c && \

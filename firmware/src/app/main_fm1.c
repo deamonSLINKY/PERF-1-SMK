@@ -610,6 +610,64 @@ static void px_service(void)
 }
 
 static uint32_t prof_clk(void) { return fm1_ticks(); }
+#if BOARD_SMK37
+/* PERF-1 SMK: the inputs frame (F0 7D 50 5C), ten a second while the log listens (tools/smklog.py): every control as the
+ * HAL reads it, and the last pad hit's rise, so the controls can be checked and the pad velocity set from a real unit.
+ * Words (little-endian, packed 8-to-7): seq, ms, buttons, keys 0-31, keys 32-36, faders (a byte each), pitch | mod << 16,
+ * pedal | battery << 16, encoders K1..K8 (int16 pairs, 4 words), ADC ok, ADC missed, hit pad | readings << 8 | count << 16,
+ * the hit's baseline | curve start << 16, its 8 readings (u16 pairs, 4 words), the hit's velocity | the newest key
+ * pressed << 8 (0xFF none) | that key's velocity << 16, the pads held (bit = pad). */
+#define SMK_TEL_W 22u
+static void smk_tel(void)
+{
+    static uint32_t next, seq;
+    static uint64_t last_keys;
+    static uint8_t last_key = 0xFF;
+    smk_hw_t h;
+    uint32_t w[SMK_TEL_W], i, o = 4, pads = 0;
+    uint8_t f[4 + SMK_TEL_W * 5 + 2], b[SMK_TEL_W * 4];
+    _Static_assert(4 + (SMK_TEL_W * 4 * 8 + 6) / 7 + 1 <= 192, "the frame fits usb.c's SysEx queue");
+    if ((int32_t)(fm1_ms - next) < 0)
+        return;
+    plat_smk_hw(&h);
+    for (i = 0; i < 37u; i++)                       /* the newest key pressed since the last frame */
+        if ((h.keys >> i & 1u) && !(last_keys >> i & 1u))
+            last_key = (uint8_t)i;
+    last_keys = h.keys;
+    for (i = 0; i < 16u; i++)
+        pads |= (uint32_t)(h.pad_press[i] != 0) << i;
+    w[0] = seq;
+    w[1] = fm1_ms;
+    w[2] = h.buttons;
+    w[3] = (uint32_t)h.keys;
+    w[4] = (uint32_t)(h.keys >> 32);
+    w[5] = (uint32_t)h.fader[0] | (uint32_t)h.fader[1] << 8 | (uint32_t)h.fader[2] << 16 | (uint32_t)h.fader[3] << 24;
+    w[6] = (uint32_t)h.wheel[0] | (uint32_t)h.wheel[1] << 16;
+    w[7] = (uint32_t)h.pedal | (uint32_t)h.batt << 16;
+    for (i = 0; i < 4u; i++)
+        w[8 + i] = (uint16_t)h.enc[2 * i] | (uint32_t)(uint16_t)h.enc[2 * i + 1] << 16;
+    w[12] = h.adc_ok;
+    w[13] = h.adc_miss;
+    w[14] = (uint32_t)h.hit_pad | (uint32_t)h.hit_n << 8 | (uint32_t)smk_hit_count << 16;
+    w[15] = (uint32_t)h.hit_base | (uint32_t)h.pad_t0 << 16;
+    for (i = 0; i < 4u; i++)
+        w[16 + i] = (uint32_t)h.hit_raw[2 * i] | (uint32_t)h.hit_raw[2 * i + 1] << 16;
+    w[20] = (h.hit_pad < 16u ? (uint32_t)plat_pad_vel(h.hit_pad) : 0u) | (uint32_t)last_key << 8 |
+            (uint32_t)(last_key < 37u ? h.key_vel[last_key] : 0u) << 16;
+    w[21] = pads;
+    for (i = 0; i < SMK_TEL_W; i++)
+        b[4 * i] = (uint8_t)w[i], b[4 * i + 1] = (uint8_t)(w[i] >> 8), b[4 * i + 2] = (uint8_t)(w[i] >> 16), b[4 * i + 3] = (uint8_t)(w[i] >> 24);
+    f[0] = 0xF0, f[1] = 0x7D, f[2] = 0x50, f[3] = 0x5C;
+    o += ota_pack7(b, sizeof b, f + o);
+    f[o++] = 0xF7;
+    if (usb_sysex_try(f, o) == 0) {
+        seq++;
+        next = fm1_ms + 100u;
+    } else {
+        next = fm1_ms + 20u;                        /* (the queue is full: soon again) */
+    }
+}
+#endif
 static void tel_service(void)
 {
     static uint8_t on, extra;
@@ -641,6 +699,9 @@ static void tel_service(void)
         on = 0;
         return;
     }
+#if BOARD_SMK37
+    smk_tel();                                      /* the inputs frame, ten a second */
+#endif
     if (extra == 1) {                               /* the second frame (F0 7D 50 5A): the slowest chunk's stages and when it was, the histogram of renders, the slowest half dissected */
         uint32_t w[40], i, o = 4;
         uint8_t f[4 + 40 * 5 + 2], b[40 * 4];

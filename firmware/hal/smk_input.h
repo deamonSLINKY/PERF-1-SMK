@@ -471,6 +471,7 @@ static void smk__padq(uint32_t pad, uint32_t vel)     /* a pad hit (vel) or rele
 #define SMK_HIT_N 8u
 static volatile uint16_t smk_hit_raw[SMK_HIT_N], smk_hit_base;
 static volatile uint8_t smk_hit_pad = 0xFF, smk_hit_n;
+static volatile uint16_t smk_hit_count;          /* hits since boot (the log sees the ones it missed) */
 static void smk__pad(uint32_t p, uint32_t raw)
 {
     uint32_t base = fm1_in.pad_base[p], st = fm1_in.pad_st[p];
@@ -483,6 +484,7 @@ static void smk__pad(uint32_t p, uint32_t raw)
             smk_hit_base = (uint16_t)base;
             smk_hit_raw[0] = (uint16_t)raw;
             smk_hit_n = 1;
+            smk_hit_count++;
             fm1_in.pad_st[p] = 1;
             fm1_in.pad_peak[p] = (uint16_t)raw;
         } else if (base > raw) {
