@@ -100,6 +100,7 @@ static uint32_t min_q[MQ], mi_w, mi_r;
 static FILE *midi_log;
 static uint32_t last_out;                        /* the last packet out, not clock: status << 16 | d1 << 8 | d2 */
 static uint32_t midi_out_count, clock_out_count;
+static uint32_t nh, nh_keep, nh_t0, nh_win, nh_arm, nh_n, nh_blk;   /* (0.17.11) the notes out as a hash: armed, from the next start (0xFA) for nh_win ms */
 int plat_midi_in(uint32_t *pkt)
 {
     if (mi_r == mi_w)
@@ -121,6 +122,20 @@ void plat_midi_out(uint32_t pkt)
     if (((pkt >> 8) & 0xFF) == 0xF8) {
         clock_out_count++;
         return;
+    }
+    if (((pkt >> 8) & 0xFF) == 0xFA && nh_arm) {
+        nh_arm = 0;
+        nh = 2166136261u;
+        nh_t0 = nh_blk + 1u;
+        nh_n = 0;
+    }
+    if (!nh_arm && nh_t0 && (nh_blk + 1u - nh_t0) * 256u / 44u < nh_win && ((pkt >> 8) & 0xF0u) == 0x90u && (pkt >> 8 & 15u) && (pkt >> 24)) {   /* the notes on (not the pad's: its breaths go on from the sound before), and the block each is in */
+        uint32_t v = (pkt >> 8 & 0xFFFFFFu) ^ (nh_blk + 1u - nh_t0) << 24 ^ (nh_blk + 1u - nh_t0) >> 8 << 4;
+        int k;
+        for (k = 0; k < 4; k++)
+            nh = (nh ^ (v >> (8 * k) & 0xFFu)) * 16777619u;
+        nh ^= (nh_blk + 1u - nh_t0) * 2654435761u;
+        nh_n++;
     }
     if (midi_log)
         fprintf(midi_log, "%u ms: %02X %02X %02X\n", now_ms, (pkt >> 8) & 0xFF, (pkt >> 16) & 0xFF, (pkt >> 24) & 0xFF);
@@ -397,6 +412,7 @@ static void run_ms(uint32_t ms)
         while (audio_due_ms <= (double)now_ms) {      /* 256-frame blocks, as the device renders them */
             double t0 = now_ns(), dt;
             en_render(blk, 256, master);
+            nh_blk++;
 #ifdef EN_WEB
             web_audio(blk, 256);
 #endif
@@ -548,7 +564,15 @@ static int expect(const char *what, const char *val)
         got = (int)clock_out_count;
     else if (!strcmp(what, "sixteenths"))
         got = (int)en_bars;
-    else if (!strcmp(what, "lfo16")) {            /* the pad LFO's place in its cycle, 0 .. 15 (0.17.10) */
+    else if (!strcmp(what, "hashsame"))           /* (0.17.11) the notes since the armed start as those kept (and some were played) */
+        got = nh == nh_keep && nh_n > 20u;
+    else if (!strcmp(what, "notes"))              /* the notes hashed */
+        got = (int)nh_n;
+    else if (!strcmp(what, "codeexact")) {        /* the code playing gives the piece as it is */
+        extern int ui_code_now(char *b);
+        char b[16];
+        got = ui_code_now(b);
+    } else if (!strcmp(what, "lfo16")) {            /* the pad LFO's place in its cycle, 0 .. 15 (0.17.10) */
         extern int en_test_lfo16(void);
         got = en_test_lfo16();
     } else if (!strcmp(what, "lfobar")) {         /* the pad LFO (at 1 bar) against the bar: its place less the bar's step, 0 when locked, either way of a step */
@@ -1087,6 +1111,23 @@ int main(int argc, char **argv)
             host_seamless = atoi(a);
         } else if (!strcmp(cmd, "battery")) {        /* battery N: the divider's ADC reading (0..1023; the indicator shows from about 500) */
             host_batt = (uint32_t)strtoul(a, 0, 10);
+        } else if (!strcmp(cmd, "hasharm")) {        /* hasharm MS: the notes hashed from the next start for MS */
+            nh_arm = 1;
+            nh_win = (uint32_t)atoi(a);
+            nh_t0 = 0;
+        } else if (!strcmp(cmd, "hashkeep")) {
+            nh_keep = nh;
+            printf("  notes %u hash %08X\n", nh_n, nh);
+        } else if (!strcmp(cmd, "codekeep") || !strcmp(cmd, "code")) {   /* codekeep: the code playing kept; code [CODE]: one started (the kept one) */
+            extern int ui_code_now(char *b), ui_code_play(const char *s);
+            static char kept[16];
+            if (cmd[4]) {
+                ui_code_now(kept);
+                printf("  code %s\n", kept);
+            } else if (ui_code_play(*a ? a : kept)) {
+                printf("FAIL line %d: not a code: %s\n", lineno, *a ? a : kept);
+                fails++;
+            }
         } else if (!strcmp(cmd, "seed")) {           /* seed N: the next power-on's (reboot) */
             host_seed = (uint32_t)strtoul(a, 0, 10);
         } else if (!strcmp(cmd, "reboot")) {

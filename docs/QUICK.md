@@ -40,9 +40,9 @@
 | **HOME** | Tempo page; again Perform; again Tempo. Twice quickly: visualizers. Leaves the FX menu. | 0.7 s: the settings. | The sigil's middle: eye or imp. |
 | **SAVE** | Breakdown on the next bar; again a build, then the drop. On Global: store. | 0.5 s: the drop. | On Global, 1.5 s: back to factory. |
 | **SEQ** | Drums; again Links, Kit, Drum drift, Groove, Steps, Feel, Phrase. In the sequencer: back to Drums. | 0.4 s: the sequencer. | The links on and off. |
-| **PLAY** | Play and stop. | | |
+| **PLAY** | Play and stop: each start a fresh track and its code (`PLAYING DZBT-4DTT9`). | | |
 | **REC** | Freeze: the chord holds, the reverb rings on, until pressed again. | | Capture: the bar played on Jam into the voice's line. |
-| White keys | Add or remove a scale note (the root stays). By hand, Jam: notes. Sequencer: the 16 steps. FX: effects. Perform, GLO held: the mix. | A scene key 0.6 s: store it. | White 1-6 (`F3`..`D4`): pattern 1-6, on the bar. |
+| White keys | Play the page's voice (Global: add or remove a scale note, the root stays). Jam: notes. Sequencer: the 16 steps. FX: effects. Perform, GLO held: the mix. | A scene key 0.6 s: store it. | White 1-6 (`F3`..`D4`): pattern 1-6, on the bar. |
 | Black keys | The same. Sequencer: which pattern the lane plays (black 1-6; black 7: follow). | | Sequencer: copy this pattern into 1-6. |
 
 ---

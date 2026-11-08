@@ -1,0 +1,81 @@
+# TRACK CODES (0.17.11): PLAY starts a fresh track with its own code; the same code started again plays the same notes at the same
+# times, whatever was playing before (another genre, the knobs turned); the Code page (GLO, third) shows it and takes one typed in
+seed 0
+wait 2500
+expect playing 1
+# a fresh track: its notes for 20 s kept, and its code
+hasharm 20000
+tap PLAY
+wait 300
+expect playing 0
+tap PLAY
+wait 22000
+hashkeep
+codekeep
+expect codeexact 1
+# elsewhere a while: another genre, Evolve turned
+tap GLO
+wait 200
+expect view 32
+spin K4 3
+wait 12000
+tap HOME
+spin K2 10
+wait 6000
+# the code again: the same notes
+hasharm 20000
+code
+wait 22000
+expect hashsame 1
+expect codeexact 1
+# and from stopped, a third time
+tap PLAY
+wait 3000
+hasharm 20000
+code
+wait 22000
+expect hashsame 1
+# PLAY: a fresh one (other notes)
+hasharm 20000
+tap PLAY
+wait 300
+tap PLAY
+wait 22000
+expect hashsame 0
+# the Code page: GLO three times; a letter typed is a code of its own (the check letter follows); PLAY starts it
+tap GLO
+wait 100
+tap GLO
+wait 100
+tap GLO
+wait 200
+expect view 34
+spin K1 2
+spin K2 1
+wait 200
+shot code_typed.png
+tap PLAY
+wait 2000
+expect playing 1
+expect codeexact 1
+shot code_page.png
+# a minute in a genre with a time plan (double time after the drop) and the wobble: the same again
+tap GLO
+wait 100
+expect view 32
+spin K4 3
+wait 3000
+hasharm 60000
+tap PLAY
+wait 300
+tap PLAY
+wait 62000
+hashkeep
+codekeep
+tap GLO
+spin K4 5
+wait 8000
+hasharm 60000
+code
+wait 62000
+expect hashsame 1

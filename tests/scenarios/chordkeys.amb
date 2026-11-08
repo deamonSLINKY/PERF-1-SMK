@@ -9,7 +9,9 @@ spin SELECT 1
 wait 100
 spin SELECT 1
 wait 300
-expect view 34
+spin SELECT 1
+wait 100
+expect view 35
 expect keychord 1
 shot jam_chord.png
 wait 8000

@@ -607,6 +607,18 @@ void project_piece_save(void)
     pending = 1;
 }
 
+void project_piece_recipe(int i)
+{
+    i = (i % NPIECES + NPIECES) % NPIECES;
+    keep();
+    proj.piece = (uint8_t)i;
+    pxl[i][0] = 0;                           /* (its FILTERS and SCREAM: the defaults) */
+    recipe(i, &proj.slot[i]);
+    take(i);
+    if (saved >> i & 1u)
+        proj.edited |= (uint16_t)(1u << i);  /* (not what is stored: SAVE would write over it) */
+}
+
 void project_piece_factory(void)
 {
     pxl[proj.piece][0] = 0;                  /* (its FILTERS and SCREAM: the defaults, unless it was saved with its own) */

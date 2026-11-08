@@ -28,7 +28,9 @@ spin SELECT 1
 wait 100
 spin SELECT 1
 wait 100
-expect view 34
+spin SELECT 1
+wait 100
+expect view 35
 expect jamv 0
 wait 100
 expect enpar122 1

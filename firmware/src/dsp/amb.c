@@ -990,6 +990,7 @@ void en_play(int on) { post(C_PLAY, on, 0); }
 void en_next(void) { post(C_NEXT, 0, 0); }
 void en_freeze(int on) { post(C_FREEZE, on, 0); }
 void en_seed(uint32_t s) { post(C_SEED, 0, (int)(s & 0xFFFFu)); }
+void en_seed_exact(uint32_t s) { post(C_SEED, 1, (int)(s & 0xFFFFu)); }
 void en_panic(void) { post(C_PANIC, 0, 0); }
 void en_mute(int on) { post(C_MUTE, on, 0); }
 void en_hush(int on) { post(C_HUSH, on, 0); }
@@ -4515,6 +4516,7 @@ static void pool_set(uint32_t p)
     bass_to(bass_pc());
 }
 
+static void arc_restart(void);
 static void regrow(void)                        /* a new piece: a fresh acid line, the home chord (or the progression's first), an empty progression loop */
 {
     pg_i = pg_start = 0;
@@ -4531,6 +4533,28 @@ static void regrow(void)                        /* a new piece: a fresh acid lin
     else
         ac_publish();
     ac_pos = 0;
+    if (!par[P_CM_LOCK]) {                      /* (0.17.11, track codes) the pluck's loop and motif start empty: what it heard before counts for nothing */
+        int k;
+        for (k = 0; k < 32; k++)
+            cm_f[k] = cm_g[k] = cm_ix[k] = cm_vl[k] = 0;
+        cm_k = 0;
+        cm_sync = 0;
+    }
+    cm_i = 0;
+    mo_valid = mo_rec = mo_on = mo_inv = mo_alt = mo_restate = mo_first = mo_prev = mo_idx0 = 0;
+    mo_play = 0;
+    mo_last = -1;
+    arc_restart();                              /* the slow arc from the middle, its first tide drawn afresh */
+    dd_in = -1;                                 /* drum drift counts its bars from here */
+    dd_bars = 0;
+    dd_fill = 0;
+    grv_bars = 0;                               /* the time plan, the fills and the drop's tricks too */
+    wob_rate = -1;
+    fill_hold = fill_q = fill_bar = drop_imp = 0;
+    gap_on = 0;
+    gap_g = 1.0f;
+    crash_next = fill_kind = 0;
+    snr_rise = 0.0f;
     sec = SEC_GROOVE;
     sec_req = 0;
     drum_publish();
@@ -6316,6 +6340,15 @@ static void drain(void)
             break;
         case C_FREEZE: en_frozen = (uint8_t)(a != 0); break;
         case C_SEED:
+            if (a) {                             /* exact (a track code): every stream from the seed alone */
+                const uint32_t s = (uint32_t)(b & 0xFFFF);
+                rng = s * 2654435761u ^ 0x9E3779B9u;
+                prng = 0x2545F491u ^ s * 40503u;
+                lrng = 0x6C078965u ^ s * 69069u;
+                if (!rng)
+                    rng = 1u;
+                break;
+            }
             rng ^= (uint32_t)(b & 0xFFFF) * 2654435761u;
             if (!rng)
                 rng = 1u;
@@ -7938,6 +7971,16 @@ static void render_chunk(int32_t *out, uint32_t n, float gain)
 /* the arc: a slow tide, minutes long, between sparse (-1) and full (+1); Motion sets how far it goes */
 static float arc, arc_tgt;
 static uint32_t arc_left;
+static void arc_restart(void)                   /* (0.17.11, track codes) the slow things' clocks from now: the arc from the middle, the modulators' and the tape
+                                                 * head's next turns at once (they draw on the shared stream: a track's draws in the same order every start) */
+{
+    int i;
+    arc = arc_tgt = arcm = 0.0f;
+    arc_left = 0;
+    head_left = 0;
+    for (i = 0; i < NMOD; i++)
+        mod[i].left = 0;
+}
 
 static void control(uint32_t n)                 /* once a chunk: the slow things */
 {

@@ -178,6 +178,7 @@ void en_next(void);                            /* the next chord: on the next ba
 void en_freeze(int on);
 void en_trim(int g, int piece);                /* the playing piece's level: the loudest pieces turned down to the rest (0.16.6) */
 void en_seed(uint32_t s);                      /* stir some entropy into the generators */
+void en_seed_exact(uint32_t s);                /* (0.17.11, track codes) the generators' streams set from s alone: what came before counts for nothing */
 void en_note_v(int voice, int note, int vel);   /* the same, with a velocity (1 .. 127; 0 the note off; en_note's is 100): the pluck's, bass's and acid's level and accent (0.15.23) */
 void en_note(int voice, int note, int on);
 void en_bend(int voice, int bend);              /* a keyboard's pitch bend on a voice played by hand (pluck, drone, acid): -8192 .. 8191, two semitones each way (0.15.26) */

@@ -45,7 +45,7 @@ press SEQ
 wait 500
 release SEQ
 wait 1200
-expect view 35
+expect view 36
 shot looks_seq.png
 turn SELECT -20 100
 wait 300
@@ -96,12 +96,12 @@ tap FX
 wait 300
 expect fxon 0
 # JAM: Sound on the fourth knob
-turn SELECT 2 100
+turn SELECT 3 100
 wait 1500
-expect view 34
+expect view 35
 shot looks_jam.png
 # a picture page (0.17.8): the title on a panel strip, the curve on a dark screen with a grid
-turn SELECT -32 100
+turn SELECT -33 100
 wait 1500
 expect view 2
 shot looks_padenv.png

@@ -39,14 +39,14 @@
 
 /* --------------------------------------------------------------- pages --- */
 enum { V_TEMPO, V_PAD, V_PADENV, V_PADLFO, V_CHORDS, V_PROG, V_DRONE, V_DRENV, V_DRLFO, V_DRBASS, V_BLSTEP, V_ACID, V_ACENV, V_ACLINE, V_ACANS, V_ACSTEP, V_CMEL, V_CMEL2, V_CMVU, V_CMSTEP,
-       V_DRUMS, V_LINKS, V_KIT, V_DDRIFT, V_GROOVE, V_STEPS, V_FEEL, V_PHRASE, V_SPACE, V_REVERB, V_MASTER, V_MIXER, V_GLOBAL, V_SETL, V_JAM, NDIAL, V_SEQ = NDIAL, V_PERF, V_VIZ, NVIEWS };   /* V_PERF: the second home screen; V_VIZ: the visualizers */
+       V_DRUMS, V_LINKS, V_KIT, V_DDRIFT, V_GROOVE, V_STEPS, V_FEEL, V_PHRASE, V_SPACE, V_REVERB, V_MASTER, V_MIXER, V_GLOBAL, V_SETL, V_CODE, V_JAM, NDIAL, V_SEQ = NDIAL, V_PERF, V_VIZ, NVIEWS };   /* V_PERF: the second home screen; V_VIZ: the visualizers */
 static const char *const VIEW_NAME[NVIEWS] = {"Tempo", "Pad", "Pad env", "Pad LFO", "Chords", "Progression", "Bass", "Bass env",
-                                              "Bass LFO", "Bass line", "Bass steps", "Acid", "Acid env", "Acid line", "Acid answer", "Acid steps", "Pluck", "Pluck 2", "Deja vu", "Pluck steps", "Drums", "Links", "Kit", "Drum drift", "Groove", "Steps", "Feel", "Phrase", "Space", "Reverb", "Comp/Limit", "Mixer", "Global", "Set list", "Jam",
+                                              "Bass LFO", "Bass line", "Bass steps", "Acid", "Acid env", "Acid line", "Acid answer", "Acid steps", "Pluck", "Pluck 2", "Deja vu", "Pluck steps", "Drums", "Links", "Kit", "Drum drift", "Groove", "Steps", "Feel", "Phrase", "Space", "Reverb", "Comp/Limit", "Mixer", "Global", "Set list", "Code", "Jam",
                                               "Sequencer", "Perform", "Visual"};
 enum { VZ_PLASMA, VZ_KALEIDO, VZ_BARS, VZ_FLUX, VZ_DISCO, VZ_LIFE, VZ_ORBIT, VZ_TRIP, VZ_THEORY, VZ_AUTO, VZ_N };   /* the visualizers (viz.c; TRIP and THEORY 0.16.10, THEORY not in AUTO's turn) */
 static const char *const VZ_NAME[VZ_N] = {"PLASMA", "KALEIDO", "BARS", "FLUX", "DISCO", "LIFE", "ORBIT", "TRIP", "THEORY", "AUTO"};
 /* the knobs of each page: a parameter, or one of these (the sequencer's: the lane's) */
-enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_JSND, K_PLRT, K_DLRT, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_JSND: the sound of the voice JAM plays (0.17.4); K_FX*: the FX menu's own knobs */
+enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_JSND, K_PLRT, K_DLRT, K_CDPOS, K_CDCHR, K_CDROLL, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_JSND: the sound of the voice JAM plays (0.17.4); K_FX*: the FX menu's own knobs */
 static const char *const FXK_LABEL[4] = {"Filter", "Crush", "Throw", "Wash"};
 
 /* the FX edit pages (SEL + FX walks them; FX alone is the performing menu, or closes): each effect's settings on
@@ -256,6 +256,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {K_MXT, K_MXL, K_MXP, K_MXS},                  /* the mixer: a layer chosen, its level, its place, its send (the level is also on the layer's own page) */
     {P_ROOT, P_THEME, P_TUNE, K_GENRE},            /* global: the song's root, the look, the tuning, the genre (MIDI out is on the USB & MIDI settings page since 0.14.7) */
     {K_SLSL, K_SLGN, K_SLPC, K_SLON},              /* the set list (0.15.21): the slot (or a white key), its genre and piece, and Play (the auto-DJ and PRESETS go through it) */
+    {K_CDPOS, K_CDCHR, K_CDROLL, K_NONE},          /* the track code (0.17.11): the place in it, the letter there, a new roll of the dice; PLAY starts it */
     {K_NONE, K_NONE, K_NONE, K_NONE},              /* Jam: its knobs are the FXP table's last page (view_knob) */
     {K_LVL, K_TUNE, K_DEC, P_PATTERN},
     {K_FXF, K_FXF + 1, K_FXF + 2, K_FXF + 3},      /* perform: the FX knobs, without the FX menu */
@@ -296,6 +297,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Track", "Level", "Pan", "Send"},
     {"Root", "Theme", "Tune", "Genre"},
     {"Slot", "Genre", "Piece", "Play"},
+    {"Place", "Letter", "Roll", ""},
     {"Voice", "Keys", "Octave", "Sound"},
     {"Level", "Tune", "Decay", "Pattern"},
     {"Filter", "Crush", "Throw", "Wash"},
@@ -305,7 +307,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
 static const struct {
     uint8_t btn, first, n;
 } GROUP[] = {
-    {B_HOME, V_TEMPO, 1}, {B_ENV, V_PAD, 5}, {B_LFO, V_DRONE, 5}, {B_ARP, V_ACID, 9}, {B_SEQ, V_DRUMS, 8}, {B_GLO, V_GLOBAL, 2},
+    {B_HOME, V_TEMPO, 1}, {B_ENV, V_PAD, 5}, {B_LFO, V_DRONE, 5}, {B_ARP, V_ACID, 9}, {B_SEQ, V_DRUMS, 8}, {B_GLO, V_GLOBAL, 3},
 };
 #define NGROUP (int)(sizeof GROUP / sizeof GROUP[0])
 
@@ -614,6 +616,145 @@ static void itoa_u(uint32_t v, char *b)
 int ui_dirty(void) { return project_pending(); }
 
 static void edited(void) { proj.edited |= (uint16_t)(1u << proj.piece); }   /* the piece changed */
+
+/* TRACK CODES (0.17.11): nine letters for a track: its genre, its piece (as the recipe), its key, mode and tempo, and the seed every
+ * generator starts from (a check letter last). A start from one plays the same track, note for note, from the top: on this firmware,
+ * hands off (a knob turned, a key played, the auto-DJ's moves change it from there). PLAY starts a fresh track, a new code each time;
+ * the Code page (GLO, third) shows the one playing, takes one typed in (K1 the place, K2 the letter), rolls a new one (K3); PLAY
+ * there starts it (or the one playing again, from the top). A piece changed from its recipe: its code gives the recipe ("EDITED"). */
+#define CODE_N 9
+#define CODE_M40 0xFFFFFFFFFFull
+#define CODE_MUL 0x5DEECE66Dull                  /* odd: the bits scrambled (a seed's neighbour looks nothing like it) */
+static const char CODE_ABC[33] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+typedef struct { uint8_t genre, piece, root, mode, tempo; uint16_t seed; } tcode_t;
+static uint16_t code_seed;                       /* the track playing's seed */
+static uint8_t af_fresh;                         /* a start from the top is on its way: AUTO FX waits for its first bar (the bars before it are the old track's) */
+static uint8_t code_in[CODE_N], code_pos, code_typed, code_roll = 128, code_clean;   /* the Code page's letters (typed: not the one playing), the place; the start was the recipe's */
+static uint16_t code_pats[EN_NPAT][EN_NLANE];    /* the drum patterns as the track started (drum drift changes them as it plays; PLAY starts from these) */
+static uint64_t code_inv(uint64_t a)
+{
+    uint64_t x = a;
+    int i;
+    for (i = 0; i < 6; i++)
+        x *= 2u - a * x;
+    return x;
+}
+static int code_check(const uint8_t *g)          /* the check letter: odd weights, so any one letter wrong shows */
+{
+    int i, c = 7;
+    for (i = 0; i < CODE_N - 1; i++)
+        c += (2 * i + 1) * g[i];
+    return c & 31;
+}
+static void code_pack(const tcode_t *t, uint8_t *g)
+{
+    uint64_t v = (uint64_t)t->genre | (uint64_t)t->piece << 5 | (uint64_t)t->seed << 9 | (uint64_t)t->root << 25 |
+                 (uint64_t)t->mode << 29 | (uint64_t)(t->tempo - 70) << 33;
+    int i;
+    v = v * CODE_MUL & CODE_M40;
+    v ^= v >> 20;
+    for (i = 0; i < CODE_N - 1; i++)
+        g[i] = (uint8_t)(v >> (35 - 5 * i) & 31u);
+    g[CODE_N - 1] = (uint8_t)code_check(g);
+}
+static int code_unpack(const uint8_t *g, tcode_t *t)   /* 0: a code of this firmware's */
+{
+    uint64_t v = 0;
+    int i;
+    if (code_check(g) != g[CODE_N - 1])
+        return -1;
+    for (i = 0; i < CODE_N - 1; i++)
+        v = v << 5 | g[i];
+    v ^= v >> 20;
+    v = v * code_inv(CODE_MUL) & CODE_M40;
+    t->genre = (uint8_t)(v & 31u);
+    t->piece = (uint8_t)(v >> 5 & 15u);
+    t->seed = (uint16_t)(v >> 9);
+    t->root = (uint8_t)(v >> 25 & 15u);
+    t->mode = (uint8_t)(v >> 29 & 15u);
+    t->tempo = (uint8_t)((v >> 33 & 127u) + 70u);
+    return t->genre < EN_NGENRE && t->piece < NPIECES && t->root < 12 && t->mode < EN_NMODES && t->tempo <= 190 ? 0 : -1;
+}
+static void code_text(const uint8_t *g, char *b)    /* "XXXX-XXXXX" */
+{
+    int i, n = 0;
+    for (i = 0; i < CODE_N; i++) {
+        if (i == 4)
+            b[n++] = '-';
+        b[n++] = CODE_ABC[g[i] & 31];
+    }
+    b[n] = 0;
+}
+static void code_now(uint8_t *g)                 /* the track playing's */
+{
+    tcode_t t;
+    t.genre = proj.genre;
+    t.piece = proj.piece;
+    t.seed = code_seed;
+    t.root = (uint8_t)proj.par[P_ROOT];
+    t.mode = (uint8_t)proj.par[P_MODE];
+    t.tempo = (uint8_t)proj.par[P_TEMPO];
+    code_pack(&t, g);
+}
+static int code_par_match(void)                  /* the piece's settings as its recipe's (the key, mode and tempo aside: the code has them) */
+{
+    int16_t r[P_NPARAMS];
+    uint16_t pool;
+    int p;
+    en_piece_g(proj.genre, proj.piece, r, &pool);
+    for (p = 0; p < P_NPARAMS; p++)
+        if (!en_par_sticky(p) && p != P_TEMPO && p != P_ROOT && p != P_MODE && p != P_PATTERN && proj.par[p] != r[p])
+            return 0;   /* (the pattern playing is where the song is, not a setting) */
+    return proj.pool == EN_MODE_POOL[proj.par[P_MODE] % EN_NMODES];
+}
+static int code_exact(void) { return code_clean && code_par_match(); }
+static void code_pats_keep(void)                 /* a pattern edited by hand: the start keeps it */
+{
+    int p, l;
+    for (p = 0; p < EN_NPAT; p++)
+        for (l = 0; l < EN_NLANE; l++)
+            code_pats[p][l] = en_pats[p][l];
+}
+static void track_fresh(int roll, int taken)     /* the track from its start: a new seed (roll), the patterns as taken up (taken) or as the last start had them */
+{
+    static uint16_t rp[EN_NPAT][EN_NLANE];
+    static uint8_t rm[EN_NLANE][16];
+    int p, l, same = 1;
+    if (roll)
+        code_seed = (uint16_t)(((plat_ms() + 1u) ^ (uint32_t)code_seed * 40503u) * 2654435761u >> 16);
+    for (p = 0; p < EN_NPAT; p++)
+        for (l = 0; l < EN_NLANE; l++) {
+            if (taken)
+                code_pats[p][l] = en_pats[p][l];
+            else
+                en_pats[p][l] = code_pats[p][l];
+        }
+    en_piece_pats_g(proj.genre, proj.piece, rp);
+    en_piece_mods_g(proj.genre, proj.piece, rm);
+    for (p = 0; p < EN_NPAT; p++)
+        for (l = 0; l < EN_NLANE; l++)
+            same &= code_pats[p][l] == rp[p][l];
+    for (l = 0; l < EN_NLANE; l++)
+        for (p = 0; p < 16; p++)
+            same &= en_mod[l][p] == rm[l][p];
+    for (p = 0; p < EN_PRG_LEN; p++)
+        same &= proj.prg[p] == 0;
+    for (p = 0; p < EN_PRK_LEN; p++)
+        same &= proj.prk[p] == 0;
+    for (p = 0; p < 16; p++)
+        same &= proj.bs[p] == 0;
+    code_clean = (uint8_t)same;
+    proj.par[P_PATTERN] = proj.slot[proj.piece].par[P_PATTERN];   /* from the piece's first pattern (drum drift moves on from it) */
+    en_set(P_PATTERN, proj.par[P_PATTERN]);
+    en_seed_exact(code_seed);
+    en_regrow();
+    ui.af_rng = (uint32_t)code_seed * 2654435761u | 1u;   /* AUTO FX from the start too: its dice, nothing planned */
+    ui.af_end = ui.af_start = ui.af_quiet = 0;
+    ui.af_bar = 0;
+    ui.af_live = ui.af_said = ui.af_last[0] = ui.af_last[1] = 0;
+    ui.af_sec = EN_SEC_GROOVE;
+    code_typed = 0;
+}
 /* THE SET LIST (0.15.21): sixteen slots, each a genre's piece (glob.sl, kept with the player's three). With Play on, the auto-DJ's next piece is
  * the list's next slot (across genres), and PRESETS steps through the list instead of the bank (with SEL: on the next bar). */
 static int sl_find(void)                        /* the slot of the piece playing, or 0xFF */
@@ -1221,6 +1362,15 @@ static int knob_get(int k)
         return ui.pgsl & 7;
     if (k == K_SLSL)
         return ui.slsl % SL_N;
+    if (k == K_CDPOS)
+        return code_pos;
+    if (k == K_CDCHR) {
+        if (!code_typed)
+            code_now(code_in);
+        return code_in[code_pos % CODE_N];
+    }
+    if (k == K_CDROLL)
+        return code_roll;
     if (k == K_SLGN || k == K_SLPC) {            /* (an empty slot: genre 0, "Empty") */
         const int e = glob.sl[ui.slsl % SL_N];
         return !e ? 0 : k == K_SLGN ? (e - 1) / NPIECES + 1 : (e - 1) % NPIECES;
@@ -1302,6 +1452,11 @@ static void knob_range(int k, int *lo, int *hi)
         *hi = k == K_BSTY ? 4 : k == K_BSNO ? 7 : 2;
         return;
     }
+    if (k == K_CDPOS || k == K_CDCHR || k == K_CDROLL) {
+        *lo = 0;
+        *hi = k == K_CDPOS ? CODE_N - 1 : k == K_CDCHR ? 31 : 255;
+        return;
+    }
     if (k == K_SLSL || k == K_SLGN || k == K_SLPC || k == K_SLON) {
         *lo = 0;
         *hi = k == K_SLSL ? SL_N - 1 : k == K_SLGN ? EN_NGENRE : k == K_SLPC ? NPIECES - 1 : 1;
@@ -1371,6 +1526,19 @@ static void knob_text(int k, char *b)
     }
     if (k == K_GRA) {
         itoa_u((uint32_t)ui.gr_all, b);
+        return;
+    }
+    if (k == K_CDPOS || k == K_CDCHR || k == K_CDROLL) {   /* the code: the place (1 .. 9), the letter there, the roll */
+        if (k == K_CDROLL) {
+            b[0] = 'N', b[1] = 'e', b[2] = 'w', b[3] = 0;
+            return;
+        }
+        if (k == K_CDPOS) {
+            itoa_u((uint32_t)code_pos + 1u, b);
+            return;
+        }
+        b[0] = CODE_ABC[knob_get(k) & 31];
+        b[1] = 0;
         return;
     }
     if (k == K_SLSL || k == K_SLGN || k == K_SLPC || k == K_SLON) {   /* the set list: the slot (1 ..), its genre (or Empty), its piece (01 ..), Play */
@@ -1545,6 +1713,28 @@ static void knob_set(int k, int v)
     }
     if (k == K_SLSL) {
         ui.slsl = (uint8_t)(v < 0 ? 0 : v > SL_N - 1 ? SL_N - 1 : v);
+        return;
+    }
+    if (k == K_CDPOS) {
+        code_pos = (uint8_t)(v < 0 ? 0 : v > CODE_N - 1 ? CODE_N - 1 : v);
+        return;
+    }
+    if (k == K_CDCHR || k == K_CDROLL) {         /* a letter typed (the check letter follows the others), or a new roll: the track playing's, another seed */
+        if (!code_typed)
+            code_now(code_in);
+        if (k == K_CDCHR) {
+            code_in[code_pos % CODE_N] = (uint8_t)(v < 0 ? 0 : v > 31 ? 31 : v);
+            if (code_pos < CODE_N - 1)
+                code_in[CODE_N - 1] = (uint8_t)code_check(code_in);
+        } else {
+            tcode_t t;
+            code_roll = 128;                     /* (the knob sits in the middle: it turns for ever) */
+            if (code_unpack(code_in, &t))
+                code_now(code_in), code_unpack(code_in, &t);
+            t.seed = (uint16_t)((plat_ms() + (uint32_t)t.seed * 40503u) * 2654435761u >> 16);
+            code_pack(&t, code_in);
+        }
+        code_typed = 1;
         return;
     }
     if (k == K_SLGN || k == K_SLPC || k == K_SLON) {   /* the set list: kept with the player's three (written a moment after) */
@@ -2048,6 +2238,11 @@ static void af_tick(void)
     uint8_t cand[NAFX], w[NAFX];
     if (!ui.af_rng)
         ui.af_rng = plat_ms() * 2654435761u | 1u;
+    if (af_fresh) {
+        if (!en_playing || en_bars >= 16u)
+            return;
+        af_fresh = 0;
+    }
     if (en_sec != ui.af_sec) {                   /* a drop: four bars left alone, and nothing carried over */
         if (en_sec == EN_SEC_GROOVE && ui.af_sec == EN_SEC_BUILD) {
             ui.af_quiet = bar + 4u;
@@ -2189,8 +2384,7 @@ static void set_piece(int i)                    /* the piece playing kept as it 
     ui.key_on = 0;                               /* (project_apply puts the key back) */
     project_apply();
     mood_apply();
-    en_seed(plat_ms());
-    en_regrow();
+    track_fresh(1, 1);
     {
         char t[12] = "PIECE ";
         caps(t + 6, piece_name(proj.piece), 4);
@@ -2265,8 +2459,7 @@ static void genre_step(int d)
     ui.key_on = 0;
     project_apply();
     mood_apply();
-    en_seed(plat_ms());
-    en_regrow();
+    track_fresh(1, 1);
     ui.piece_q = 0;
     genre_fx(g);
     {
@@ -2275,6 +2468,79 @@ static void genre_step(int d)
         say(en_genre_name(g), u);
     }
 }
+static void code_start(const tcode_t *t)        /* a track code: its genre, its piece as the recipe, its key, mode and tempo; from the top */
+{
+    char b[12];
+    uint8_t g[CODE_N];
+    if (ui.store_wait) {
+        say("STORING", "ONE MOMENT");
+        return;
+    }
+    if (en_playing)
+        en_play(0);
+    if (t->genre != proj.genre)
+        genre_step((int)t->genre - (int)proj.genre);
+    ui.dj_round = 0;
+    project_piece_recipe(t->piece);
+    proj.par[P_ROOT] = t->root;
+    proj.par[P_MODE] = t->mode;
+    proj.par[P_TEMPO] = t->tempo;
+    proj.pool = EN_MODE_POOL[t->mode];
+    ui.key_on = 0;
+    project_apply();
+    mood_apply();
+    ui.piece_q = 0;
+    code_seed = t->seed;
+    track_fresh(0, 1);
+    af_fresh = 1;
+    en_play(1);
+    code_now(g);
+    code_text(g, b);
+    say("TRACK", b);
+}
+static void code_go(void)                        /* the Code page's letters: started, or said wrong */
+{
+    tcode_t t;
+    if (code_unpack(code_in, &t)) {
+        say("NOT A CODE", "CHECK THE LETTERS");
+        return;
+    }
+    code_start(&t);
+}
+int ui_code_now(char *b)                         /* (the host, the remote) the track playing's code: 1 if it gives the piece as it is */
+{
+    uint8_t g[CODE_N];
+    code_now(g);
+    code_text(g, b);
+    return code_exact();
+}
+int ui_code_play(const char *s)                  /* (the host, the remote) a code started: 0, or -1 not one */
+{
+    uint8_t g[CODE_N];
+    tcode_t t;
+    int n = 0;
+    for (; *s && n < CODE_N; s++) {
+        char c = *s;
+        const char *q;
+        if (c >= 'a' && c <= 'z')
+            c = (char)(c - 32);
+        if (c == 'O')
+            c = '0';
+        else if (c == 'I' || c == 'L')
+            c = '1';
+        else if (c == 'U')
+            c = 'V';
+        for (q = CODE_ABC; *q && *q != c; q++)
+            ;
+        if (*q)
+            g[n++] = (uint8_t)(q - CODE_ABC);
+    }
+    if (n != CODE_N || code_unpack(g, &t))
+        return -1;
+    code_start(&t);
+    return 0;
+}
+
 static void sl_go(int s)                        /* the set list's slot s now: its genre, then its piece (said as SET 3/8 and its title) */
 {
     const int e = glob.sl[s % SL_N], g = (e - 1) / NPIECES, p = (e - 1) % NPIECES;
@@ -2493,6 +2759,7 @@ static void seq_trick(int k, int32_t e)         /* SEL + K1: the lane as a Eucli
     ui.eu_r[l] = (uint8_t)r;
     en_pats[seq_pat()][l] = (uint16_t)en_euclid(n, 16, r);
     edited();
+    code_pats_keep();
     {
         int j = 0;
         const char *s = "EUCLID ";
@@ -2518,6 +2785,7 @@ static void step_toggle(int s)                  /* a hit on or off: the lane's s
     volatile uint16_t *p = &en_pats[seq_pat()][ui.lane];
     *p = (uint16_t)(*p ^ (1u << s));
     edited();
+    code_pats_keep();
 }
 
 /* ------------------------------------------------------------- shift --- */
@@ -2614,6 +2882,7 @@ static void shift_key(int key)                  /* a key pressed with SEL held *
             for (l = 0; l < EN_NLANE; l++)
                 en_pats[i][l] = en_pats[from][l];
             edited();
+            code_pats_keep();
             pat_name(i, t);
             say("COPIED TO", t);
             return;
@@ -2631,6 +2900,7 @@ static void shift_lane(int restore)             /* the sequencer: SEL + OCT-, th
     }
     en_pats[seq_pat()][ui.lane] = v;
     edited();
+    code_pats_keep();
     caps(t, EN_LANE_NAME[ui.lane], sizeof t);
     say(t, restore ? "FACTORY" : "CLEARED");
 }
@@ -2639,7 +2909,7 @@ static void shift_lane(int restore)             /* the sequencer: SEL + OCT-, th
 /* the tab chain along the bottom (imp_tabs), and the breadcrumb's names: a tab a voice or group, with its pages */
 static const struct { const char *name; char ltr; uint8_t first, n; } TB[10] = {
     {"TEMPO", 'T', V_TEMPO, 1}, {"PAD", 'P', V_PAD, 5}, {"BASS", 'B', V_DRONE, 5}, {"ACID", 'A', V_ACID, 5}, {"PLUCK", 'L', V_CMEL, 4},
-    {"DRUMS", 'R', V_DRUMS, 8}, {"SPACE", 'S', V_SPACE, 2}, {"MIX", 'M', V_MASTER, 2}, {"GLOBAL", 'G', V_GLOBAL, 2}, {"JAM", 'J', V_JAM, 1}};
+    {"DRUMS", 'R', V_DRUMS, 8}, {"SPACE", 'S', V_SPACE, 2}, {"MIX", 'M', V_MASTER, 2}, {"GLOBAL", 'G', V_GLOBAL, 3}, {"JAM", 'J', V_JAM, 1}};
 static void set_view(int v)
 {
     int g;
@@ -2830,13 +3100,20 @@ static void button(int b)
         say("NEXT CHORD", en_playing ? "ON THE BAR" : 0);
         break;
     case B_PLAY:
-        if (en_playing) {
+        if (ui.view == V_CODE && code_typed) {   /* the Code page, a code typed or rolled: it starts (playing or not) */
+            code_go();
+        } else if (en_playing) {
             en_play(0);
             say("STOPPED", 0);
         } else {
-            en_seed(plat_ms());
+            char t[12];
+            uint8_t g[CODE_N];
+            track_fresh(ui.view != V_CODE, 0);   /* a fresh track (the Code page: the one playing again, from the top) */
+            af_fresh = 1;
             en_play(1);
-            say("PLAYING", 0);
+            code_now(g);
+            code_text(g, t);
+            say("PLAYING", t);
         }
         break;
     case B_REC:
@@ -4894,7 +5171,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
     case B_GLO: {                                /* and the audio's load, for testing on the device */
         static char cpu[40];
         cpu_line(cpu);
-        L("GLOBAL");
+        L("GLOBAL; AGAIN: SET LIST, CODE");
         L("ROOT, THEME; KEYS: THE SCALE");
         L("+ SEL: REMOTE (BROWSER)");
         L(cpu);
@@ -6910,6 +7187,69 @@ static void console_global(void)
     cv_text(8, 128, &FONT_XS, "KEYS: NOTES IN / OUT   ALGO: MODE", K_DIM);
 }
 
+/* CONSOLE: the Code page (0.17.11): the nine letters on tiles (the place lit, the check letter apart), the code's bits as a strip
+ * (the track's fingerprint, coloured by what each part of it holds), what it starts, and what PLAY does */
+static void console_code(void)
+{
+    uint8_t g[CODE_N];
+    tcode_t t;
+    char b[28], n[8];
+    int i, ok;
+    int32_t x;
+    if (code_typed)
+        for (i = 0; i < CODE_N; i++)
+            g[i] = code_in[i];
+    else
+        code_now(g);
+    ok = !code_unpack(g, &t);
+    console_top();
+    for (i = 0; i < CODE_N; i++) {               /* the letters */
+        const int32_t tx = 8 + i * 24 + (i >= 4 ? 8 : 0);
+        const int cur = i == (int)code_pos;
+        const uint16_t bg = cur ? mix(K_PANEL, K_ACC, 5) : i == CODE_N - 1 ? mix(K_BG, K_PANEL, 8) : K_PANEL;
+        char c[2] = {CODE_ABC[g[i] & 31], 0};
+        cv_rect(tx, 26, 21, 30, bg);
+        if (cur)
+            cv_rect(tx, 54, 21, 2, K_ACC);
+        text_c(tx + 10, 31, &FONT_B, c, !ok ? K_BASS : code_typed ? K_ACC : K_TEXT);
+    }
+    cv_rect(105, 40, 6, 2, K_DIM);               /* the dash */
+    if (ok) {                                    /* the fingerprint: 40 bits, each part its colour (genre, piece, seed, key, mode, tempo) */
+        static const uint8_t AT[7] = {0, 5, 9, 25, 29, 33, 40};
+        uint64_t v = (uint64_t)t.genre | (uint64_t)t.piece << 5 | (uint64_t)t.seed << 9 | (uint64_t)t.root << 25 |
+                     (uint64_t)t.mode << 29 | (uint64_t)(t.tempo - 70) << 33;
+        const uint16_t PC[6] = {K_PAD, K_ACC, K_TEXT, K_BASS, K_ACC, K_DIM};
+        int f = 0;
+        for (i = 0; i < 40; i++) {
+            while (i >= AT[f + 1])
+                f++;
+            cv_rect(8 + i * 56 / 10, 60, 4, v >> i & 1u ? 10 : 3, v >> i & 1u ? PC[f] : K_LINE);
+        }
+        caps(b, en_genre_name(t.genre), 18);
+        x = cv_text(8, 76, &FONT_B, b, K_PAD);
+        itoa_u((uint32_t)t.piece + 1u, n);
+        b[0] = ' ', b[1] = n[1] ? n[0] : '0', b[2] = n[1] ? n[1] : n[0], b[3] = 0;
+        cv_text(x + 4, 76, &FONT_B, b, K_TEXT);
+        caps(b, EN_NOTE_NAME[t.root % 12], 4);
+        x = cv_text(8, 96, &FONT_S, b, K_TEXT);
+        caps(b, EN_MODE_NAME[t.mode % EN_NMODES], 14);
+        x = cv_text(x + 4, 96, &FONT_S, b, K_ACC);
+        itoa_u(t.tempo, n);
+        x = cv_text(x + 10, 96, &FONT_S, n, K_TEXT);
+        cv_text(x + 3, 96, &FONT_S, "BPM", K_DIM);
+    } else {
+        cv_text(8, 76, &FONT_B, "NOT A CODE", K_BASS);
+        cv_text(8, 96, &FONT_S, "A LETTER IS WRONG", K_DIM);
+    }
+    if (code_typed)
+        cv_text(8, 114, &FONT_XS, ok ? "PLAY: START THIS TRACK" : "K1 THE PLACE, K2 THE LETTER", ok ? K_ACC : K_DIM);
+    else if (!code_exact())
+        cv_text(8, 114, &FONT_XS, "EDITED: THE CODE GIVES THE RECIPE", K_ACC);
+    else
+        cv_text(8, 114, &FONT_XS, en_playing ? "PLAYING: SHARE IT, PLAY IT AGAIN" : "PLAY: THIS TRACK AGAIN", K_DIM);
+    cv_text(8, 128, &FONT_XS, "K1 PLACE  K2 LETTER  K3 ROLL", K_DIM);
+}
+
 /* CONSOLE: a folded strip (the other voices beside a wide one): its letter, its meter, red when it is out */
 static void console_sliver(int v, int32_t x)
 {
@@ -7327,6 +7667,13 @@ static void draw_main(void)
     h = hash(h, (en_playing ? plat_ms() / 66u : 0u) | (uint32_t)en_sec << 28 | (uint32_t)ui.centre_imp << 30 | (uint32_t)en_shed_level << 26);   /* the sigil moves: 15 frames a second while playing */
     h = lk_hash(h);
     h = hash(h, proj.pool | (uint32_t)sound_root() << 12 | (uint32_t)proj.par[P_MODE] << 16);   /* (Global's scale) */
+    if (ui.view == V_CODE) {                     /* (the code: its letters, the place, the seed, the settings it checks) */
+        for (i = 0; i < CODE_N; i++)
+            h = hash(h, code_in[i] | (uint32_t)code_typed << 8 | (uint32_t)code_pos << 9);
+        h = hash(h, code_seed | (uint32_t)code_clean << 16 | (uint32_t)proj.genre << 17 | (uint32_t)proj.par[P_TEMPO] << 22);
+        for (i = 0; i < P_NPARAMS; i++)
+            h = hash(h, (uint32_t)proj.par[i]);
+    }
     if (h == ui.sig[1])
         return;
     ui.sig[1] = h;
@@ -7334,6 +7681,8 @@ static void draw_main(void)
     if (LOOK_CONSOLE) {
         if (ui.view == V_GLOBAL)
             console_global();            /* Global: the scale */
+        else if (ui.view == V_CODE)
+            console_code();              /* the track code */
         else if (lk_voice() >= 0 && ui.view != V_TEMPO)
             console_voice(lk_voice());   /* a voice's page: its strip opened wide */
         else
@@ -8429,8 +8778,11 @@ void ui_init(void)
         draw_splash();
     } else {
         lcd_fill(0, 0, 240, 240, K_BG);
-        if (!en_playing)
+        if (!en_playing) {
+            track_fresh(1, 1);
+            af_fresh = 1;
             en_play(1);                          /* it plays from the start */
+        }
     }
 }
 
@@ -8448,8 +8800,11 @@ void ui_frame(void)
         ui.btn_used = ui.btn;
         ui.shift_keys = ui.keys;
         lcd_fill(0, 0, 240, 240, K_BG);
-        if (!en_playing)
+        if (!en_playing) {
+            track_fresh(1, 1);
+            af_fresh = 1;
             en_play(1);
+        }
     }
     if (ui.theme != (uint8_t)proj.par[P_THEME]) {    /* a new theme: everything again */
         ui.theme = (uint8_t)proj.par[P_THEME];

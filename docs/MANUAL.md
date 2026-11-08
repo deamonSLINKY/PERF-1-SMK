@@ -39,7 +39,7 @@ Only a few. The rest can wait.
 | Control | What it does for you today |
 |---|---|
 | **MASTER** knob | Volume. |
-| **PLAY** | Stop and start the music. |
+| **PLAY** | Stop and start the music. Each start is a fresh track with its own code (see Track codes). |
 | **EDIT** | Move on to the next chord. |
 | The **keys** | Change the notes the music uses. |
 | **PRESETS** knob | The next piece of music. |
@@ -322,7 +322,7 @@ short version.
 | **HOME** | The Tempo page. Again: the Perform screen, then back to Tempo. Twice quickly: the visualizers. Held: the settings. Held with **SELECT**: the tempo. |
 | **SAVE** | A breakdown on the next bar. Again: a build and the drop. Held: the drop. On Global: stores the piece. |
 | **SEQ** | The Drums page. Again: Links, Kit, Drum drift, Groove, Steps, Feel, Phrase. Held: the sequencer. Tapped in the sequencer: back to Drums. With **SEL** held: the links on and off. |
-| **PLAY** | Play and stop. |
+| **PLAY** | Play and stop. Each start is a fresh track with its own code; on the Code page, the track again from the top (or the code typed in). |
 | **REC** | Freeze: the chord holds and the reverb rings on until you press it again. With **SEL**: Capture, which writes the bar you played on Jam into the acid line or the pluck loop (section 10). |
 | White keys | Play a voice: on the pad's, bass's, acid's or pluck's pages that voice, elsewhere the Jam page's (with Jam's Keys and Octave). On **Global**: the scale, each key adding or removing its note (the root stays). In the sequencer: the 16 steps. In the FX menu: the effects. On Perform, the visualizers, and with **GLO** held: the track mix. |
 | Black keys | The same as the white keys. |
@@ -464,6 +464,7 @@ columns are **KNOB1** to **KNOB4**.
 | Mixer | **SELECT** | Track (pad, bass, acid, pluck, drums) | Level | Pan (L100, C, R100) | Send (0-100) |
 | Global | **GLO** | Root | Theme (6) | Tune (+-50 cents) | Genre (the bank, the same as **GLO** + **PRESETS**) |
 | Set list | **GLO** x2 | Slot (1-16; or a white key) | Genre (or Empty) | Piece (01-10) | Play (off, on) |
+| Code | **GLO** x3 | Place (1-9) | Letter | Roll (a new code) | |
 | Jam | **SELECT** | Voice (pluck, pad, acid, bass) | Keys (scale, chords, harp) | Octave (-2 to +2) | Sound (that voice's sound) |
 
 Words on these pages:
@@ -1712,6 +1713,27 @@ With **Play** on:
 - Empty slots are skipped, and after the last slot it goes back to the first.
 
 The list on screen shows each slot's genre and piece. The slot playing is bright, and the slot you're editing has a bar behind it. The white keys light the slots in use, and the slot playing blinks.
+
+### Track codes
+
+Every time you press **PLAY**, PERF-1 starts a fresh track and gives it a code of nine letters, like `DZBT-4DTT9`. The screen shows it as the music starts (`PLAYING DZBT-4DTT9`). The code holds the genre, the piece, the key, the mode, the tempo, and the dice every generator starts from. Start the same code again and you hear the same track, note for note from the top: the same chords, drums, bass line, acid and pluck. Write one down when you like what you hear, or share it in a comment.
+
+Press **GLO** three times (Global, Set list, **Code**) to open the Code page. It shows the code playing on nine tiles, a strip of its bits, and what it starts: the genre and piece, the key and mode, the tempo.
+
+| Knob | Setting | What it does |
+|---|---|---|
+| **KNOB1** | Place | Which letter you're changing (the tile with the bar). |
+| **KNOB2** | Letter | The letter there. The last letter is a check and follows the others, so one wrong letter shows as `NOT A CODE`. |
+| **KNOB3** | Roll | A new code: the same genre, piece, key and tempo, other dice. Each turn is another one. |
+
+**PLAY** on the Code page starts the code shown: the one you typed or rolled, or the track playing again from the top.
+
+What a code keeps and what it doesn't:
+
+- A code gives the piece as it comes (its recipe), in the code's key, mode and tempo. If you've changed the piece (a knob, a pattern, a stored version), the page says `EDITED: THE CODE GIVES THE RECIPE`: the code still starts the track, without your changes. To keep those, store the piece and share it through the library.
+- The same track plays as long as you let it run. A knob turned, a key played, a scene, the FX or the auto-DJ's moves take it somewhere else from there.
+- Starting the music while the pad is still ringing can change the pad's first breath; the notes are the same.
+- Codes are for this firmware. A later version may change how the generators work, and an old code then starts a different track.
 
 The set list is kept with the theme, Tune and MIDI out. It plays your stored pieces as they are stored, and factory pieces as they come.
 

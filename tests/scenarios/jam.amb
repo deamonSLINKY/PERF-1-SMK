@@ -8,7 +8,9 @@ spin SELECT 1
 wait 100
 spin SELECT 1
 wait 100
-expect view 34
+spin SELECT 1
+wait 100
+expect view 35
 expect jamv 0
 shot jam_pluck.png
 # the pad, scale keys: one key, one note held; the scale untouched

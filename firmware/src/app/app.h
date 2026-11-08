@@ -50,6 +50,7 @@ void project_piece(int i);               /* the playing piece kept as it is, pie
 void project_set_genre(int g);           /* another bank: the pieces as they were left in it (or their recipes), the same number playing */
 void project_piece_save(void);           /* the playing piece, as it is, into the bank */
 void project_piece_factory(void);        /* the playing piece back to its recipe, and out of the bank */
+void project_piece_recipe(int i);        /* (0.17.11, a track code) piece i as its recipe into play; the bank as it is (a stored piece stays stored) */
 #define PX_NFX 7
 extern const uint8_t PX_FXS[PX_NFX];     /* (0.16.28) the effect settings a piece keeps: the FILTERS page's three types, SCREAM's four */
 void project_fx_get(uint8_t *v);        /* the playing piece's (as left this time, as saved with it, or the defaults) */
