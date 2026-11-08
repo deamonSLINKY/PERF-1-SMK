@@ -237,9 +237,10 @@ int main(int argc, char **argv)
         host_reply(m, 7);
         ota_service();
         bad += check("handshake answered", ident_replies == 1);
+        const size_t u = (size_t)(strchr(FELUCCA_ID, '_') - FELUCCA_ID);   /* the model's length: 4 FM-1, 10 SMK-37 Pro */
         bad += check("the plain query gets the model and family only (M-UPGRADE 3.11 takes NAME_ + 1-3 digits)",
-                     ota_msg[2] == 0x11 && !memcmp(ota_msg + 6, FELUCCA_ID, 8) && ota_msg[6 + 8] == 0 &&
-                     ota_msg[6 + 4] == '_');
+                     ota_msg[2] == 0x11 && !memcmp(ota_msg + 6, FELUCCA_ID, u + 4u) && ota_msg[6 + u + 4u] == 0 &&
+                     ota_msg[6 + u] == '_');
     }
     reset_dev();
     {
