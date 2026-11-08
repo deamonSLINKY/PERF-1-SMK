@@ -74,9 +74,17 @@ waitfor setpos 0 20000
 expect playing 1
 expect trkmute 0
 tap PLAY
+# place 1 without its drums: at power-on (the music starts by itself) it comes in so
+tapkey 0
+tapkey 10
+wait 100
+expect setmute0 16
 # kept after a restart
 wait 8000
 reboot
 wait 3000
 expect setbars1 8
 expect setmute1 16
+expect setpos 0
+expect playing 1
+expect trkmute 15

@@ -820,6 +820,13 @@ static void sl_parts(int s)                     /* place s's parts: the ones it 
         mood_apply();
     }
 }
+static void sl_start(void)                      /* a start from the top (PLAY, power-on, a code): the place playing's bars count from it, its parts, pattern, energy */
+{
+    sl_b0 = 0;
+    sl_fresh = 1;
+    if (sl_play() && ui.sl_pos < SL_N)
+        sl_parts(ui.sl_pos);
+}
 static void sl_tick(void)                       /* each frame while playing: the place's last bar asks for the next */
 {
     uint32_t bar;
@@ -2611,6 +2618,7 @@ static void code_start(const tcode_t *t)        /* a track code: its genre, its 
     code_seed = t->seed;
     track_fresh(0, 1);
     af_fresh = 1;
+    sl_start();
     en_play(1);
     code_now(g);
     code_text(g, b);
@@ -3231,10 +3239,7 @@ static void button(int b)
             uint8_t g[CODE_N];
             track_fresh(ui.view != V_CODE, 0);   /* a fresh track (the Code page: the one playing again, from the top) */
             af_fresh = 1;
-            sl_b0 = 0;                           /* (a place's bars from the top) */
-            sl_fresh = 1;
-            if (sl_play() && ui.sl_pos < SL_N)
-                sl_parts(ui.sl_pos);
+            sl_start();
             en_play(1);
             code_now(g);
             code_text(g, t);
@@ -9063,6 +9068,7 @@ void ui_init(void)
         if (!en_playing) {
             track_fresh(1, 1);
             af_fresh = 1;
+            sl_start();
             en_play(1);                          /* it plays from the start */
         }
     }
@@ -9085,6 +9091,7 @@ void ui_frame(void)
         if (!en_playing) {
             track_fresh(1, 1);
             af_fresh = 1;
+            sl_start();
             en_play(1);
         }
     }
