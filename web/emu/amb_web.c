@@ -209,3 +209,16 @@ __attribute__((used, visibility("default"))) void web_st_boot(void)
     ui_splash_ms = 600u;                         /* the studio: the boot card short */
     boot();
 }
+/* track codes (0.17.11, ui.c): a code's text in st_txt started as the panel's Code page starts it (its genre, its piece's recipe, key, mode,
+ * tempo, every generator from its seed), then read out into st_io (-1: not a code); and the code of the track playing into st_txt (1: it gives
+ * the piece exactly as it is) */
+static char st_txt[16];
+__attribute__((used, visibility("default"))) char *web_st_txt(void) { return st_txt; }
+__attribute__((used, visibility("default"))) int web_st_code_play(void)
+{
+    st_txt[15] = 0;
+    if (ui_code_play(st_txt) < 0)
+        return -1;
+    return web_st_read();
+}
+__attribute__((used, visibility("default"))) int web_st_code_now(void) { return ui_code_now(st_txt); }

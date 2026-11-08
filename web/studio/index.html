@@ -91,10 +91,10 @@
     <button id="midi" title="A MIDI file into the piece: drums to the patterns, the bass to its steps, a line to the acid or the pluck, the chords to the progression">MIDI file</button>
     <input type="file" id="mfile" accept=".mid,.midi,.MID,audio/midi" hidden>
     <button id="undo" hidden>Undo the import</button>
-    <!-- TRACK CODES: when the firmware's track codes land (ui.c code_start: a short code such as AB3KD-7QX2M packing a generated track's seed,
-         genre, key and settings), this button takes one: decode it as the firmware does, web_st_open its genre and piece (the recipe), then put its
-         key, mode and tempo in with st_put. Until then it waits. -->
-    <button id="tcode" disabled title="Open from a track code: once track codes are in the firmware">Track code</button>
+    <!-- TRACK CODES (0.17.11, ui.c code_pack / code_unpack / ui_code_play): nine letters packing a track's genre, piece (its recipe), key, mode,
+         tempo and seed; the emulator starts one exactly as the FM-1's Code page does (amb_web.c web_st_code_play), the same notes. -->
+    <button id="tcode" title="Open a track code (the nine letters on the FM-1's Code page): the same track, the same notes">Track code</button>
+    <span id="tc" class="tag dice" title="The code of the track playing" hidden></span>
     <button id="save" disabled>Download .piece</button>
     <button id="code" disabled>Copy code</button>
   </div>
@@ -317,6 +317,7 @@ async function openPiece(g, i) {
   ["save", "code"].forEach((id) => { $(id).disabled = false; });
   say("Opened " + S.genreName(g) + " " + S.pieceName(g, i) + ". Click a lane to edit it; it plays as you change it.");
   refresh();
+  if (typeof codeNow === "function") setTimeout(codeNow, 300);
 }
 let putTimer = 0;
 function changed() {                                         // the piece in hand edited: draw it, and into the emulator a moment later
@@ -981,6 +982,53 @@ $("impgo").addEventListener("click", async () => {
   changed();
   $("imp").hidden = true; $("undo").hidden = false;
   say("Put in: " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + " now plays the file's parts (in the emulator). Undo the import to go back.");
+});
+/* ======================================================================== track codes (ui.c code_pack / code_unpack) */
+const CODE_ABC = "0123456789ABCDEFGHJKMNPQRSTVWXYZ", M40 = (1n << 40n) - 1n, MUL = 0x5DEECE66Dn;
+const INV = (() => { let x = MUL; for (let i = 0; i < 6; i++) x = (x * (2n - ((MUL * x) & M40))) & M40; return x; })();   // the multiplier's inverse mod 2^40
+function codeDecode(text) {                                  // the code's genre, piece, key, mode, tempo, seed; null: not a code (a letter wrong or missing)
+  const g = [];
+  for (let c of String(text || "").toUpperCase()) {
+    if (c === "O") c = "0"; else if (c === "I" || c === "L") c = "1"; else if (c === "U") c = "V";
+    const k = CODE_ABC.indexOf(c);
+    if (k >= 0) g.push(k);
+  }
+  if (g.length !== 9) return null;
+  let c = 7;
+  for (let i = 0; i < 8; i++) c += (2 * i + 1) * g[i];
+  if (g[8] !== (c & 31)) return null;
+  let v = 0n;
+  for (let i = 0; i < 8; i++) v = (v << 5n) | BigInt(g[i]);
+  v ^= v >> 20n;
+  v = (v * INV) & M40;
+  const f = (sh, m) => Number((v >> BigInt(sh)) & BigInt(m));
+  const t = { genre: f(0, 31), piece: f(5, 15), seed: f(9, 0xFFFF), root: f(25, 15), mode: f(29, 15), tempo: f(33, 127) + 70,
+              text: g.slice(0, 4).map((k) => CODE_ABC[k]).join("") + "-" + g.slice(4).map((k) => CODE_ABC[k]).join("") };
+  return t.genre < N.genres.length && t.piece < 10 && t.root < 12 && t.mode < 8 && t.tempo <= 190 ? t : null;
+}
+async function codeNow() {                                   // the playing track's code, shown beside the position
+  if (!node) return;
+  const r = await ask({ type: "st_code_now" });
+  if (r.code) { $("tc").hidden = false; $("tc").textContent = "TRACK " + r.code; $("tc").title = r.ok ? "The code of the track playing: it gives this track exactly" : "The code of the track playing (its piece changed since: the code gives the track as it began)"; }
+}
+setInterval(() => { if (live && live.playing && !document.hidden) codeNow(); }, 4000);
+$("tcode").addEventListener("click", async () => {
+  const t = prompt("A track code (nine letters, as the FM-1's Code page shows them):");
+  if (t === null || !t.trim()) return;
+  const d = codeDecode(t);
+  if (!d) return say("Not a track code: check the letters (nine of 0-9 and A-Z, without I, L, O, U).", true);
+  if (!node) { cur = { genre: d.genre, piece: d.piece }; await switchOn(); }
+  if (!node) return;
+  const r = await ask({ type: "st_code", text: d.text });
+  if (r.ok < 0) return say("The emulator did not take that code (a code from another PERF-1 version?).", true);
+  cur = { genre: d.genre, piece: d.piece };
+  io = new Uint8Array(r.io);
+  resetHistory();
+  $("genre").value = d.genre; fillPieces(); $("piece").value = d.piece;
+  ["save", "code"].forEach((id) => { $(id).disabled = false; });
+  say("Track " + d.text + ": " + S.genreName(d.genre) + " " + S.pieceName(d.genre, d.piece) + " · " + NOTE[d.root] + " " + P[PE.P_MODE].t[d.mode].toLowerCase() + " · " + d.tempo + " BPM, the same notes as on the FM-1. Edit it here; Download .piece keeps your version.");
+  refresh();
+  codeNow();
 });
 $("undo").addEventListener("click", () => {
   if (!undoIo) return;

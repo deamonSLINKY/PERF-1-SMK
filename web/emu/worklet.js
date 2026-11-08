@@ -57,6 +57,14 @@ class Amb extends AudioWorkletProcessor {
       this.ex.web_enc(m.role, m.n | 0);
     } else if (m.type === "master") {
       this.ex.web_master(m.value | 0);
+    } else if (this.studio && (m.type === "st_code" || m.type === "st_code_now") && this.ex.web_st_txt) {
+      // a track code started (its text), or the playing track's code asked for; the answer: the result, the code, and the piece's bytes
+      const txt = new Uint8Array(this.mem.buffer, this.ex.web_st_txt(), 16);
+      let ok;
+      if (m.type === "st_code") { txt.fill(0); String(m.text || "").slice(0, 15).split("").forEach((c, i) => { txt[i] = c.charCodeAt(0) & 127; }); /* (no TextEncoder in a worklet) */ ok = this.ex.web_st_code_play(); }
+      else ok = this.ex.web_st_code_now();
+      const s = String.fromCharCode(...txt.slice(0, txt.indexOf(0) < 0 ? 15 : txt.indexOf(0)));
+      this.port.postMessage({ type: "st", id: m.id, ok, code: s, io: new Uint8Array(this.mem.buffer, this.ex.web_st_io(), this.ex.web_st_io_len()).slice() });
     } else if (this.studio && (m.type === "st_open" || m.type === "st_put" || m.type === "st_read")) {
       // the studio: a piece taken up (genre, piece), an edited one put into play (its bytes), or the playing one read out; the answer is its bytes
       const io = () => new Uint8Array(this.mem.buffer, this.ex.web_st_io(), this.ex.web_st_io_len());
