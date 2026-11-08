@@ -2068,7 +2068,11 @@ static void scene_tick(void)                   /* a scene key down: held long en
     int s;
     for (s = 0; s < 4; s++)
         if (ui.scene_pend >> s & 1u) {
+#if BOARD_SMK37
+            if (!((ui.keys | ui.bkeys) >> (19 + s) & 1u)) {   /* (the SMK: a scene's pad) */
+#else
             if (!(ui.keys >> (19 + s) & 1u)) {
+#endif
                 ui.scene_pend &= (uint8_t)~(1u << s);
                 scene_recall(s);
             } else if (plat_ms() - ui.scene_t[s] >= SCENE_HOLD) {
@@ -3935,7 +3939,9 @@ static void runner_start(void);
 #define BK_LOCK ui.lock_bkeys
 #define KEYS_ALL (keys | bkeys)
 #define CH_ALL (ch | bch)
+#define SMK_MIX smk_mix_mode()
 #else
+#define SMK_MIX 0
 #define bkeys keys
 #define bch ch
 #define BK_SHIFT ui.shift_keys
@@ -3954,6 +3960,9 @@ static void input(void)
         runner_input(btn, KEYS_ALL);
         return;
     }
+#if BOARD_SMK37
+    smk_controls();                              /* the faders, the wheels, the outer keys */
+#endif
     if (ui.saver_on) {                           /* the screensaver: the touch that wakes it only wakes (it was the visualizer's: a key muted a track, a knob moved the filter) */
         const uint32_t nb = btn & ~ui.btn, nk = keys & ~ui.keys;
         int r;
@@ -4110,8 +4119,8 @@ static void input(void)
             if ((bch & bkeys) >> i & 1u)
                 shift_key((int)i);
     }
-    if (!(btn >> B_SEL & 1u) && ((btn >> B_GLO & 1u) || (perf_like() && !ui.fx_menu)) &&
-        (bch & bkeys & ~BK_SHIFT)) {           /* GLO held, or the perform screen: the track mix on the keys */
+    if (!(btn >> B_SEL & 1u) && ((btn >> B_GLO & 1u) || (perf_like() && !ui.fx_menu) || SMK_MIX) &&
+        (bch & bkeys & ~BK_SHIFT)) {           /* GLO held, or the perform screen: the track mix on the keys (the SMK: MIX pads) */
         uint32_t p = bch & bkeys & ~BK_SHIFT;
         BK_SHIFT |= p;
         if (btn >> B_GLO & 1u)
@@ -4334,6 +4343,12 @@ static void input(void)
                     jam_down_v((int)i, key_voice());
                 }
             }
+#if BOARD_SMK37   /* the step, Set list and Progression pages (their buttons are the pads): the keys play the page's voice */
+    if (!ui.fx_menu && kdown != (ch & keys & ~ui.shift_keys))
+        for (i = 0; i < NKEYS; i++)
+            if ((ch & keys & ~ui.shift_keys) >> i & 1u)
+                jam_down_v((int)i, key_voice());
+#endif
     for (i = 0; i < NKEYS; i++)                  /* the JAM page's keys let go */
         if (ui.jam_n[i] && !(keys >> i & 1u))
             jam_up((int)i);
@@ -4526,6 +4541,7 @@ static void input(void)
 #undef BK_LOCK
 #undef KEYS_ALL
 #undef CH_ALL
+#undef SMK_MIX
 #if !BOARD_SMK37
 #undef bkeys
 #undef bch
@@ -8464,7 +8480,11 @@ static void jam_down_v(int i, int vc)            /* key i on voice vc (JAM's num
     for (k = 0; k < n; k++) {
         const int key = nn[k] + OFS[vc];
         ui.jam_note[i][k] = (uint8_t)(key > 127 ? 127 : key);
+#if BOARD_SMK37
+        en_note_v(VC[vc], ui.jam_note[i][k], (plat_buttons() >> B_SEL & 1u) ? 127 : 30 + plat_smk_key_vel(i + 5) * 97 / 127);   /* the key's velocity (30 at the softest); SEL: an accent */
+#else
         en_note_v(VC[vc], ui.jam_note[i][k], (plat_buttons() >> B_SEL & 1u) ? 127 : 100);   /* SEL held: an accent (0.15.23) */
+#endif
     }
     if (en_playing) {                            /* Capture's memory: the note as heard, when, on which key and voice */
         const int w = ui.cap_w & 31;
@@ -9052,6 +9072,10 @@ void ui_init(void)
     th = &THEMES[ui.theme < EN_NTHEME ? ui.theme : 0];
     ui.splash = ui_splash_ms > 0u;
 #if BOARD_SMK37
+#ifndef EN_HOST
+    if (plat_smk_buttons() >> SB_KNOB_BANK & 1u)   /* KNOB BANK held at power-on: the hardware test */
+        hwt.on = 1;
+#endif
     if (hwt.on) {                                /* the hardware test first, quiet; its end runs the splash's end (ui_frame) */
         ui.splash = 1;
         return;

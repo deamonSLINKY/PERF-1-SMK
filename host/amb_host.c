@@ -127,6 +127,14 @@ int plat_fader(int i) { return (uint32_t)i < 4u ? fader_v[i] : -1; }
 void plat_smk_btn_leds(uint32_t ids) { smk_lit = ids & 15u; }
 static uint32_t pad_held;
 uint32_t plat_smk_pads_held(void) { return pad_held; }
+int plat_smk_key_vel(int k) { (void)k; return 100; }
+static int32_t ext_q = -1;                       /* (kbkey on an outer key: one event, then its release) */
+int32_t plat_smk_extkey(void)
+{
+    const int32_t v = ext_q;
+    ext_q = -1;
+    return v;
+}
 void plat_smk_hw(smk_hw_t *h)                    /* the HW TEST screen's snapshot, from the script's state */
 {
     int i;
@@ -1009,7 +1017,11 @@ int main(int argc, char **argv)
             kb_hits |= 1ull << k;
             if (k >= 5 && k < 32)
                 held_keys |= 1u << (k - 5);
+            else
+                ext_q = k << 8 | 100;                /* an outer key: the HAL's event queue */
             run_ms(60);
+            if (k < 5 || k >= 32)
+                ext_q = k << 8;
             kb_held &= ~(1ull << k);
             if (k >= 5 && k < 32)
                 held_keys &= ~(1u << (k - 5));

@@ -52,3 +52,35 @@ expect lanewrit0 0x1113
 pad 1
 wait 200
 expect lanewrit0 0x1111
+# back home: the pads are the PERFORM mode (the start): top row first = breakdown, on the next bar
+tap HOME
+wait 600
+pad 0
+wait 2500
+expect sec 1
+pad 2
+wait 2500
+expect sec 0
+# KNOB BANK: MIX on any page: top row mutes (pad 1 = the hats), bottom row solos
+sbtn KNOB_BANK
+pad 1
+wait 200
+expect trkmute 2
+pad 1
+wait 200
+expect trkmute 0
+pad 8
+wait 200
+expect trksolo 1
+pad 8
+wait 200
+expect trksolo 0
+# FADER BANK: B, the FX knobs; a fader takes over once it moves (fader 2 = crush)
+sbtn FADER_BANK
+expect fxk1 0
+fader 1 127
+wait 100
+expect fxk1 >10
+fader 1 0
+wait 100
+expect fxk1 0

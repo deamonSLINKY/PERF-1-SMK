@@ -8,7 +8,7 @@ fader 0 127
 fader 3 10
 wheel pitch 60
 wait 100
-shot build/smk_hwtest.png
+shot smk_hwtest.png
 # KNOB BANK + FADER BANK for less than 1.5 s: still the test
 sbhold 3 800
 expect hwtest 1
@@ -18,3 +18,5 @@ sbhold 3 2000
 expect hwtest 0
 wait 500
 expect playing 1
+# leaving the test with KNOB BANK + FADER BANK changes neither the pads' mode nor the faders' bank
+expect smkleds 0

@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * PERF-1 (deamonSLINKY): the SMK-37 hardware test screen (build 1 of PERF-1 SMK, 2026-11-08). Included by ui.c in the
- * BOARD_SMK37 build. The unit boots into it: every input live, as the HAL sees it, so one look (or a photo) finds a
- * wrong row, index or curve. Hold KNOB BANK + FADER BANK for 1.5 s: PERF-1 itself.
+ * BOARD_SMK37 build. KNOB BANK held at power-on opens it (builds 1-4 booted into it; the hardware is checked now): every
+ * input live, as the HAL sees it, so one look (or a photo) finds a wrong row, index or curve. Hold KNOB BANK + FADER BANK
+ * for 1.5 s: PERF-1 itself.
  *
  *   top band:    the keybed (37 keys, held lit; the last key and its velocity), the 16 pads (pressure as the fill,
  *                0..7 the top row as the hardware numbers them), flash part, factory curves, ADC health
@@ -11,11 +12,7 @@
  *                a pressed pad shows white over it
  */
 #define HWT_EXIT_MS 1500u
-#ifdef EN_HOST
-#define HWT_BOOT 0                               /* the simulator boots into PERF-1 (script: hwtest) */
-#else
-#define HWT_BOOT 1
-#endif
+#define HWT_BOOT 0                               /* (ui_init: KNOB BANK held at power-on; the simulator: hwtest) */
 
 static struct {
     uint8_t on, last_key, last_vel, last_pad, last_pvel;

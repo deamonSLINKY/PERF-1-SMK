@@ -170,6 +170,8 @@ static void smk_trim_init(void)
         smk_trim_ok = (uint8_t)smk_trim_load(smk_trim_buf);
 }
 
+int plat_smk_key_vel(int k) { return (uint32_t)k < FM1_NKEY && fm1_in.key_vel[k] ? fm1_in.key_vel[k] : 100; }
+int32_t plat_smk_extkey(void) { return smk_extkey_take(); }
 uint32_t plat_smk_pads_held(void)
 {
     uint32_t i, m = 0;

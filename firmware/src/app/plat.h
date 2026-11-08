@@ -101,4 +101,6 @@ typedef struct {
 void plat_smk_hw(smk_hw_t *h);
 void plat_smk_btn_leds(uint32_t ids);  /* button LEDs by hardware id (bit i = button id i), for the test screen */
 uint32_t plat_smk_pads_held(void);     /* pads held now: bit p = pad p (0..7 the top row) */
+int plat_smk_key_vel(int k);           /* keybed key k's last velocity 1..127 (0 = C3) */
+int32_t plat_smk_extkey(void);         /* the next outer-key event (keys 0-4, 32-36): key << 8 | velocity (0 up), -1 none */
 #endif
