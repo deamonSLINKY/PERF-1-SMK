@@ -1547,7 +1547,7 @@ The four knobs, **KNOB1** to **KNOB4**, set the four settings on each page:
 | SET (shapes a longer DJ set; section 10) | Rounds: 1, 2, 4, 8 | Ramp: off, +2, +4, +8, +12 BPM | Intro: off, 1, 2, 4, 8 min | Mix: cut, 4, 8, 16, 32 bars |
 | Settings | Key: same, +2, +3, +5, +7 | Voices: DX, DY | - | - |
 | USB & MIDI | Level: knob, fixed | MIDI out: off, on | MIDI map: GM, M:Samples, MPC Sample, SP-404 | - |
-| MIDI IN | Notes: scale, pads, M:S, MPK | Channel: all, 1-16 | USB host: off, on (never kept) | Knob CCs: off, in, out, in+out |
+| MIDI IN | Notes: keys, pads, M:S, MPK | Channel: all, 1-16 | USB host: off, on (never kept) | Knob CCs: off, in, out, in+out |
 | FILTERS | Pad: low, high, band, notch, peak | Bass: the same | Acid: the same | - |
 | SCREAM | Drive: 0-100 | Scream: 0-100 | Wow: 0-100 | Target: acid, bass, both |
 | SCREEN | Zoom: off, on | Saver: off, 1, 3, 10 min | Lights: off, show | Scanlines: off, on |
@@ -2032,7 +2032,7 @@ On the sampler:
 
 These maps follow the samplers' manuals and default settings (for the MPC Sample, the pad map in its default project). They haven't all been tried on the real boxes yet, so if a pad doesn't answer, check the sampler's MIDI settings first, and tell us what you found.
 
-**MIDI in:** notes on channel 1 add their note to the scale, or remove it if it's already there. MIDI clock and start / stop from other gear set the tempo, and `EXT` shows where the tempo usually is. The FM-1 listens on its USB MIDI port, and on the TRS MIDI input where the build has one.
+**MIDI in:** notes on channel 1 (or the channel chosen on the MIDI IN page) play like the FM-1's own keys: the voice whose page is up, or the Jam page's voice, snapped to the scale. On **Global** they add their note to the scale, or remove it if it's already there. MIDI clock and start / stop from other gear set the tempo, and `EXT` shows where the tempo usually is. The FM-1 listens on its USB MIDI port, and on the TRS MIDI input where the build has one.
 
 **Playing PERF-1 from a pad controller.** An MPC, or any box with pads that sends MIDI notes, can play PERF-1. Connect the pad box's MIDI out to the FM-1's TRS MIDI input with a 3.5 mm TRS MIDI cable (both ends type A for an MPC Sample), or over USB through a computer. Then open the **MIDI IN** settings page (hold **HOME**, then turn **SELECT** past USB & MIDI) and set **Notes** to **Pads**. **Channel** listens to all channels, or only the one you pick.
 
@@ -2046,7 +2046,7 @@ The pads are read in banks of 16, from note 36, the way an MPC's pads come out o
 | D | The acid, the same way. |
 | E | The chords: pads 1-7 jump to the scale's chords I to VII at once. |
 
-On an MPC Sample, turn on **Pad MIDI Out** so the pads send notes, and set its MIDI port to External for the TRS cable. With Notes on Pads, channel 1 notes no longer change the scale; set it back to Scale for that.
+On an MPC Sample, turn on **Pad MIDI Out** so the pads send notes, and set its MIDI port to External for the TRS cable. With Notes on Pads, channel 1 notes play PERF's pads instead of a voice; set it back to Keys for that.
 
 **USB host: plugging a MIDI device straight into the FM-1.** Normally the FM-1's USB port is a device: a computer plugs into it. Turn **USB host** on (the MIDI IN page's third knob) and the port becomes the host instead, so a class-compliant USB MIDI device plugs straight in: an MPC Sample, a keyboard, a pad controller, a groovebox. Its notes, clock and transport come in like any MIDI in (so with Notes on Pads its pads play PERF-1), and PERF-1's MIDI out goes to it, following the MIDI map.
 
@@ -2392,7 +2392,7 @@ Look at the load line (section 16). `XR` goes up by one with each click. `S1` or
 Close any DAW using the FM-1's MIDI port, and use Chrome, Edge or Firefox (Safari doesn't support Web MIDI). For the FM-1's panel to play the emulator, the FM-1 must be in remote (**SEL** + **GLO**).
 
 **MIDI notes change my scale.**
-MIDI notes coming in on channel 1 add and remove notes from the scale. Send on another channel, or unplug the MIDI input.
+Since 0.17.7 they only do on the Global page, as the FM-1's own keys do; on every other page they play a voice. On Global, send on another channel, or set Notes on the MIDI IN page to Pads.
 
 ---
 

@@ -1,4 +1,4 @@
-# THE KEYS PLAY (0.17.6): on any page a key plays a voice (the page's own: pad, bass, acid, pluck; elsewhere the Jam page's), as the Jam
+# THE KEYS PLAY (0.17.6; a MIDI keyboard's too, 0.17.7): on any page a key plays a voice (the page's own: pad, bass, acid, pluck; elsewhere the Jam page's), as the Jam
 # page plays it; only on Global do they put the scale's notes in and out (a key played by mistake used to change the scale)
 seed 0
 wait 3000
@@ -28,6 +28,14 @@ expect held 1
 key 8 up
 wait 200
 expect held 0
+# a keyboard on MIDI in (its default mode, channel 1) plays the same way (0.17.7): the bass here, held till the note off; the scale stays
+midi 90 45 64
+wait 200
+expect held 1
+expect pool 0x5AD
+midi 80 45 00
+wait 200
+expect held 0
 # Global: the keys are the scale (F#3 in, then out again); the root stays
 tap GLO
 wait 300
@@ -38,4 +46,12 @@ expect pool 0x7AD
 shot keys_global_scale.png
 tapkey 1
 wait 100
+expect pool 0x5AD
+# a MIDI keyboard's note on Global: the scale too
+midi 90 42 64
+wait 50
+expect pool 0x7AD
+midi 80 42 00
+midi 90 42 64
+wait 50
 expect pool 0x5AD

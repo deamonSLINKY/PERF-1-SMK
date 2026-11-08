@@ -110,7 +110,7 @@ static const uint8_t XMIX_BARS[5] = {0, 4, 8, 16, 32};
 static const char *const SMPM_NAME[4] = {"ALL", "DRUMS", "SYNTHS", "BY KEY"};                   /* the SAMPLE page: what a run plays, or a key a sound */
 static const char *const SMPG_NAME[4] = {"0.5 S", "1 S", "2 S", "4 S"};
 static const uint16_t SMP_GAP_MS[4] = {500, 1000, 2000, 4000};
-static const char *const MIN_NAME[4] = {"SCALE", "PADS", "M:S", "MPK"};
+static const char *const MIN_NAME[4] = {"KEYS", "PADS", "M:S", "MPK"};   /* (KEYS was SCALE until 0.17.7: its notes changed the scale anywhere) */
 static const char *const CC_NAME[4] = {"OFF", "IN", "OUT", "IN+OUT"};
 static const char *const FT_NAME[5] = {"LOW", "HIGH", "BAND", "NOTCH", "PEAK"};
 static const char *const SQT_NAME[3] = {"ACID", "BASS", "BOTH"};   /* SCREAM's target (0.16.4) */
@@ -3100,13 +3100,16 @@ static void smp_tick(void)                       /* each frame: the run's next s
 }
 static const uint8_t MPK_VC[4] = {EN_V_PLUCK, EN_V_PAD, EN_V_ACID, EN_V_DRONE};   /* the JAM page's voice, as the engine's */
 static struct { uint8_t in, n, vc, out[3]; } mpk[MPK_N];   /* the keys held: the note in, and the notes played for it */
-static void mpk_key(int on, int n, int v)
+static void midi_key(int on, int n, int v, int vc);
+static void mpk_key(int on, int n, int v) { midi_key(on, n, v, ui.jam_voice & 3); }
+static void midi_key(int on, int n, int v, int vc)   /* a note from outside on voice vc (JAM's numbering), snapped to the scale as on JAM; the MPK's keys,
+                                                      * and since 0.17.7 any keyboard's in the MIDI IN page's default mode */
 {
     static const int8_t OFS[4] = {0, 0, 12, 24};   /* (the engine plays the acid an octave and the drone two below the key, as on JAM) */
     const uint8_t *const VC = MPK_VC;
     const uint32_t pool = pool_abs();
-    const int vc = ui.jam_voice & 3;
     int s, k, m, cnt, t[5], r;
+    vc &= 3;
     for (s = 0; s < MPK_N; s++)                  /* this note let go (or played again) */
         if (mpk[s].n && mpk[s].in == n) {
             for (k = 0; k < mpk[s].n; k++)
@@ -3339,8 +3342,15 @@ static void midi_in(void)
             ms_in((int)(st & 15u));
         else if (ui.min_pads == 1 && ch_ok && ((st & 0xF0u) == 0x90u || (st & 0xF0u) == 0x80u))
             pads_in((st & 0xF0u) == 0x90u && v, (int)n, (int)v);
-        else if (!ui.min_pads && st == 0x90u && v && ch_ok)
-            toggle_note((int)(n % 12u));
+        else if (!ui.min_pads && ((st & 0xF0u) == 0x90u || (st & 0xF0u) == 0x80u) && ch_ok && (ui.min_ch || !(st & 15u))) {
+            /* a keyboard (channel 1, or the one chosen): on Global its notes put the scale's in and out, as the keys there do; anywhere else
+             * they play the voice the keys play (0.17.7: they changed the scale on every page) */
+            if (ui.view == V_GLOBAL && !ui.fx_menu) {
+                if ((st & 0xF0u) == 0x90u && v)
+                    toggle_note((int)(n % 12u));
+            } else
+                midi_key((st & 0xF0u) == 0x90u && v, (int)n, (int)v, key_voice());
+        }
     }
 }
 
