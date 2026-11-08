@@ -4891,6 +4891,18 @@ static void draw_help(void)
 {
     const char *l[HELP_LINES];
     int n = help_lines(ui.help - 1, l), k;
+    if (LOOK_CONSOLE) {                          /* (0.17.8) a sheet: the button's name large on a strip, what it does in lines with a mark each */
+        cv_rect(4, 4, 232, 136, K_PANEL);
+        cv_rect(4, 4, 232, 26, mix(K_PANEL, K_ACC, 3));
+        cv_rect(4, 4, 4, 26, K_ACC);
+        cv_text(14, 7, &FONT_B, BTN_LABEL[ui.help - 1], K_TEXT);
+        cv_text(232 - text_w(&FONT_XS, "HELP"), 9, &FONT_XS, "HELP", K_ACC);
+        for (k = 0; k < n; k++) {
+            cv_rect(14, 47 + k * 22, 4, 4, K_ACC);
+            cv_text(24, 38 + k * 22, &FONT_S, l[k], K_TEXT);
+        }
+        return;
+    }
     cv_round(16, 14, 208, 116, 6, K_PANEL);
     cv_rect(16, 14, 208, 26, K_PAD);
     text_c(120, 18, &FONT_B, BTN_LABEL[ui.help - 1], K_BG);
@@ -5543,17 +5555,50 @@ static float lfo_wave(int shape, float ph)       /* -1..1; ph in cycles */
 
 static uint8_t sc_y[SC_W];
 static int32_t sc_oy = SC_Y, sc_oh = SC_H;       /* the trace's top and height (the effects' pages draw it smaller) */
+#define SC_SCREEN mix(K_BG, K_PANEL, 7)           /* the Console look's scope screen (0.17.8) */
 static void scope_trace(uint16_t col)            /* sc_y[x] (0 .. SC_H): a filled curve with a bright line, and the baseline */
 {
     int32_t x;
+    const uint16_t fill = LOOK_CONSOLE ? mix(SC_SCREEN, col, 3) : mix(K_BG, col, 4);   /* (Console: a faint fill on the screen) */
     cv_rect(SC_X, sc_oy + sc_oh, SC_W, 1, K_LINE);
-    cv_rect(SC_X, sc_oy, 1, sc_oh, K_LINE);
+    if (!LOOK_CONSOLE)
+        cv_rect(SC_X, sc_oy, 1, sc_oh, K_LINE);
     for (x = 0; x < SC_W; x++) {
         const int32_t y = sc_y[x], py = x ? sc_y[x - 1] : y, hi = y > py ? y : py, lo = y > py ? py : y;
         if (y > 1)
-            cv_rect(SC_X + x, sc_oy + sc_oh - y, 1, y, mix(K_BG, col, 4));
+            cv_rect(SC_X + x, sc_oy + sc_oh - y, 1, y, fill);
         cv_rect(SC_X + x, sc_oy + sc_oh - hi - 1, 1, hi - lo + 2, col);
     }
+}
+
+/* the picture pages' frame (0.17.8): the title and what it says, and the line under the picture. The Console look: the title small in its
+ * colour on a panel strip with a tab of it, the curves on a dark screen with a grid; the old look: the title large */
+static int32_t sc_tx;                            /* where the title ends */
+static void sc_title(const char *t, uint16_t col)
+{
+    if (LOOK_CONSOLE) {
+        cv_rect(2, 0, 236, 17, K_PANEL);
+        cv_rect(2, 0, 3, 17, col);
+        sc_tx = cv_text(10, 0, &FONT_XS, t, col);
+    } else {
+        sc_tx = cv_text(6, 2, &FONT_B, t, col);
+    }
+}
+static void sc_sub(const char *t, uint16_t col) { cv_text(sc_tx + 8, LOOK_CONSOLE ? 0 : 6, &FONT_XS, t, col); }
+static void sc_foot(const char *t, uint16_t col) { cv_text(6, SC_Y + SC_H + 6, &FONT_XS, t, col); }
+static int sc_screen_kind(int k)                 /* the pages drawn as a curve on the scope's screen */
+{
+    return k == SCOPE_PENV || k == SCOPE_DENV || k == SCOPE_AENV || k == SCOPE_PLFO || k == SCOPE_DLFO || k == SCOPE_DFILT || k == SCOPE_AFILT ||
+           k == SCOPE_SPACE || k == SCOPE_REVERB || k == SCOPE_CMEL;
+}
+static void sc_screen(void)                      /* the screen: dark, eight columns and four rows of grid */
+{
+    int k;
+    cv_rect(SC_X, sc_oy, SC_W, sc_oh, SC_SCREEN);
+    for (k = 1; k < 8; k++)
+        cv_rect(SC_X + k * SC_W / 8, sc_oy, 1, sc_oh, mix(SC_SCREEN, K_LINE, k == 4 ? 9 : 5));
+    for (k = 1; k < 4; k++)
+        cv_rect(SC_X, sc_oy + k * sc_oh / 4, SC_W, 1, mix(SC_SCREEN, K_LINE, 5));
 }
 static void scope_dot(float u, uint16_t col)     /* the dot at u (0..1 across) riding the trace */
 {
@@ -5767,15 +5812,17 @@ static void draw_scope(int kind)
     uint16_t col = K_PAD;
     int32_t x;
     sc_oy = SC_Y, sc_oh = SC_H;
+    if (LOOK_CONSOLE && sc_screen_kind(kind))
+        sc_screen();                             /* (the Console look: a dark screen with a grid behind the curve) */
     if (kind == SCOPE_REVERB) {                  /* the reverb: the gap of the predelay, then the tail by its type */
         static const char *const TY[3] = {"PLATE", "SHIMMER", "GATED"};
         const int ty = proj.par[P_RV_TYPE] < 0 ? 0 : proj.par[P_RV_TYPE] > 2 ? 2 : proj.par[P_RV_TYPE];
         const float len = 0.25f + 0.75f * (float)proj.par[P_SIZE] * 0.01f, amt = (float)proj.par[P_RV_X] * 0.01f,
                     gap = (6.0f + 24.0f * (float)proj.par[P_RV_PRE] * 0.01f) * (1.0f / 30.0f) * 0.2f, hold = 0.12f + 0.45f * amt;
         col = IMP_TEAL;
-        cv_text(6, 2, &FONT_B, "REVERB", col);
-        cv_text(6 + text_w(&FONT_B, "REVERB") + 8, 6, &FONT_XS, TY[ty], K_TEXT);
-        cv_text(6, SC_Y + SC_H + 6, &FONT_XS, ty == 1 ? "AN OCTAVE UP, BLOOMING IN THE TAIL" : ty == 2 ? "CUT OFF AFTER THE HOLD" : "THE PLATE'S TAIL, AFTER THE PREDELAY", K_DIM);
+        sc_title("REVERB", col);
+        sc_sub(TY[ty], K_TEXT);
+        sc_foot(ty == 1 ? "AN OCTAVE UP, BLOOMING IN THE TAIL" : ty == 2 ? "CUT OFF AFTER THE HOLD" : "THE PLATE'S TAIL, AFTER THE PREDELAY", K_DIM);
         for (x = 0; x < SC_W; x++) {
             const float u = (float)x / (float)(SC_W - 1);
             float y = 0.0f;
@@ -5804,8 +5851,8 @@ static void draw_scope(int kind)
         static const char *const ORD[16] = {"EVERY 2ND BAR", "EVERY 3RD BAR", "EVERY 4TH BAR", "EVERY 5TH BAR", "EVERY 6TH BAR", "EVERY 7TH BAR", "EVERY 8TH BAR", "BAR BEFORE A DRUM CHANGE",
                                             "EVERY 2ND LOOP", "EVERY 3RD LOOP", "EVERY 4TH LOOP", "EVERY 5TH LOOP", "EVERY 6TH LOOP", "EVERY 7TH LOOP", "EVERY 8TH LOOP", "LOOP AFTER A DRUM FILL"};
         const char *tx = ORD[(proj.par[P_AC_EVERY] < 0 ? 0 : proj.par[P_AC_EVERY] > 7 ? 7 : proj.par[P_AC_EVERY]) + (proj.par[P_AC_CHANCE] ? 8 : 0)];
-        cv_text(6, 2, &FONT_B, "ANSWER", K_ACID);
-        cv_text(6 + text_w(&FONT_B, "ANSWER") + 8, 6, &FONT_XS, resp ? "THE LINE ASKS, THEN ANSWERS" : "OFF: TURN ANSWER", K_DIM);
+        sc_title("ANSWER", K_ACID);
+        sc_sub(resp ? "THE LINE ASKS, THEN ANSWERS" : "OFF: TURN ANSWER", K_DIM);
         for (row = 0; row < 2; row++) {
             const int32_t top = row ? 78 : 30, h = 36;
             const int r = row ? resp : 0;
@@ -5847,8 +5894,8 @@ static void draw_scope(int kind)
     }
     if (kind == SCOPE_GROOVE) {                  /* the groove: each lane as it plays (a hit added: bright; one taken out: a dash), the lane chosen framed, its source and density */
         int l, s;
-        cv_text(6, 2, &FONT_B, "GROOVE", K_ACC);
-        cv_text(6 + text_w(&FONT_B, "GROOVE") + 8, 6, &FONT_XS, "DENSITY, SOURCE: PER LANE", K_DIM);
+        sc_title("GROOVE", K_ACC);
+        sc_sub("DENSITY, SOURCE: PER LANE", K_DIM);
         for (l = 0; l < EN_NLANE; l++) {
             const int src = proj.par[P_LSRC + l] ? proj.par[P_LSRC + l] - 1 : en_pat_now, dens = proj.par[P_DENS + l];
             const uint16_t wr = en_pats[src][l], pl = en_lane_mask(l, src, dens);
@@ -5887,8 +5934,8 @@ static void draw_scope(int kind)
         const uint16_t pl = en_lane_mask(l, src, proj.par[P_DENS + l]);
         int s;
         char tx[24];
-        cv_text(6, 2, &FONT_B, "STEPS", LANE_COL(l));
-        cv_text(6 + text_w(&FONT_B, "STEPS") + 8, 6, &FONT_XS, "RATCHET, PUSH, LEVEL: PER STEP", K_DIM);
+        sc_title("STEPS", LANE_COL(l));
+        sc_sub("RATCHET, PUSH, LEVEL: PER STEP", K_DIM);
         cv_text(4, 22, &FONT_XS, LANE_SHORT[l], K_TEXT);
         cv_text(34, 22, &FONT_XS, "KEYS CHOOSE THE STEP", K_DIM);
         for (s = 0; s < 16; s++) {
@@ -5947,8 +5994,8 @@ static void draw_scope(int kind)
         int s;
         char tx[24];
         as_sync();
-        cv_text(6, 2, &FONT_B, "ACID STEPS", K_ACID);
-        cv_text(6 + text_w(&FONT_B, "ACID STEPS") + 8, 6, &FONT_XS, proj.par[P_AC_LOCK] ? "FROZEN" : "FREE: IT EVOLVES", proj.par[P_AC_LOCK] ? K_ACC : K_DIM);
+        sc_title("ACID STEPS", K_ACID);
+        sc_sub(proj.par[P_AC_LOCK] ? "FROZEN" : "FREE: IT EVOLVES", proj.par[P_AC_LOCK] ? K_ACC : K_DIM);
         for (s = 0; s < 16; s++) {
             const int32_t x0 = 16 + s * 13;
             const int kind_s = as_kind(s), cur = s == (int)(ui.astp & 15u), beyond = s >= len;
@@ -5992,8 +6039,8 @@ static void draw_scope(int kind)
         char tx[24];
         for (s = 0; s < SL_N; s++)
             n += glob.sl[s] != 0;
-        cv_text(6, 2, &FONT_B, "SET LIST", K_ACC);
-        cv_text(6 + text_w(&FONT_B, "SET LIST") + 8, 6, &FONT_XS, glob.sl_on ? "PLAYING THROUGH" : n ? "PLAY: OFF" : "EMPTY", glob.sl_on ? K_ACC : K_DIM);
+        sc_title("SET LIST", K_ACC);
+        sc_sub(glob.sl_on ? "PLAYING THROUGH" : n ? "PLAY: OFF" : "EMPTY", glob.sl_on ? K_ACC : K_DIM);
         for (s = 0; s < SL_N; s++) {
             const int32_t x0 = 4 + (s >> 3) * 117, y0 = 22 + (s & 7) * 11;
             const int e = glob.sl[s], cur = s == (int)(ui.slsl % SL_N), now = glob.sl_on && s == ui.sl_pos;
@@ -6024,8 +6071,8 @@ static void draw_scope(int kind)
         for (s = 0; s < EN_PRG_N; s++)
             if (en_prg_get(b, 3 * s, 3))
                 last = s + 1;
-        cv_text(6, 2, &FONT_B, "PROGRESSION", K_PAD);
-        cv_text(6 + text_w(&FONT_B, "PROGRESSION") + 8, 6, &FONT_XS, loop ? "YOURS, IN TURN" : mine ? "WALK: THE GENRE'S" : "HEARD LAST", loop ? K_ACC : K_DIM);
+        sc_title("PROGRESSION", K_PAD);
+        sc_sub(loop ? "YOURS, IN TURN" : mine ? "WALK: THE GENRE'S" : "HEARD LAST", loop ? K_ACC : K_DIM);
         for (s = 0; s < EN_PRG_N; s++) {
             const int32_t x0 = 4 + (s & 3) * 59, y0 = 22 + (s >> 2) * 44;
             const int d = en_prg_get(b, 3 * s, 3), br = 1 << en_prg_get(b, 24 + 2 * s, 2);
@@ -6067,8 +6114,8 @@ static void draw_scope(int kind)
         int s;
         char tx[24];
         const int on = proj.par[P_BL_MODE] == EN_BL_STEPS;
-        cv_text(6, 2, &FONT_B, "BASS STEPS", K_BASS);
-        cv_text(6 + text_w(&FONT_B, "BASS STEPS") + 8, 6, &FONT_XS, on ? "PLAYING" : "OFF: AN EDIT PLAYS THEM", on ? K_ACC : K_DIM);
+        sc_title("BASS STEPS", K_BASS);
+        sc_sub(on ? "PLAYING" : "OFF: AN EDIT PLAYS THEM", on ? K_ACC : K_DIM);
         for (s = 0; s < 16; s++) {
             const int v = en_bs[s], kd = EN_BS_KIND(v), cur = s == (int)(ui.bstp & 15u);
             const int32_t x0 = 16 + s * 13, h = 8 + (int32_t)(EN_BS_NOTE(v) + 7 * EN_BS_OCT(v)) * 3;
@@ -6106,8 +6153,8 @@ static void draw_scope(int kind)
     if (kind == SCOPE_CMSTEP) {                  /* the pluck steps: the line, a bar a step (its height the rung), the accent bright, a soft one dim; the step chosen framed */
         int s;
         char tx[24];
-        cv_text(6, 2, &FONT_B, "PLUCK STEPS", KC_COLOR);
-        cv_text(6 + text_w(&FONT_B, "PLUCK STEPS") + 8, 6, &FONT_XS, proj.par[P_CM_LOCK] ? "FROZEN" : "FREE: DEJA VU'S LOOP", proj.par[P_CM_LOCK] ? K_ACC : K_DIM);
+        sc_title("PLUCK STEPS", KC_COLOR);
+        sc_sub(proj.par[P_CM_LOCK] ? "FROZEN" : "FREE: DEJA VU'S LOOP", proj.par[P_CM_LOCK] ? K_ACC : K_DIM);
         for (s = 0; s < 16; s++) {
             const int32_t x0 = 16 + s * 13;
             const int lv = en_cm_lvl[s], cur = s == (int)(ui.pstp & 15u);
@@ -6153,8 +6200,8 @@ static void draw_scope(int kind)
         for (d = 0; d < EN_NLANE; d++)
             dg = fm_maxf(dg, en_drum_glow[d]);
         live[0] = en_pad_level, live[1] = en_bass_level, live[2] = en_acid_level, live[3] = en_cm_level, live[4] = dg, live[5] = en_out_peak;
-        cv_text(6, 2, &FONT_B, "MIXER", K_PAD);
-        cv_text(6 + text_w(&FONT_B, "MIXER") + 8, 6, &FONT_XS, "SET LEVEL, AND WHAT SOUNDS", K_DIM);
+        sc_title("MIXER", K_PAD);
+        sc_sub("SET LEVEL, AND WHAT SOUNDS", K_DIM);
         for (k = 0; k < 6; k++) {
             const int32_t sx = 10 + k * 36, sh = SC_H - 18, top = SC_Y + 12;
             const int muted = k < 5 && (ui.trk_m & TRK[k]) == TRK[k], solo = k < 5 && ui.trk_s & TRK[k];
@@ -6190,8 +6237,8 @@ static void draw_scope(int kind)
         int32_t bx = px + PW + 14, bw = SC_W - PW - 14, y;
         char t[24];
         col = KC_FILTER;
-        cv_text(6, 2, &FONT_B, "MASTER", col);
-        cv_text(6 + text_w(&FONT_B, "MASTER") + 8, 6, &FONT_XS, "COMPRESSOR, LIMITER", K_DIM);
+        sc_title("MASTER", col);
+        sc_sub("COMPRESSOR, LIMITER", K_DIM);
         cv_rect(px, py, 1, PH, K_LINE);
         cv_rect(px, py + PH, PW, 1, K_LINE);
         cv_rect(px + (int32_t)((thr + 36.0f) * (float)PW / 36.0f), py, 1, PH, mix(K_BG, col, 5));         /* the threshold */
@@ -6250,7 +6297,7 @@ static void draw_scope(int kind)
             if (w > 0)
                 cv_rect(bx, py + 80, w, 6, pk > 0.9f ? K_ACC : K_PAD);
         }
-        cv_text(6, SC_Y + SC_H + 6, &FONT_XS, "IN ACROSS, OUT UP: KNEE, CEILING", K_DIM);
+        sc_foot("IN ACROSS, OUT UP: KNEE, CEILING", K_DIM);
         return;
     }
     if (kind == SCOPE_CMEL) {                    /* the counter-melody: its decay, and the line it plays over a bar (the chord's tones, low to high) */
@@ -6263,9 +6310,9 @@ static void draw_scope(int kind)
             const float u = (float)x / (float)(SC_W - 1);
             sc_y[x] = (uint8_t)(scope_expo(u * 1.2f / T, 10.0f) * (float)(SC_H - 8) * 0.45f);
         }
-        cv_text(6, 2, &FONT_B, "PLUCK", col);
-        cv_text(6 + text_w(&FONT_B, "PLUCK") + 8, 6, &FONT_XS, EN_CM_STYLE[(unsigned)st < EN_NCMSTYLE ? st : 0], K_DIM);
-        cv_text(6, SC_Y + SC_H + 6, &FONT_XS, "A BAR: THE CHORD'S TONES, AND THE RING", K_DIM);
+        sc_title("PLUCK", col);
+        sc_sub(EN_CM_STYLE[(unsigned)st < EN_NCMSTYLE ? st : 0], K_DIM);
+        sc_foot("A BAR: THE CHORD'S TONES, AND THE RING", K_DIM);
         scope_trace(mix(K_BG, col, 8));
         for (s = 0, k = 0; s < 16; s += RATE[ri], k++) {
             int idx;
@@ -6331,8 +6378,8 @@ static void draw_scope(int kind)
                 sc_y[x] = (uint8_t)(scope_expo(lu, 1.5f + (1.0f - d) * 9.0f) * amp * (float)(SC_H - 8));
             }
         }
-        cv_text(6, 2, &FONT_B, title, col);
-        cv_text(6, SC_Y + SC_H + 6, &FONT_XS, sub, K_DIM);
+        sc_title(title, col);
+        sc_foot(sub, K_DIM);
         scope_trace(col);
         scope_dot(tk, col);
         return;
@@ -6348,8 +6395,8 @@ static void draw_scope(int kind)
             const float u = (float)x / (float)(SC_W - 1), w = lfo_wave(shape, u * cyc + tk);
             sc_y[x] = (uint8_t)((0.5f + 0.5f * w * amp) * (float)(SC_H - 8));
         }
-        cv_text(6, 2, &FONT_B, title, col);
-        cv_text(6 + text_w(&FONT_B, title) + 8, 6, &FONT_XS, sub, K_DIM);
+        sc_title(title, col);
+        sc_sub(sub, K_DIM);
         scope_trace(col);
         cv_rect(SC_X, SC_Y + SC_H / 2, SC_W, 1, K_LINE);
         return;
@@ -6361,8 +6408,8 @@ static void draw_scope(int kind)
         col = ac ? K_ACID : K_BASS;
         title = ac ? "ACID FILTER" : "BASS FILTER";
         sub = ac ? "CUTOFF  RESO  ENV MOD (DIM: PEAK)" : "CUTOFF  RESO";
-        cv_text(6, 2, &FONT_B, title, col);
-        cv_text(6, SC_Y + SC_H + 6, &FONT_XS, sub, K_DIM);
+        sc_title(title, col);
+        sc_foot(sub, K_DIM);
         for (pass = 0; pass < (ac && env > 4 ? 2 : 1); pass++) {
             const float oct = 8.4f * (float)cut * 0.01f + (pass ? 4.0f * (float)env * 0.01f : 0.0f), fc = 60.0f * fm_exp2f(oct),
                         q = 0.6f + (float)res * 0.09f, top = (q > 1.0f ? q : 1.0f) * 1.12f;
@@ -6381,8 +6428,8 @@ static void draw_scope(int kind)
         const int32_t px = (int32_t)(eb * 34.0f);
         int k;
         col = KC_REPEAT;
-        cv_text(6, 2, &FONT_B, "SPACE", col);
-        cv_text(6, SC_Y + SC_H + 6, &FONT_XS, "THE HIT, ITS ECHOES, THE REVERB'S TAIL", K_DIM);
+        sc_title("SPACE", col);
+        sc_foot("THE HIT, ITS ECHOES, THE REVERB'S TAIL", K_DIM);
         for (x = 0; x < SC_W; x++) {
             const float u = (float)x / (float)(SC_W - 1);
             sc_y[x] = (uint8_t)(rv * 0.55f * scope_expo(u / len, 4.0f) * (float)(SC_H - 8));

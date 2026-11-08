@@ -100,3 +100,14 @@ turn SELECT 2 100
 wait 1500
 expect view 34
 shot looks_jam.png
+# a picture page (0.17.8): the title on a panel strip, the curve on a dark screen with a grid
+turn SELECT -32 100
+wait 1500
+expect view 2
+shot looks_padenv.png
+# a help card (a button held alone): a sheet
+press LFO
+wait 1500
+shot looks_help.png
+release LFO
+wait 300
