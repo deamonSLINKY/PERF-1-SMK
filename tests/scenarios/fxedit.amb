@@ -226,9 +226,9 @@ expect fxmask 0
 tap FX
 wait 100
 expect fxon 0
-# the keys are the scale again
+# the keys play again (not the scale: that is Global's, 0.17.6)
 tapkey 1
-expect pool 0x7AD
+expect pool 0x5AD
 # the settings' own walk (0.16.1): HOME held opens it; the dial goes FILTERS, SCREAM (first since 0.16.28: the piece's), SETTINGS (the drop's
 # key change), AUTO DJ, SET, USB & MIDI, MIDI IN, SCREEN, SAMPLE and stops there
 press HOME

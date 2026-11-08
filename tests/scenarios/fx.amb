@@ -95,15 +95,13 @@ wait 100
 expect fxlock 577536
 expect fxmask 577536
 shot fx_latched.png
-# FX closed: the locked ones play on (the keys are the scale again, the locks untouched)
+# FX closed: the locked ones play on (the keys play a voice again, not the scale (0.17.6), the locks untouched)
 tap FX
 wait 100
 expect fxon 0
 expect fxmask 577536
 expect fxlock 577536
 shot fx_closed_locked.png
-tapkey 1
-expect pool 0x7AD
 tapkey 1
 expect pool 0x5AD
 expect fxlock 577536
@@ -128,9 +126,9 @@ expect sec 1
 tap SAVE
 tap FX
 wait 100
-# with the menu off, a key is the scale again
+# with the menu off, a key plays again (the scale only on Global)
 tapkey 1
-expect pool 0x7AD
+expect pool 0x5AD
 wait 3000
 wavstop
 expect peak_db_max -0.5

@@ -44,13 +44,12 @@ tapkey 24
 wait 3000
 shot perf_dj.png
 expect djon 1
-# HOME again: back to the tempo page, where the keys are the scale
+# HOME again: back to the tempo page, where the keys play (0.17.6: not the scale)
 tap HOME
 wait 100
 expect view 0
 tapkey 1
-expect pool 0x7AD
-tapkey 1
+expect pool 0x5AD
 # the dial from the perform screen goes on to the next page (HOME twice quickly would be the visualizers)
 wait 600
 tap HOME

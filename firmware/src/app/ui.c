@@ -22,7 +22,8 @@
  *                  (on Global: the piece stored, above)
  *   OCT- / OCT+    the octave (3 down .. 3 up) of the voice whose page it is (pad, drone, acid); on any
  *                  other page, the whole song's; in the sequencer, the lane
- *   keys           the scale (each adds or removes its note); in the sequencer, the sixteen white keys
+ *   keys           play the voice whose page it is (the Jam page's voice elsewhere, with its keys and octave);
+ *                  on Global, the scale (each adds or removes its note, 0.17.6); in the sequencer, the sixteen white keys
  *                  (the lower row) are the lane's steps: lit where it hits, tapped to turn a hit on or off
  *   SEL            shift, held: white keys 1-6 the pattern (on the bar); PRESETS the piece, on the next
  *                  bar; ALGORITHM the sound of the voice on screen (pad, drone, acid; on the drums' pages the kit); in the sequencer, black keys 1-6 copy the pattern there, OCT- clears the drum's
@@ -2715,7 +2716,21 @@ static int group_of(int v)
 }
 
 static void jam_down(int i);
+static void jam_down_v(int i, int vc);
 static void jam_up(int i);
+static int key_voice(void)                       /* the voice the keys play here (0.17.6; JAM's numbering: 0 pluck, 1 pad, 2 acid, 3 bass) */
+{
+    const int v = ui.view;
+    if (v >= V_PAD && v <= V_PROG)
+        return 1;
+    if (v >= V_DRONE && v <= V_BLSTEP)
+        return 3;
+    if (v >= V_ACID && v <= V_ACSTEP)
+        return 2;
+    if (v >= V_CMEL && v <= V_CMSTEP)
+        return 0;
+    return ui.jam_voice & 3;
+}
 static void draw_jam(void);
 static int perf_like(void) { return ui.view == V_PERF || ui.view == V_VIZ; }   /* the screens whose keys are the mix, knobs the FX knobs, ALGORITHM the mood */
 
@@ -3871,8 +3886,11 @@ static void input(void)
                 } else if (by_hand(voice_of(ui.view))) {   /* a voice off the algorithm, its page: the key plays it */
                     ui.key_voice[i] = (uint8_t)(voice_of(ui.view) + 1);
                     en_note(voice_of(ui.view), 53 + (int)i, 1);
-                } else {
+                } else if (ui.view == V_GLOBAL) {   /* Global: the scale's notes in and out (0.17.6: only here; elsewhere a key played a
+                                                     * voice by mistake changed the scale) */
                     toggle_note((int)((5u + i) % 12u));   /* key 0 is F3 */
+                } else {                         /* anywhere else: the key plays the page's voice (Jam's elsewhere), as Jam plays it */
+                    jam_down_v((int)i, key_voice());
                 }
             }
     for (i = 0; i < NKEYS; i++)                  /* the JAM page's keys let go */
@@ -4843,7 +4861,7 @@ static int help_lines(int b, const char *l[HELP_LINES])
         static char cpu[40];
         cpu_line(cpu);
         L("GLOBAL");
-        L("ROOT, THEME, TUNE, MIDI OUT");
+        L("ROOT, THEME; KEYS: THE SCALE");
         L("+ SEL: REMOTE (BROWSER)");
         L(cpu);
         break;
@@ -4871,9 +4889,14 @@ static void draw_help(void)
 }
 
 /* the FX menu (FX on): the 27 keys, F3 at the top left, down the columns; an effect held, lit */
+static void console_fx(void);
 static void draw_fx(void)
 {
     int k;
+    if (LOOK_CONSOLE) {
+        console_fx();
+        return;
+    }
     {
         const char *hd = fx_bank == 3 ? "DJ SNIPS: HOLD TO PLAY" : fx_bank == 2 ? "FLEX: TAP LATCHES" : fx_bank ? "BEAT: TAP LATCHES" : "FX: TAP LATCHES",
                    *dl = fx_bank == 3 ? "DIAL: FLEX" : fx_bank == 2 ? "DIAL: BEAT / SNIPS" : fx_bank ? "DIAL: FX / FLEX" : "DIAL: BEAT FX";
@@ -4929,6 +4952,53 @@ static void draw_fx(void)
             cv_text(x + 3, y, &FONT_XS, t, on ? K_BG : black ? K_DIM : K_TEXT);
             cv_text(x + 27, y, &FONT_XS, key_flex(k) >= 0 ? FLEX_LABEL[key_flex(k)] : FX_LABEL[KEY_FX[fx_bank][k]], on ? K_BG : kc);
         }
+    }
+}
+
+/* the Console layout's FX menu (0.17.6): the banks as tabs, the keys as tiles in the menu's columns (F3 top left, down), the black keys' rows
+ * darker; an effect's colour on its stripe and name, the whole tile when it sounds, a dark foot when it is latched */
+static void console_fx(void)
+{
+    static const char *const BANK[4] = {"FX", "BEAT", "FLEX", "SNIPS"};
+    int k;
+    int32_t x = 2;
+    for (k = 0; k < 4; k++) {                    /* the banks: the dial walks them */
+        const int32_t w = text_w(&FONT_XS, BANK[k]) + 10;
+        cv_rect(x, 1, w, 12, k == fx_bank ? K_ACC : K_PANEL);
+        cv_text(x + 5, -2, &FONT_XS, BANK[k], k == fx_bank ? K_BG : K_DIM);
+        x += w + 2;
+    }
+    {
+        const char *hd = fx_bank == 3 ? "HOLD TO PLAY" : ui.lock_mode ? "LOCK: TAP A KEY" : "TAP LATCHES";
+        cv_text(236 - text_w(&FONT_XS, hd), -2, &FONT_XS, hd, ui.lock_mode ? K_ACC : K_DIM);
+    }
+    for (k = 0; k < NKEYS; k++) {
+        const int32_t tx = 2 + (k / 9) * 79, ty = 16 + (k % 9) * 14;
+        const int pc = (5 + k) % 12;
+        const int black = pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10;
+        const uint16_t base = black ? mix(K_BG, K_PANEL, 7) : K_PANEL;
+        const char *lb, *t = EN_NOTE_NAME[pc];   /* (the note without its octave: the columns say where) */
+        uint16_t kc;
+        int on, locked = 0;
+        if (fx_bank == 3) {
+            lb = en_dj_name(k), kc = KC_MOVE, on = (int)(ui.keys >> k & 1u);
+        } else if (fx_bank == 0 && k == FILL_KEY) {
+            lb = "FILL>", kc = KC_MOVE, on = (int)(ui.keys >> k & 1u);
+        } else if (KEY_FX[fx_bank][k] == FX_NONE) {
+            cv_rect(tx, ty, 76, 13, mix(K_BG, base, 6));
+            cv_text(tx + 4, ty - 1, &FONT_XS, t, K_LINE);
+            continue;
+        } else {
+            lb = key_flex(k) >= 0 ? FLEX_LABEL[key_flex(k)] : FX_LABEL[KEY_FX[fx_bank][k]];
+            kc = fx_color(KEY_FX[fx_bank][k]), on = key_on(k), locked = key_locked(k);
+        }
+        cv_rect(tx, ty, 76, 13, on ? kc : base);
+        if (!on)
+            cv_rect(tx, ty, 2, 13, kc);
+        if (locked)                              /* latched: a dark line along its foot */
+            cv_rect(tx + 2, ty + 11, 72, 2, K_BG);
+        cv_text(tx + 4, ty - 1, &FONT_XS, t, on ? K_BG : K_DIM);
+        cv_text(tx + 20, ty - 1, &FONT_XS, lb, on ? K_BG : kc);
     }
 }
 
@@ -6612,6 +6682,37 @@ static void console_home(void)
     }
 }
 
+/* CONSOLE: Global (0.17.6): the scale on an octave of keys, the root marked; the keys here put notes in and out of it */
+static void console_global(void)
+{
+    static const uint8_t WPC[7] = {0, 2, 4, 5, 7, 9, 11}, BPC[5] = {1, 3, 6, 8, 10}, BAFT[5] = {0, 1, 3, 4, 5};
+    const uint32_t pool = pool_abs();
+    const int root = sound_root();
+    char t[24];
+    int w;
+    int32_t x;
+    console_top();
+    for (w = 0; w < 7; w++) {                    /* the white keys: lit in the scale, the root bright */
+        const int pc = WPC[w], in = (int)(pool >> pc & 1u);
+        const uint16_t c = pc == root ? K_TEXT : in ? K_ACC : K_PANEL;
+        const int32_t kx = 8 + w * 32;
+        cv_rect(kx, 26, 30, 78, c);
+        text_c(kx + 15, 86, &FONT_XS, EN_NOTE_NAME[pc], in ? K_BG : K_DIM);
+    }
+    for (w = 0; w < 5; w++) {                    /* the black keys over them */
+        const int pc = BPC[w], in = (int)(pool >> pc & 1u);
+        const int32_t kx = 8 + (BAFT[w] + 1) * 32 - 11;
+        cv_rect(kx - 1, 26, 22, 47, K_BG);
+        cv_rect(kx, 26, 20, 46, pc == root ? K_TEXT : in ? K_ACC : mix(K_BG, K_PANEL, 8));
+        text_c(kx + 10, 54, &FONT_XS, EN_NOTE_NAME[pc], in ? K_BG : K_DIM);
+    }
+    caps(t, EN_NOTE_NAME[root], 4);
+    x = cv_text(8, 108, &FONT_B, t, K_TEXT);
+    caps(t, mode_name(), sizeof t);
+    cv_text(x + 6, 108, &FONT_B, t, K_ACC);
+    cv_text(8, 128, &FONT_XS, "KEYS: NOTES IN / OUT   ALGO: MODE", K_DIM);
+}
+
 /* CONSOLE: a folded strip (the other voices beside a wide one): its letter, its meter, red when it is out */
 static void console_sliver(int v, int32_t x)
 {
@@ -7028,12 +7129,15 @@ static void draw_main(void)
         h = hash(h, (uint32_t)proj.par[i]);
     h = hash(h, (en_playing ? plat_ms() / 66u : 0u) | (uint32_t)en_sec << 28 | (uint32_t)ui.centre_imp << 30 | (uint32_t)en_shed_level << 26);   /* the sigil moves: 15 frames a second while playing */
     h = lk_hash(h);
+    h = hash(h, proj.pool | (uint32_t)sound_root() << 12 | (uint32_t)proj.par[P_MODE] << 16);   /* (Global's scale) */
     if (h == ui.sig[1])
         return;
     ui.sig[1] = h;
     cv_begin(240, MAIN_H, K_BG);
     if (LOOK_CONSOLE) {
-        if (lk_voice() >= 0 && ui.view != V_TEMPO && ui.view != V_GLOBAL)
+        if (ui.view == V_GLOBAL)
+            console_global();            /* Global: the scale */
+        else if (lk_voice() >= 0 && ui.view != V_TEMPO)
             console_voice(lk_voice());   /* a voice's page: its strip opened wide */
         else
             console_home();
@@ -7525,12 +7629,14 @@ static int jam_notes(int i, uint8_t *out)       /* the notes of key i: 1 (scale,
     }
     return n;
 }
-static void jam_down(int i)
+static void jam_down(int i) { jam_down_v(i, ui.jam_voice & 3); }
+static void jam_down_v(int i, int vc)            /* key i on voice vc (JAM's numbering) */
 {
     static const uint8_t VC[4] = {EN_V_PLUCK, EN_V_PAD, EN_V_ACID, EN_V_DRONE};
     static const int8_t OFS[4] = {0, 0, 12, 24};   /* the engine plays the acid an octave and the drone two below the key */
     uint8_t nn[4];
-    const int n = jam_notes(i, nn), vc = ui.jam_voice & 3;
+    const int n = jam_notes(i, nn);
+    vc &= 3;
     int k;
     if (vc == 0 && proj.par[P_CM_LVL] < 15)
         knob_set(P_CM_LVL, 40);                  /* the pluck has to be audible to be played */

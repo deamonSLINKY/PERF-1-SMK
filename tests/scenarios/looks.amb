@@ -66,6 +66,7 @@ wait 100
 spin K2 -1
 wait 200
 expect theme 0
+shot looks_global.png
 press HOME
 wait 900
 release HOME
@@ -78,6 +79,22 @@ expect fxpage 18
 shot looks_settings_settings.png
 tap FX
 wait 300
+# the FX menu (0.17.6): the banks as tabs, the keys as tiles; one held, one latched
+tap FX
+wait 300
+expect fxon 1
+press SAVE
+tapkey 3
+release SAVE
+wait 100
+key 8 down
+wait 200
+shot looks_fx.png
+key 8 up
+tapkey 3
+tap FX
+wait 300
+expect fxon 0
 # JAM: Sound on the fourth knob
 turn SELECT 2 100
 wait 1500

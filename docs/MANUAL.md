@@ -284,7 +284,7 @@ short version.
    Then a random piece from the HYPNO bank starts playing.
 2. Turn **SELECT** to move through the pages. The four knobs under the screen change what each page shows.
 3. Press **SEQ** for the drums. Hold it for the step sequencer, and tap the white keys to change the beat.
-4. Tap keys to change the scale: each key adds its note or takes it away. Turn **PRESETS** for another piece.
+4. Play the keys: on a voice's page they play that voice over the music, elsewhere the Jam page's voice. Turn **PRESETS** for another piece.
    Hold **GLO** and turn **PRESETS** for another genre. On a voice's page, hold **SEL** and turn
    **ALGORITHM** to hear that voice's other sounds.
 5. Want to play the bass yourself? Press **LFO** for the bass page, then hold **SEL** and press **ENV**. The
@@ -324,7 +324,7 @@ short version.
 | **SEQ** | The Drums page. Again: Links, Kit, Drum drift, Groove, Steps, Feel, Phrase. Held: the sequencer. Tapped in the sequencer: back to Drums. With **SEL** held: the links on and off. |
 | **PLAY** | Play and stop. |
 | **REC** | Freeze: the chord holds and the reverb rings on until you press it again. With **SEL**: Capture, which writes the bar you played on Jam into the acid line or the pluck loop (section 10). |
-| White keys | The scale: each key adds or removes its note (the root stays). On the pages of a voice played by hand, and on Jam: that voice. In the sequencer: the 16 steps. In the FX menu: the effects. On Perform, the visualizers, and with **GLO** held: the track mix. |
+| White keys | Play a voice: on the pad's, bass's, acid's or pluck's pages that voice, elsewhere the Jam page's (with Jam's Keys and Octave). On **Global**: the scale, each key adding or removing its note (the root stays). In the sequencer: the 16 steps. In the FX menu: the effects. On Perform, the visualizers, and with **GLO** held: the track mix. |
 | Black keys | The same as the white keys. |
 
 Pressing a group's button again steps through that group's pages. Pressing it from another page takes you
@@ -1128,7 +1128,7 @@ Techno kick under House hats is fine.
 
 ![Help card for the LFO button, which also says how to play the bass](img/perf-screen-help.png)
 
-Normally the keys set the scale. You can also take a voice away from the algorithm and play it yourself:
+The keys always play a voice over the music: on a voice's pages that voice, alongside its own part. You can also take a voice away from the algorithm and play only it yourself:
 
 1. Go to any of the voice's pages: **ENV** for the pad, **LFO** for the bass, **ARP** for the acid.
 2. Hold **SEL** and press **ENV**. The voice goes quiet and the line above the knobs says `BY HAND`. (On a page that isn't a voice's, SEL + ENV just tells you so.)
@@ -1142,8 +1142,8 @@ How each voice plays:
 
 Everything else carries on by itself: the other voices, the chords and the drums. The keys follow the voice's octave
 and the song's (**OCT-** / **OCT+**), and the lit keys still show the scale, so you can see what's in key. It works
-while stopped too. A key keeps playing until you let go, even if you change page. On any other page (Tempo, Global and
-so on) the keys edit the scale as usual.
+while stopped too. A key keeps playing until you let go, even if you change page. On any other page the keys play the
+Jam page's voice; on Global they edit the scale.
 
 To give the voice back to the algorithm, press **SEL** + **ENV** on its pages again. Which voices are played by hand
 is stored with the piece. MIDI out sends what you play, on the voice's channel. The pluck is played on the **Jam** page
@@ -1339,7 +1339,7 @@ Each kind of effect has its own colour, so you can find keys at a glance:
 | Orange | Moves that bend the playback: reverse, stops, scatter |
 | Teal | Flex Beat |
 
-**Latched effects keep playing after you close the menu.** The **FX** button blinks and `FX` shows next to the tempo, to remind you. The keys go back to playing the scale or a voice. To turn an effect off, open FX again and tap its key.
+**Latched effects keep playing after you close the menu.** The **FX** button blinks and `FX` shows next to the tempo, to remind you. The keys go back to playing a voice. To turn an effect off, open FX again and tap its key.
 
 To turn everything off at once, press **OCT-** in the FX menu. This clears all effects, puts the FX knobs back to their home positions, and clears all mutes and solos. If you didn't mean it, **GLO** + `B3` undoes it. Tapping **SAVE** in the FX menu still starts a breakdown (section 10).
 
@@ -1589,7 +1589,7 @@ These are the moves for playing a set live. Most of them wait for the next bar, 
 - **Drop: hold SAVE.** Everything comes straight back in on the next bar. **SAVE** lights up during a breakdown or build, and blinks while it waits for the bar.
 - **Freeze: REC.** The chord holds and the reverb rings on. Press **REC** again to let the music move on.
 - **Next chord: EDIT.** Moves to the next chord at the next bar. With your own progression playing, it moves to the next slot.
-- **The scale: the keys.** Each key adds its note to the scale or takes it away. The root note always stays. **ALGORITHM** picks a mode (a ready-made scale).
+- **The scale: the keys on Global.** There each key adds its note to the scale or takes it away, on a keyboard picture of the scale. The root note always stays. On every other page the keys play a voice, so a stray key never changes the scale. **ALGORITHM** picks a mode (a ready-made scale) anywhere.
 - **Patterns.** Change the drum pattern with **KNOB4** on the Drums page, or with **SEL** + white keys 1-6. A change waits for the next bar, so if you turn the knob past several patterns, only the one you stop on plays.
 
 **Drum drift** makes the drums change by themselves as you play. Press **SEQ** four times to get to it. It's off by default. It has four settings:
@@ -1740,7 +1740,7 @@ On most pages the keys light the scale. While the music plays, the notes of the 
 
 ![The Jam page](img/perf-screen-jam.png)
 
-The **Jam** page turns the 27 keys into an instrument so you can play along with the music. Turn the **SELECT** dial to it; it comes after Global. On this page the keys never change the scale.
+The **Jam** page turns the 27 keys into an instrument so you can play along with the music. Turn the **SELECT** dial to it; it comes after Global. Its Voice, Keys and Octave are also how the keys play on pages that aren't a voice's own (Tempo, the drums, the mixer and so on).
 
 | Knob | Setting | What it does |
 |---|---|---|

@@ -1,0 +1,41 @@
+# THE KEYS PLAY (0.17.6): on any page a key plays a voice (the page's own: pad, bass, acid, pluck; elsewhere the Jam page's), as the Jam
+# page plays it; only on Global do they put the scale's notes in and out (a key played by mistake used to change the scale)
+seed 0
+wait 3000
+expect view 0
+expect pool 0x5AD
+tapkey 1
+wait 100
+expect pool 0x5AD
+# the pad's page: the key plays the pad, held while it is
+turn SELECT 1 100
+wait 300
+expect view 1
+key 13 down
+wait 200
+expect held 1
+expect pool 0x5AD
+key 13 up
+wait 200
+expect held 0
+# the bass's page: the bass
+turn SELECT 5 100
+wait 300
+expect view 6
+key 8 down
+wait 200
+expect held 1
+key 8 up
+wait 200
+expect held 0
+# Global: the keys are the scale (F#3 in, then out again); the root stays
+tap GLO
+wait 300
+expect view 32
+tapkey 1
+wait 100
+expect pool 0x7AD
+shot keys_global_scale.png
+tapkey 1
+wait 100
+expect pool 0x5AD

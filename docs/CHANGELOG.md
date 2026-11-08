@@ -26,6 +26,8 @@ The unit reports its version as `FM-1_7XXYYZZ` (0.13.0 is `FM-1_7001300`); the i
 
 ## Next (development builds from 0.17.1)
 
+- **The keys play, the scale stays (0.17.6).** A key no longer changes the scale by accident: on a voice's pages (pad, bass, acid, pluck) the keys play that voice over the music, and on every other page the Jam page's voice, with Jam's Keys (scale, chords, harp) and Octave. The scale's notes are edited only on **Global**, which now shows the scale on an octave of keys with the root marked and the mode's name. ALGORITHM still picks the mode anywhere. (Thanks to the YouTube comment that asked for it.)
+- **Console, the FX menu (0.17.6):** the four banks as tabs along the top (the dial walks them), the 27 keys as tiles in the menu's columns, the black keys' rows darker; each effect's colour on its stripe and name, the whole tile lit while it sounds, a dark foot on a latched one. In lock mode the corner says so.
 - **Console, Perform (0.17.5):** the second home screen as a desk: the eight tracks are channel strips with segmented meters and an M (red) or S (amber) under each, the scenes square keys, the mood a fader with a cap.
 - **Jam: Sound for Answer (0.17.4).** The Jam page's fourth knob now sets the sound of the voice you play (the pluck's DX voice, the pad's, the acid's, the bass's), the same setting as on that voice's page, saved with the piece. Answer is gone: it only played back your last few notes an octave up, which never really answered.
 - **Console, the settings (0.17.4):** each settings page is a sheet: its four settings as large rows (name, value, a fader; the one you turn lit), and the whole walk (FILTERS to SAMPLE) down the right with your page lit.

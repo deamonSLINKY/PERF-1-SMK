@@ -54,14 +54,15 @@ turn ALGO 1
 release SEL
 expect par10 3
 expect par84 20
-# keys on a voice's page still edit the scale while it plays with the music, as everywhere
+# keys on a voice's page play it over its own part (0.17.6: not the scale)
 tap LFO
-tapkey w3
+key w3 down
+wait 50
+expect held 1
+expect pool 0x5AD
+key w3 up
 wait 50
 expect held 0
-expect pool <0x5AD
-tapkey w3
-wait 50
 expect pool 0x5AD
 # SEL + ENV on the drone's page: the drone off the algorithm (silent but for the keys); now its keys play it,
 # the scale untouched
@@ -142,11 +143,11 @@ tap HOME
 key w9 up
 wait 100
 expect held 0
-# on Tempo the keys edit the scale, as ever
+# on Tempo the keys play the Jam page's voice (the pluck), not the scale (0.17.6)
 tapkey w1
 wait 50
 expect held 0
-expect pool 0x1AD
+expect pool 0x5AD
 # back on the algorithm while a key is held: the note let go
 tap ARP
 key w9 down
