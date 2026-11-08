@@ -86,7 +86,7 @@
 | Mixer | dial | Track (pad .. drums) | Level | Pan (L100 - C - R100) | Send (0-100) |
 | Global | GLO | Root | Theme (6) | Tune (+-50 cents) | Genre (the bank) |
 | Set list | GLO x2 | Slot (1-16, a white key) | Genre (on empty: the piece playing) | Piece | Play: PRESETS, auto-DJ go through it |
-| Jam | dial | Voice (pluck, pad, acid, bass) | Keys (scale, chords, harp) | Octave (-2 to +2) | Answer (off, on) |
+| Jam | dial | Voice (pluck, pad, acid, bass) | Keys (scale, chords, harp) | Octave (-2 to +2) | Sound (that voice's) |
 
 <div class="cols">
 

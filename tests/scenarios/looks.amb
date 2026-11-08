@@ -60,3 +60,26 @@ turn SELECT -32 100
 wait 1500
 expect view 0
 shot looks_home_imp.png
+# the settings walk as a sheet: the page's four settings large, the walk down the right
+tap GLO
+wait 100
+spin K2 -1
+wait 200
+expect theme 0
+press HOME
+wait 900
+release HOME
+wait 300
+expect fxpage 27
+shot looks_settings_filters.png
+turn SELECT 2 100
+wait 300
+expect fxpage 18
+shot looks_settings_settings.png
+tap FX
+wait 300
+# JAM: Sound on the fourth knob
+turn SELECT 2 100
+wait 1500
+expect view 34
+shot looks_jam.png

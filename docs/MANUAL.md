@@ -464,7 +464,7 @@ columns are **KNOB1** to **KNOB4**.
 | Mixer | **SELECT** | Track (pad, bass, acid, pluck, drums) | Level | Pan (L100, C, R100) | Send (0-100) |
 | Global | **GLO** | Root | Theme (6) | Tune (+-50 cents) | Genre (the bank, the same as **GLO** + **PRESETS**) |
 | Set list | **GLO** x2 | Slot (1-16; or a white key) | Genre (or Empty) | Piece (01-10) | Play (off, on) |
-| Jam | **SELECT** | Voice (pluck, pad, acid, bass) | Keys (scale, chords, harp) | Octave (-2 to +2) | Answer (off, on) |
+| Jam | **SELECT** | Voice (pluck, pad, acid, bass) | Keys (scale, chords, harp) | Octave (-2 to +2) | Sound (that voice's sound) |
 
 Words on these pages:
 
@@ -1747,7 +1747,7 @@ The **Jam** page turns the 27 keys into an instrument so you can play along with
 | **KNOB1** | Voice | Which sound you play: the pluck, the pad, the acid or the bass. While the page is up, that part stops playing its own line. It gets it back when you leave. |
 | **KNOB2** | Keys | *Scale*: every key plays a note of the scale. A black key plays the scale note at or below it, so there are no wrong notes. *Chords*: every key plays a three-note chord (a triad) from the scale. *Harp*: the keys play the scale's notes in order, one per key, from C3. |
 | **KNOB3** | Octave | -2 to +2. |
-| **KNOB4** | Answer | When it's on and you stop playing (after at least two notes and a short pause), the pluck plays your phrase back an octave higher at the next bar line. It does this once, then waits for your next phrase. |
+| **KNOB4** | Sound | The sound of the voice you play: the pluck's DX voice, the pad's, the acid's or the bass's. It is the same setting as on that voice's own page, saved with the piece. (Until 0.17.4 this knob was Answer.) |
 
 The page shows a keyboard with the scale's notes lit and the keys you hold bright (orange). While the music plays, the notes of the chord playing are blue, and its name is in the top right, like `Am7`. If the pluck's level is turned almost all the way down, playing it raises it to 40 so you can hear it.
 

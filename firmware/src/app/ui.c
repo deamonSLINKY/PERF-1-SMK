@@ -45,7 +45,7 @@ static const char *const VIEW_NAME[NVIEWS] = {"Tempo", "Pad", "Pad env", "Pad LF
 enum { VZ_PLASMA, VZ_KALEIDO, VZ_BARS, VZ_FLUX, VZ_DISCO, VZ_LIFE, VZ_ORBIT, VZ_TRIP, VZ_THEORY, VZ_AUTO, VZ_N };   /* the visualizers (viz.c; TRIP and THEORY 0.16.10, THEORY not in AUTO's turn) */
 static const char *const VZ_NAME[VZ_N] = {"PLASMA", "KALEIDO", "BARS", "FLUX", "DISCO", "LIFE", "ORBIT", "TRIP", "THEORY", "AUTO"};
 /* the knobs of each page: a parameter, or one of these (the sequencer's: the lane's) */
-enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_FX*: the FX menu's own knobs */
+enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_JSND, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_JSND: the sound of the voice JAM plays (0.17.4); K_FX*: the FX menu's own knobs */
 static const char *const FXK_LABEL[4] = {"Filter", "Crush", "Throw", "Wash"};
 
 /* the FX edit pages (SEL + FX walks them; FX alone is the performing menu, or closes): each effect's settings on
@@ -196,7 +196,7 @@ static const struct {
     {"AUTO FX", FX_SPARE12, 0, {{"Auto FX", KN_NAME, EN_FXS_AF_AMT, AFA_NAME, 4}, {"Every", KN_NAME, EN_FXS_AF_EVERY, AFE_NAME, 4},
                         {"Length", KN_NAME, EN_FXS_AF_LEN, AFL_NAME, 4}, {"Pick", KN_NAME, EN_FXS_AF_PICK, AFP_NAME, 2}}},   /* (0.16.8; a spare effect bit: nothing held) effects played by
                                                     * themselves, ending on the phrase lines (af_tick) */
-    {"JAM", 63, 0, {{"Voice", KN_NAME, 7, JV_NAME, 4}, {"Keys", KN_NAME, 8, JM_NAME, 3}, {"Octave", KN_NAME, 9, JO_NAME, 5}, {"Answer", KN_NAME, 10, ONOFF_NAME, 2}}},   /* (the last: ui_knob_param counts on it) */
+    {"JAM", 63, 0, {{"Voice", KN_NAME, 7, JV_NAME, 4}, {"Keys", KN_NAME, 8, JM_NAME, 3}, {"Octave", KN_NAME, 9, JO_NAME, 5}, {"Sound", KN_PAR, K_JSND, 0, 0}}},   /* (the last: ui_knob_param counts on it) (0.17.4: Sound, the voice's, for Answer) */
 };
 /* the gate's patterns (the loop's length in sixteenths; a pattern of 12 or 10 against the bar of 16 is a polymeter),
  * the last "CUSTOM": the keys' own. euc: a Euclidean pattern of that many hits instead of pat. And its targets. */
@@ -295,7 +295,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Track", "Level", "Pan", "Send"},
     {"Root", "Theme", "Tune", "Genre"},
     {"Slot", "Genre", "Piece", "Play"},
-    {"Voice", "Keys", "Octave", "Answer"},
+    {"Voice", "Keys", "Octave", "Sound"},
     {"Level", "Tune", "Decay", "Pattern"},
     {"Filter", "Crush", "Throw", "Wash"},
     {"Filter", "Crush", "Throw", "Wash"},
@@ -531,8 +531,6 @@ static struct {
     uint8_t jam_man;                   /* the voice the JAM page has taken off its line (1 + voice), 0 none */
     uint8_t jam_voice, jam_mode, jam_oct, jam_ans;   /* the JAM page: the voice (pluck, pad, acid, drone), the keys (scale, chords, harp), the octave (0..4: -2..+2), the answer */
     uint8_t jam_n[NKEYS], jam_vc[NKEYS], jam_note[NKEYS][4];   /* what each key is sounding, to let go */
-    uint8_t ans_note[8], ans_dt[8], ans_cnt, ans_playing, ans_i;   /* the answer's memory: notes, the sixteenths between them; playing, at which */
-    uint32_t ans_last, ans_t;
     uint16_t cap_t[32];                          /* Capture's memory (SEL + REC on Jam): the last 32 keys played: the sixteenth (en_bars), the note heard, the key and voice, how long it was held (sixteenths; 0: still down) */
     uint8_t cap_note[32], cap_kv[32], cap_len[32], cap_w;
     uint32_t home_t;                   /* when HOME last went down (twice quickly: the visualizers) */
@@ -1056,6 +1054,10 @@ static int knob_par(int k)                     /* a knob's parameter (the sequen
         return P_PAN + (int)(ui.mix_trk % 5u);
     if (k == K_MXS)
         return P_SEND + (int)(ui.mix_trk % 5u);
+    if (k == K_JSND) {                           /* JAM's fourth knob (0.17.4): the sound of the voice it plays (pluck, pad, acid, bass) */
+        static const uint8_t JS[4] = {P_CM_SND, P_PADTONE, P_AC_WAVE, P_DR_INST};
+        return JS[ui.jam_voice & 3u];
+    }
     return k < P_NPARAMS ? k : -1;
 }
 /* the acid steps' working copy: while the player edits, the page works on its own copy (the engine takes an edit a chunk later); otherwise it reads the engine's */
@@ -2714,7 +2716,6 @@ static int group_of(int v)
 
 static void jam_down(int i);
 static void jam_up(int i);
-static void jam_tick(void);
 static void draw_jam(void);
 static int perf_like(void) { return ui.view == V_PERF || ui.view == V_VIZ; }   /* the screens whose keys are the mix, knobs the FX knobs, ALGORITHM the mood */
 
@@ -4939,11 +4940,50 @@ static int gx_head(void)                       /* the gate's step playing now */
     return en_playing ? (int)((en_bars - 1u) % len) : -1;
 }
 static int draw_fxscope(int p);
+/* the Console layout's settings pages: the page's four settings as rows, large (its name, its value, a fader; the one turned lit), the walk
+ * through the settings down the right, this page lit: where you are, and what the dial reaches next */
+static void console_sheet(void)
+{
+    const int at = st_pos(ui.fx_page), hot = plat_ms() < ui.touch_until ? ui.touched : -1;
+    char t[16], u[16];
+    int i;
+    caps(t, FXP[ui.fx_page - 1].name, sizeof t);
+    cv_text(4, 0, &FONT_B, t, K_ACC);
+    for (i = 0; i < 4; i++) {
+        const int k = view_knob(i);
+        const int32_t y = 24 + i * 29;
+        int lo, hi, v;
+        if (k == K_NONE)
+            continue;
+        knob_range(k, &lo, &hi);
+        v = knob_get(k);
+        caps(u, view_label(i), sizeof u);
+        knob_text(k, t);
+        caps(t, t, sizeof t);
+        cv_rect(4, y, 174, 27, i == hot ? K_PANEL : mix(K_BG, K_PANEL, 9));
+        cv_text(8, y - 1, &FONT_XS, u, i == hot ? K_TEXT : K_DIM);
+        cv_text(174 - text_w(&FONT_B, t), y + 3, &FONT_B, t, i == hot ? K_ACC : K_TEXT);
+        cv_rect(8, y + 22, 166, 2, K_LINE);
+        if (hi > lo)
+            cv_rect(8, y + 22, (int32_t)(v - lo) * 166 / (hi - lo), 2, i == hot ? K_ACC : K_DIM);
+    }
+    for (i = 0; i < ST_N; i++) {                 /* the walk */
+        const int32_t y = 24 + i * 12;
+        caps(t, FXP[ST_ORDER[i] - 1].name, 9);
+        cv_rect(184, y, 52, 11, i == at ? K_ACC : K_PANEL);
+        cv_text(187, y - 3, &FONT_XS, t, i == at ? K_BG : K_DIM);
+    }
+}
+
 static void draw_fxedit(void)
 {
     const int p = ui.fx_page - 1;
     const int32_t cw = 14;
     int s;
+    if (LOOK_CONSOLE && st_pos(ui.fx_page) >= 0 && p != FXP_MIDIIN && p != FXP_SAMPLE) {
+        console_sheet();
+        return;
+    }
     cv_text(4, 1, &FONT_XS, st_pos(ui.fx_page) >= 0 ? "SETTINGS: DIAL FOR THE NEXT" : "FX EDIT: DIAL OR SEL + FX", K_ACC);
     if (p == 0) {
         const int len = ui.fxs[EN_FXS_GX_LEN], head = gx_head();
@@ -6788,7 +6828,7 @@ static void draw_main(void)
     }
     if (ui.view == V_JAM) {                      /* the JAM page: the keyboard, its scale, what is held */
         h = hash(hash(0x4A414D31u, ui.keys | (uint32_t)ui.jam_voice << 27 | (uint32_t)ui.theme << 29), pool_abs() | (uint32_t)ui.jam_mode << 12 | (uint32_t)ui.jam_oct << 14 |
-                                                                                                        (uint32_t)ui.jam_ans << 17 | (uint32_t)ui.ans_cnt << 18 | (uint32_t)ui.ans_playing << 22 | (uint32_t)ui.ans_i << 23);
+                                                                                                        (uint32_t)proj.par[P_CM_SND] << 17 | (uint32_t)proj.par[P_PADTONE] << 22 | (uint32_t)proj.par[P_AC_WAVE] << 25 | (uint32_t)proj.par[P_DR_INST] << 28);
         h = hash(h, (en_playing ? chord_pcs() : 0u) | (uint32_t)en_chord_root << 12);   /* (the chord playing) */
         if (h != ui.sig[1]) {
             ui.sig[1] = h;
@@ -7429,20 +7469,6 @@ static int jam_notes(int i, uint8_t *out)       /* the notes of key i: 1 (scale,
     }
     return n;
 }
-static void jam_rec(int note)                    /* the ANSWER's memory: the notes played, and the sixteenths between them */
-{
-    const uint32_t now = en_playing ? en_bars : 0u;
-    if (!ui.jam_ans || ui.ans_playing)
-        return;
-    if (ui.ans_cnt == 0 || now - ui.ans_last > 32u || ui.ans_cnt >= 8) {
-        ui.ans_cnt = 0;
-        ui.ans_dt[0] = 0;
-    } else {
-        ui.ans_dt[ui.ans_cnt] = (uint8_t)(now - ui.ans_last > 16u ? 16u : now - ui.ans_last);
-    }
-    ui.ans_note[ui.ans_cnt++] = (uint8_t)note;
-    ui.ans_last = now;
-}
 static void jam_down(int i)
 {
     static const uint8_t VC[4] = {EN_V_PLUCK, EN_V_PAD, EN_V_ACID, EN_V_DRONE};
@@ -7459,7 +7485,6 @@ static void jam_down(int i)
         ui.jam_note[i][k] = (uint8_t)(key > 127 ? 127 : key);
         en_note_v(VC[vc], ui.jam_note[i][k], (plat_buttons() >> B_SEL & 1u) ? 127 : 100);   /* SEL held: an accent (0.15.23) */
     }
-    jam_rec(nn[0]);
     if (en_playing) {                            /* Capture's memory: the note as heard, when, on which key and voice */
         const int w = ui.cap_w & 31;
         ui.cap_t[w] = (uint16_t)en_bars;
@@ -7536,45 +7561,6 @@ static void jam_capture(void)
         say("CAPTURED", "PLUCK LOOP");
     }
 }
-static void jam_tick(void)                       /* the answer, on the sixteenths */
-{
-    static uint32_t seen;
-    int k, held = 0;
-    if (en_bars == seen)
-        return;
-    seen = en_bars;
-    if (!ui.jam_ans || !en_playing) {
-        ui.ans_playing = 0;
-        return;
-    }
-    for (k = 0; k < NKEYS; k++)
-        held |= ui.jam_n[k];
-    if (!ui.ans_playing) {
-        if (ui.ans_cnt >= 2 && !held && en_bars - ui.ans_last >= 12u && (en_bars & 15u) == 0u) {   /* quiet for a while, a bar line: answer */
-            ui.ans_playing = 1;
-            ui.ans_i = 0;
-            ui.ans_t = 0;
-            if (proj.par[P_CM_LVL] < 15)
-                knob_set(P_CM_LVL, 40);
-        } else {
-            return;
-        }
-    }
-    while (ui.ans_i < ui.ans_cnt) {              /* each note at its time */
-        uint32_t cum = 0;
-        for (k = 0; k <= ui.ans_i; k++)
-            cum += ui.ans_dt[k];
-        if (ui.ans_t < cum)
-            break;
-        en_note(EN_V_PLUCK, ui.ans_note[ui.ans_i] + 12, 1);
-        ui.ans_i++;
-    }
-    ui.ans_t++;
-    if (ui.ans_i >= ui.ans_cnt) {                /* answered: the memory empties */
-        ui.ans_playing = 0;
-        ui.ans_cnt = 0;
-    }
-}
 static void draw_jam(void)
 {
     const uint32_t pool = pool_abs();
@@ -7609,11 +7595,6 @@ static void draw_jam(void)
     }
     cv_text(6, 104, &FONT_XS, "OCTAVE", K_DIM);
     cv_text(52, 104, &FONT_XS, JO_NAME[ui.jam_oct % 5], K_TEXT);
-    if (ui.jam_ans) {                            /* the answer: what it has heard (a dot a note), and whether it is playing it */
-        cv_text(100, 104, &FONT_XS, ui.ans_playing ? "ANSWERING" : ui.ans_cnt ? "LISTENING" : "ANSWER ON", ui.ans_playing ? K_ACC : K_TEXT);
-        for (j = 0; j < ui.ans_cnt && j < 8; j++)
-            cv_disc(176 + j * 7, 108, 2, ui.ans_playing && j < ui.ans_i ? K_ACC : KC_MOVE);
-    }
     itoa_u((uint32_t)(proj.par[P_CM_LVL]), t);
     cv_text(6, 124, &FONT_XS, "THE KEYS PLAY ONLY THE SCALE'S NOTES", K_DIM);
 }
@@ -8147,7 +8128,6 @@ void ui_frame(void)
     key_tick();
     glide_tick();
     saver_tick();
-    jam_tick();
     {   /* the load: a half that was never rendered (a real dropout) or renders that keep running past their half (the margin is gone) make the engine drop the chorus and hold
          * the DX voices to four, then two, then give up the Echoplex and the vinyl; and it eases back a step after twenty seconds of neither. One step at a time (four seconds
          * after the last on a dropout, ten on the other: a step needs time to show; one overrun used to climb all three at once, the peak of the last second still reading 100 %).
