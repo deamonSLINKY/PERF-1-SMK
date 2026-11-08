@@ -46,7 +46,7 @@ static const char *const VIEW_NAME[NVIEWS] = {"Tempo", "Pad", "Pad env", "Pad LF
 enum { VZ_PLASMA, VZ_KALEIDO, VZ_BARS, VZ_FLUX, VZ_DISCO, VZ_LIFE, VZ_ORBIT, VZ_TRIP, VZ_THEORY, VZ_AUTO, VZ_N };   /* the visualizers (viz.c; TRIP and THEORY 0.16.10, THEORY not in AUTO's turn) */
 static const char *const VZ_NAME[VZ_N] = {"PLASMA", "KALEIDO", "BARS", "FLUX", "DISCO", "LIFE", "ORBIT", "TRIP", "THEORY", "AUTO"};
 /* the knobs of each page: a parameter, or one of these (the sequencer's: the lane's) */
-enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_JSND, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_JSND: the sound of the voice JAM plays (0.17.4); K_FX*: the FX menu's own knobs */
+enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_JSND, K_PLRT, K_DLRT, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_JSND: the sound of the voice JAM plays (0.17.4); K_FX*: the FX menu's own knobs */
 static const char *const FXK_LABEL[4] = {"Filter", "Crush", "Throw", "Wash"};
 
 /* the FX edit pages (SEL + FX walks them; FX alone is the performing menu, or closes): each effect's settings on
@@ -221,14 +221,14 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_TEMPO, P_EVOLVE, P_MOTION, P_DRIFT},
     {P_PAD, P_BRIGHT, P_PADTONE, P_DETUNE},
     {P_PE_ATK, P_PE_HOLD, P_PE_REL, P_PE_REST},
-    {P_PL_RATE, P_PL_DEPTH, P_PL_SHAPE, P_PL_DEST},
+    {K_PLRT, P_PL_DEPTH, P_PL_SHAPE, P_PL_DEST},
     {P_CHORD, P_VOICING, P_PL_CHO, P_CH_LOOP},     /* the harmony together, the pad's chorus, and how many chords repeat (Root is on Global, Drift on Tempo) */
     {K_PGCH, K_PGTY, K_PGBR, K_PGPL},              /* the progression by hand (0.15.6, after DUB-1's Chords page): the slot chosen on the white keys, its chord (a degree of
                                                     * the scale, or none: the chord before holds), its type (0.16.6: the piece's or a kind of its own; the slot knob gave
                                                     * way, the keys choose it), its bars, and Play: the genre's walk or the slots in turn */
     {P_BASS, P_DR_INST, P_DR_CUT, P_DR_RES},
     {P_DE_TRIG, P_DE_ATK, P_DE_DEC, P_DE_AMT},
-    {P_DL_RATE, P_DL_DEPTH, P_DL_SHAPE, P_DL_DEST},
+    {K_DLRT, P_DL_DEPTH, P_DL_SHAPE, P_DL_DEST},
     {P_BL_MODE, P_BL_LEN, P_BL_MOVE, P_BL_GLIDE},   /* the drone as a bass line: its mode, how long a note holds, how much it moves, its glide */
     {K_BSTY, K_BSNO, K_BSOC, P_BL_MODE},           /* the bass steps (0.16.29, issue #6): the step chosen (a white key): its kind, its note (scale steps above the chord's root), its
                                                     * octave; and the bass line's mode (Steps plays them; an edit turns it to Steps) */
@@ -1033,8 +1033,21 @@ static void fxp_text(int k, char *b)
 }
 
 /* ------------------------------------------------------------ values --- */
+/* the LFOs' Rate knobs (0.17.10): the rates in order of speed (the engine's numbers keep their old order, so stored pieces mean the same) */
+#define NLRT 16
+static const uint8_t LRT_ORDER[NLRT] = {11, 10, 9, 8, 12, 13, 0, 14, 1, 15, 2, 3, 4, 5, 6, 7};   /* 1/16T 1/16 1/8T 1/8 1/4T 1/8. 1/4 1/4. 1/2 1/2. 1 .. 32 bars */
+static int lrt_pos(int v)
+{
+    int i;
+    for (i = 0; i < NLRT; i++)
+        if (LRT_ORDER[i] == v)
+            return i;
+    return 6;
+}
 static int knob_par(int k)                     /* a knob's parameter (the sequencer's: its lane's) */
 {
+    if (k == K_PLRT || k == K_DLRT)
+        return k == K_PLRT ? P_PL_RATE : P_DL_RATE;
     if (k == K_LVL)
         return P_LANE_LVL(ui.lane);
     if (k == K_TUNE)
@@ -1184,6 +1197,8 @@ static int knob_get(int k)
     int p = knob_par(k);
     if (k == K_MXT)
         return ui.mix_trk;
+    if (k == K_PLRT || k == K_DLRT)              /* (the place in speed order) */
+        return lrt_pos(proj.par[p]);
     if (k == K_GENRE)
         return proj.genre;
     if (k == K_ACT)                              /* the answer's kind (P_AC_RESP is kind * 5 + direction) */
@@ -1245,6 +1260,11 @@ static void knob_range(int k, int *lo, int *hi)
     if (k == K_MXT) {
         *lo = 0;
         *hi = 4;
+        return;
+    }
+    if (k == K_PLRT || k == K_DLRT) {
+        *lo = 0;
+        *hi = NLRT - 1;
         return;
     }
     if (k == K_ACT || k == K_ACD) {
@@ -1511,6 +1531,10 @@ static void ps_freeze(void)                     /* the pluck line held: deja vu'
 static void knob_set(int k, int v)
 {
     int lo, hi, p = knob_par(k);
+    if (k == K_PLRT || k == K_DLRT) {            /* the place in speed order: the engine's number */
+        knob_set(p, LRT_ORDER[v < 0 ? 0 : v > NLRT - 1 ? NLRT - 1 : v]);
+        return;
+    }
     if (k == P_CM_LOCK && v && !proj.par[P_CM_LOCK]) {   /* freezing the pluck line: the loop's terms first */
         ps_freeze();
         return;
@@ -6039,14 +6063,16 @@ static void draw_scope(int kind)
         char tx[24];
         sc_title("STEPS", LANE_COL(l));
         sc_sub("RATCHET, PUSH, LEVEL: PER STEP", K_DIM);
-        cv_text(4, 22, &FONT_XS, LANE_SHORT[l], K_TEXT);
-        cv_text(34, 22, &FONT_XS, "KEYS CHOOSE THE STEP", K_DIM);
+        cv_text(4, 18, &FONT_XS, LANE_SHORT[l], LANE_COL(l));
+        cv_text(34, 18, &FONT_XS, "KEYS CHOOSE THE STEP", K_DIM);
+        if (LOOK_CONSOLE)                        /* (0.17.10) the steps on a panel in the lane's tint, as the rolls */
+            cv_rect(13, 33, 213, 72, mix(K_PANEL, LANE_COL(l), 2));
         for (s = 0; s < 16; s++) {
             const int32_t x0 = 16 + s * 13;
             const uint32_t md = en_mod[l][s];
             const int on = pl >> s & 1, rt = (int)(md & 7u), pu = (int)(md >> 3 & 7u), lv = (int)(md >> 6), cur = s == (int)(ui.stp & 15u);
             if (cur)
-                cv_rect(x0 - 1, 34, 13, 70, K_PANEL);
+                cv_rect(x0 - 1, 34, 13, 70, LOOK_CONSOLE ? mix(K_PANEL, LANE_COL(l), 5) : K_PANEL);
             if (s % 4 == 0)
                 cv_rect(x0 - 1, 33, 1, 72, K_LINE);
             if (on)
@@ -6087,8 +6113,8 @@ static void draw_scope(int kind)
             tx[n++] = 'H';
             tx[n++] = ' ';
             itoa_u(md >> 3 & 7u, tx + n);
-            cv_text(112, 112, &FONT_XS, tx, md >> 3 & 7u ? K_ACC : K_DIM);
-            cv_text(160, 112, &FONT_XS, LN[md >> 6], md >> 6 ? K_ACC : K_DIM);
+            cv_text(126, 112, &FONT_XS, tx, md >> 3 & 7u ? K_ACC : K_DIM);
+            cv_text(176, 112, &FONT_XS, LN[md >> 6], md >> 6 ? K_ACC : K_DIM);
         }
         return;
     }
@@ -6279,6 +6305,40 @@ static void draw_scope(int kind)
         live[0] = en_pad_level, live[1] = en_bass_level, live[2] = en_acid_level, live[3] = en_cm_level, live[4] = dg, live[5] = en_out_peak;
         sc_title("MIXER", K_PAD);
         sc_sub("SET LEVEL, AND WHAT SOUNDS", K_DIM);
+        if (LOOK_CONSOLE) {                      /* (0.17.10) a desk: a strip a layer, its fader with a cap, its meter in segments, its place under it;
+                                                  * the chosen one lit, M (red) or S (amber) below */
+            for (k = 0; k < 6; k++) {
+                const int32_t sx = 4 + k * 39, sw = 36, top = 20, fy = 38, fh = 60;
+                const int muted = k < 5 && (ui.trk_m & TRK[k]) == TRK[k], solo = k < 5 && (ui.trk_s & TRK[k]);
+                const uint16_t c = C[k];
+                const int n = muted ? 0 : (int)(fm_clampf(live[k], 0.0f, 1.0f) * 10.0f + 0.5f);
+                int i;
+                char tx[8];
+                cv_rect(sx, top, sw, 98, k < 5 && k == ui.mix_trk ? mix(K_PANEL, c, 3) : K_PANEL);
+                cv_rect(sx, top, sw, 2, muted ? K_LINE : c);
+                text_c(sx + sw / 2, top + 1, &FONT_XS, NAME[k], muted ? K_DIM : c);
+                for (i = 0; i < 10; i++)         /* the meter: what sounds */
+                    cv_rect(sx + 23, fy + fh - 5 - i * 6, 8, 5, i < n ? (i >= 9 ? K_BASS : i >= 7 ? K_ACC : c) : K_LINE);
+                if (k < 5) {                     /* the fader: what it is set to */
+                    const int32_t cy = fy + fh - 1 - (int32_t)lv[k] * (fh - 2) / 100;
+                    cv_rect(sx + 10, fy, 2, fh, K_LINE);
+                    cv_rect(sx + 10, cy, 2, fy + fh - cy, muted ? K_DIM : c);
+                    cv_rect(sx + 4, cy - 2, 14, 5, muted ? K_DIM : K_TEXT);
+                    itoa_u((uint32_t)lv[k], tx);
+                    text_c(sx + sw / 2, fy + fh + 2, &FONT_XS, tx, muted ? K_DIM : K_TEXT);
+                    {                            /* its place, left to right */
+                        const int32_t px = sx + 4 + (int32_t)proj.par[P_PAN + k] * (sw - 10) / 100;
+                        cv_rect(sx + 4, top + 93, sw - 8, 1, K_LINE);
+                        cv_rect(px, top + 91, 2, 5, proj.par[P_PAN + k] == 50 ? K_DIM : K_ACC);
+                    }
+                }
+                if (muted || solo) {
+                    cv_rect(sx + sw / 2 - 7, 121, 14, 12, muted ? K_BASS : K_ACC);
+                    text_c(sx + sw / 2, 119, &FONT_XS, muted ? "M" : "S", K_BG);
+                }
+            }
+            return;
+        }
         for (k = 0; k < 6; k++) {
             const int32_t sx = 10 + k * 36, sh = SC_H - 18, top = SC_Y + 12;
             const int muted = k < 5 && (ui.trk_m & TRK[k]) == TRK[k], solo = k < 5 && ui.trk_s & TRK[k];
@@ -6463,8 +6523,11 @@ static void draw_scope(int kind)
     }
     if (kind == SCOPE_PLFO || kind == SCOPE_DLFO) {
         const int pl = kind == SCOPE_PLFO, shape = proj.par[pl ? P_PL_SHAPE : P_DL_SHAPE],
-                  rate = proj.par[pl ? P_PL_RATE : P_DL_RATE] & 7, dep = proj.par[pl ? P_PL_DEPTH : P_DL_DEPTH];
-        const float cyc = 8.0f * fm_exp2f(-(float)rate * 0.5f), amp = 0.06f + 0.94f * (float)dep * 0.01f;
+                  rate = proj.par[pl ? P_PL_RATE : P_DL_RATE], dep = proj.par[pl ? P_PL_DEPTH : P_DL_DEPTH];
+        static const float BEATS[16] = {1.0f, 2.0f, 4.0f, 8.0f, 16.0f, 32.0f, 64.0f, 128.0f, 0.5f, 1.0f / 3.0f, 0.25f, 1.0f / 6.0f,
+                                        2.0f / 3.0f, 0.75f, 1.5f, 3.0f};   /* (the engine's LFO_RATE_BEATS) */
+        const float bt = BEATS[(unsigned)rate < 16u ? rate : 0], win = bt <= 1.0f ? 4.0f : bt <= 16.0f ? 16.0f : 2.0f * bt;   /* the screen: a bar, 4 bars, or 2 cycles */
+        const float cyc = win / bt, amp = 0.06f + 0.94f * (float)dep * 0.01f;
         col = pl ? K_PAD : K_BASS;
         title = pl ? "PAD LFO" : "BASS LFO";
         sub = LFO_SHAPE_NAME_UI[(unsigned)shape < 6u ? shape : 0];

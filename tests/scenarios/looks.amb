@@ -139,3 +139,8 @@ wait 700
 shot looks_shift.png
 release SEL
 wait 300
+# the Mixer as a desk (0.17.10)
+turn SELECT 17 100
+wait 1200
+expect view 31
+shot looks_mixer.png

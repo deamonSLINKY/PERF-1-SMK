@@ -433,12 +433,12 @@ columns are **KNOB1** to **KNOB4**.
 | Tempo | **HOME** | Tempo (70-190) | Evolve | Motion | Drift (how long a chord lasts: 1-32 bars in a genre, 20 s to 5 min in HYPNO; hold **SEL** and turn it for bars or seconds) |
 | Pad | **ENV** | Level | Bright | Sound (24) | Detune |
 | Pad env | **ENV** x2 | Attack (0.05-10 s) | Hold (0-8 s) | Release (0.1-12 s) | Rest (0-6 s) |
-| Pad LFO | **ENV** x3 | Rate (a 1/4 note to 32 bars, then 1/8, 1/8T, 1/16, 1/16T) | Depth | Shape (sine, triangle, saw, square, S&H, drift) | Target (filter, level, pan, pitch; or another voice or effect: acid cut, acid reso, echo time, punch cut) |
+| Pad LFO | **ENV** x3 | Rate, slow to fast as you turn left: 32 bars down to a 1/16T, with dotted and triplet values between (1/2., 1/4., 1/8., 1/4T, 1/8T). Playing, the LFO is locked to the bar. | Depth | Shape (sine, triangle, saw, square, S&H, drift) | Target (filter, level, pan, pitch; or another voice or effect: acid cut, acid reso, echo time, punch cut) |
 | Chords | **ENV** x4 | Chord (Auto, Triads, 7ths, 9ths, Sus, Dub, Fourths) | Voicing (close, open) | Chorus (0-100) | Loop (off, or repeat the last 2, 4 or 8 chords. With a ~, now and then one chord is picked anew.) |
 | Progression | **ENV** x5, or hold **EDIT** | Chord (a chord of the scale, or Hold) | Type (Piece's, Triad, 7th, 9th, Sus, Dub, Fourths, 11th) | Bars (1, 2, 4, 8) | Play (Walk, Loop) |
 | Bass | **LFO** | Level | Sound (24) | Cutoff | Reso |
 | Bass env | **LFO** x2 | Trigger (each chord, every 1, 2, 4 or 8 bars, or off) | Attack (0.01-4 s) | Decay (0.05-16 s) | Amount |
-| Bass LFO | **LFO** x3 | Rate (a 1/4 note to 32 bars, then 1/8, 1/8T, 1/16, 1/16T for a fast wobble) | Depth | Shape (as the pad's) | Target (cutoff, pitch, level, drive, reso; or acid cut, acid reso, echo time) |
+| Bass LFO | **LFO** x3 | Rate (as the pad's: 32 bars down to a 1/16T for a fast wobble, dotted and triplet values between; locked to the bar) | Depth | Shape (as the pad's) | Target (cutoff, pitch, level, drive, reso; or acid cut, acid reso, echo time) |
 | Bass line | **LFO** x4 | Mode (hold, root, kick, eighths, off-beat, walk, riff, nine named figures, and Steps) | Length (how long each note holds) | Move (octaves, fifths, approach notes) | Glide |
 | Bass steps | **LFO** x5 | Step (pick one with a white key: rest, note, accent, glide, accent + glide) | Note (root, 2nd .. 7th, octave: scale steps above the chord's root) | Octave (down, mid, up) | Mode (Steps plays them) |
 | Acid | **ARP** | Level | Cutoff | Reso | Env mod |

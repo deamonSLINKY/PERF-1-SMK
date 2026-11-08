@@ -28,13 +28,13 @@ static const en_param_t PARAMS[P_NPARAMS] = {
     [P_BRIGHT] = {"Bright", 0, 100, 35},    [P_PADTONE] = {"Sound", 0, EN_NSOUND - 1, 1},     [P_DETUNE] = {"Detune", 0, 100, 30},
     [P_PE_ATK] = {"Attack", 0, 100, 45},    [P_PE_HOLD] = {"Hold", 0, 100, 35},    [P_PE_REL] = {"Release", 0, 100, 55},
     [P_PE_REST] = {"Rest", 0, 100, 20},
-    [P_PL_RATE] = {"Rate", 0, 11, 4},        [P_PL_DEPTH] = {"Depth", 0, 100, 25},  [P_PL_SHAPE] = {"Shape", 0, 5, 0},
+    [P_PL_RATE] = {"Rate", 0, 15, 4},        [P_PL_DEPTH] = {"Depth", 0, 100, 25},  [P_PL_SHAPE] = {"Shape", 0, 5, 0},
     [P_PL_DEST] = {"Target", 0, 7, 0},
     [P_NZ_COLOR] = {"Wear", 0, 7, 1},     [P_AC_EVERY] = {"Every", 0, 7, 0},    [P_NZ_PUMP] = {"Pump", 0, 100, 60},
     [P_BASSOCT] = {"Octave", -3, 3, 0},     [P_DR_CUT] = {"Cutoff", 0, 100, 45},   [P_DR_RES] = {"Reso", 0, 100, 45},
     [P_DE_TRIG] = {"Trigger", 0, 5, 0},     [P_DE_ATK] = {"Attack", 0, 100, 25},   [P_DE_DEC] = {"Decay", 0, 100, 55},
     [P_DE_AMT] = {"Amount", 0, 100, 35},
-    [P_DL_RATE] = {"Rate", 0, 11, 6},        [P_DL_DEPTH] = {"Depth", 0, 100, 55},  [P_DL_SHAPE] = {"Shape", 0, 5, 0},
+    [P_DL_RATE] = {"Rate", 0, 15, 6},        [P_DL_DEPTH] = {"Depth", 0, 100, 55},  [P_DL_SHAPE] = {"Shape", 0, 5, 0},
     [P_DL_DEST] = {"Target", 0, 7, 0},
     [P_AC_CUT] = {"Cutoff", 0, 100, 35},    [P_AC_RES] = {"Reso", 0, 100, 70},     [P_AC_ENV] = {"Env mod", 0, 100, 55},
     [P_AC_DEC] = {"Decay", 0, 100, 40},     [P_AC_ACC] = {"Accent", 0, 100, 50},   [P_AC_SLIDE] = {"Slide", 0, 100, 30},
@@ -566,9 +566,12 @@ void en_piece_mods_g(int g, int i, uint8_t mod[EN_NLANE][16])
 static const char *const ETIME_NAME[6] = {"1/8", "3/16", "1/4", "1/4.", "1/2", "1 bar"};
 static const float ETIME_BEATS[6] = {0.5f, 0.75f, 1.0f, 1.5f, 2.0f, 4.0f};
 /* the LFOs' rates (0.15.13: 1/8, 1/8T, 1/16, 1/16T appended for the dubstep wobble; the stored values never renumbered) */
-#define NLFO_RATE 12
-static const char *const LFO_RATE_NAME[NLFO_RATE] = {"1/4", "1/2", "1 bar", "2 bars", "4 bars", "8 bars", "16 bars", "32 bars", "1/8", "1/8T", "1/16", "1/16T"};
-static const float LFO_RATE_BEATS[NLFO_RATE] = {1.0f, 2.0f, 4.0f, 8.0f, 16.0f, 32.0f, 64.0f, 128.0f, 0.5f, 1.0f / 3.0f, 0.25f, 1.0f / 6.0f};
+#define NLFO_RATE 16
+static const char *const LFO_RATE_NAME[NLFO_RATE] = {"1/4", "1/2", "1 bar", "2 bars", "4 bars", "8 bars", "16 bars", "32 bars", "1/8", "1/8T", "1/16", "1/16T",
+                                                     "1/4T", "1/8.", "1/4.", "1/2."};   /* (12-15: 0.17.10, after the others so a stored rate keeps its meaning) */
+static const float LFO_RATE_BEATS[NLFO_RATE] = {1.0f, 2.0f, 4.0f, 8.0f, 16.0f, 32.0f, 64.0f, 128.0f, 0.5f, 1.0f / 3.0f, 0.25f, 1.0f / 6.0f,
+                                                2.0f / 3.0f, 0.75f, 1.5f, 3.0f};
+static const uint16_t LFO_P3[NLFO_RATE] = {12, 24, 48, 96, 192, 384, 768, 1536, 6, 4, 3, 2, 8, 9, 18, 36};   /* a cycle in thirds of a sixteenth (beats x 12) */
 static const char *const LFO_SHAPE_NAME[6] = {"Sine", "Triangle", "Saw", "Square", "S&H", "Drift"};
 static const char *const PAD_DEST_NAME[8] = {"Filter", "Level", "Pan", "Pitch", "Acid cut", "Acid reso", "Echo time", "Punch cut"};   /* (4-7: 0.16.4, the LFO on other voices and effects) */
 static const char *const DRONE_DEST_NAME[8] = {"Cutoff", "Pitch", "Level", "Drive", "Reso", "Acid cut", "Acid reso", "Echo time"};
@@ -1477,21 +1480,43 @@ static float breath(const pad_t *v, float t)    /* rise, hang, fall, rest: the e
     return 0.0f;
 }
 
-/* the LFOs (the pad's, the drone's): synced to the tempo, 1/4 note .. 32 bars a cycle; sine, triangle,
- * saw, square, sample and hold, or a drift (a smooth wander to a new random place each cycle) */
+/* the LFOs (the pad's, the drone's): synced to the tempo, 1/16T .. 32 bars a cycle; sine, triangle,
+ * saw, square, sample and hold, or a drift (a smooth wander to a new random place each cycle). Playing, the phase is the song's place
+ * (0.17.10): a cycle starts on the bar (a 1-bar sine is at its middle on the downbeat, every bar), whatever the rate was before, a tempo change
+ * or the dubstep wobble's rates; stopped, it runs on by itself */
 typedef struct {
     float ph, v, a, b;                          /* the phase (turns); the value -1..1; S&H / drift: from, to */
 } lfo_t;
 static lfo_t pad_lfo, drone_lfo;
-static float frand(void);
+static uint32_t lrng = 0x6C078965u;              /* the LFOs' own random stream (0.17.10): their S&H and drift steer no other choice, whenever their cycles turn */
+static float lfrand(void)
+{
+    lrng ^= lrng << 13;
+    lrng ^= lrng >> 17;
+    lrng ^= lrng << 5;
+    return (float)(lrng >> 8) * (1.0f / 16777216.0f);
+}
+static uint32_t sixteenth;                      /* (the song's place: below) */
+static int32_t step_t;
 static void lfo_step(lfo_t *l, int rate, int shape, float n, float step_samples)
 {
+    const unsigned r = (unsigned)rate < NLFO_RATE ? (unsigned)rate : 0u;
     float p;
-    l->ph += n / (step_samples * 4.0f * LFO_RATE_BEATS[(unsigned)rate < NLFO_RATE ? rate : 0]);
-    if (l->ph >= 1.0f) {
-        l->ph -= (float)(int)l->ph;
-        l->a = l->b;
-        l->b = frand() * 2.0f - 1.0f;
+    if (en_playing && sixteenth > 0u && step_samples > 1.0f) {   /* locked to the song: the sixteenths since the start, and how far into this one */
+        float x = ((float)(((sixteenth - 1u) * 3u) % LFO_P3[r]) + 3.0f * fm_minf((float)step_t / step_samples, 1.0f)) / (float)LFO_P3[r];
+        x -= (float)(int)x;
+        if (x < l->ph) {                         /* a new cycle */
+            l->a = l->b;
+            l->b = lfrand() * 2.0f - 1.0f;
+        }
+        l->ph = x;
+    } else {
+        l->ph += n / (step_samples * 4.0f * LFO_RATE_BEATS[r]);
+        if (l->ph >= 1.0f) {
+            l->ph -= (float)(int)l->ph;
+            l->a = l->b;
+            l->b = lfrand() * 2.0f - 1.0f;
+        }
     }
     p = l->ph;
     switch (shape) {
@@ -1503,6 +1528,11 @@ static void lfo_step(lfo_t *l, int rate, int shape, float n, float step_samples)
     default: l->v = l->a + (l->b - l->a) * (0.5f - 0.5f * fm_cosf(FM_PI * p)); break;
     }
 }
+
+#ifdef EN_HOST
+int en_test_lfo16(void) { return (int)(pad_lfo.ph * 16.0f); }                        /* the host tests (0.17.10): the pad LFO's place, in sixteenths of its cycle */
+int en_test_step16(void) { return sixteenth ? (int)((sixteenth - 1u) & 15u) : -1; }  /* ... and the bar's step */
+#endif
 
 static void svf_coefs(float *c, float f, float k)
 {

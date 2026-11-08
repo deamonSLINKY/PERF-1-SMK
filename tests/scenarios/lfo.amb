@@ -1,0 +1,41 @@
+# THE LFOS ON THE BEAT (0.17.10): playing, an LFO's cycle is the song's place, so it starts on the bar whatever came before (a rate turned,
+# a tempo changed); the Rate knob goes in order of speed, with 1/4T, 1/8., 1/4. and 1/2. new
+seed 0
+wait 2500
+expect playing 1
+turn SELECT 3 100
+wait 300
+expect view 3
+# Rate: the knob's place in speed order (all the way down: 1/16T, engine number 11; then 1/4T, 1/8., 1/4., 1/2.)
+spin K1 -20
+wait 100
+expect par16 11
+spin K1 4
+wait 100
+expect par16 12
+spin K1 1
+wait 100
+expect par16 13
+spin K1 2
+wait 100
+expect par16 14
+spin K1 2
+wait 100
+expect par16 15
+# a while at 1/2. (three beats: odd to the bar); then 1 bar: at once on the bar (the free-running LFO kept wherever the 1/2. left it)
+wait 1700
+spin K1 1
+wait 100
+expect par16 2
+wait 37
+expect lfobar 0
+wait 411
+expect lfobar 0
+# the tempo changed: still on the bar
+tap HOME
+spin K1 9
+wait 1300
+expect lfobar 0
+wait 253
+expect lfobar 0
+shot lfo_bar.png

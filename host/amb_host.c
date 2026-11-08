@@ -548,6 +548,14 @@ static int expect(const char *what, const char *val)
         got = (int)clock_out_count;
     else if (!strcmp(what, "sixteenths"))
         got = (int)en_bars;
+    else if (!strcmp(what, "lfo16")) {            /* the pad LFO's place in its cycle, 0 .. 15 (0.17.10) */
+        extern int en_test_lfo16(void);
+        got = en_test_lfo16();
+    } else if (!strcmp(what, "lfobar")) {         /* the pad LFO (at 1 bar) against the bar: its place less the bar's step, 0 when locked, either way of a step */
+        extern int en_test_lfo16(void), en_test_step16(void);
+        const int d = (en_test_lfo16() - en_test_step16() + 16) % 16;
+        got = d == 15 ? 0 : d;
+    }
     else if (!strcmp(what, "ext"))
         got = en_ext;
     else if (!strcmp(what, "midi_out"))
