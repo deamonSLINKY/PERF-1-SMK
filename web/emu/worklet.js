@@ -44,8 +44,9 @@ class Amb extends AudioWorkletProcessor {
       this.sentWrites = this.ex.web_store_writes();
       this.ex.web_master(m.master ?? 2800);
       if (this.ex.web_seed) this.ex.web_seed(m.seed >>> 0);   // a different start each time
-      this.ex.web_boot();
-      this.port.postMessage({ type: "ready" });
+      this.studio = !!m.studio && !!this.ex.web_st_live;      // the studio (web/studio): its live view, a short boot card
+      if (this.studio) this.ex.web_st_boot(); else this.ex.web_boot();
+      this.port.postMessage({ type: "ready", studio: this.studio });
     } else if (!this.ex) {
       return;
     } else if (m.type === "buttons") {
@@ -56,6 +57,14 @@ class Amb extends AudioWorkletProcessor {
       this.ex.web_enc(m.role, m.n | 0);
     } else if (m.type === "master") {
       this.ex.web_master(m.value | 0);
+    } else if (this.studio && (m.type === "st_open" || m.type === "st_put" || m.type === "st_read")) {
+      // the studio: a piece taken up (genre, piece), an edited one put into play (its bytes), or the playing one read out; the answer is its bytes
+      const io = () => new Uint8Array(this.mem.buffer, this.ex.web_st_io(), this.ex.web_st_io_len());
+      let ok;
+      if (m.type === "st_open") ok = this.ex.web_st_open(m.genre | 0, m.piece | 0);
+      else if (m.type === "st_put") { io().set(new Uint8Array(m.io).subarray(0, this.ex.web_st_io_len())); ok = this.ex.web_st_put(); }
+      else ok = this.ex.web_st_read();
+      this.port.postMessage({ type: "st", id: m.id, ok, io: io().slice() });
     }
   }
 
@@ -64,6 +73,7 @@ class Amb extends AudioWorkletProcessor {
     const blits = ex.web_blits();
     const msg = { type: "frame", buttons: ex.web_lit_buttons() >>> 0, keys: ex.web_lit_keys() >>> 0 };
     if (ex.web_bg) msg.bg = Array.from(new Float32Array(this.mem.buffer, ex.web_bg(), 12));   // for the stream view's background
+    if (this.studio) msg.live = new Uint8Array(this.mem.buffer, ex.web_st_live(), 128).slice();   // the studio's: what plays now
     if (this.frames >= 44100) {                       // the share of real time spent running the device
       msg.load = Math.round(100 * this.busy / (this.frames / 44.1));
       this.busy = this.frames = 0;

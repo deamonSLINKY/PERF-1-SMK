@@ -1,0 +1,874 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only
+     PERF-1 studio: a piece over its bars (the Loom), every lane in its colour, played by the emulator (../emu/: the whole firmware in WebAssembly),
+     and edited where the piece can hold it: the six drum patterns and their step tricks, the bass steps, the frozen acid and pluck lines, the
+     progression. A PERF-1 line is one bar written in scale steps above the chord's root, so the Loom draws it folded onto every chord it plays over.
+     The site script (scripts/make_vis_site.py) puts in the firmware's parameter data at /*PARAMS*/, every P_ name at /*PENUM*/ and the shared
+     libraries (fm1piece.js, fm1share.js ...) at /*LIB*/. The emulator's studio exports are web/emu/amb_web.c's web_st_*. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PERF-1 studio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap">
+<style>
+  /* the Console theme's palette (firmware/src/app/ui.c THEMES[0]): a desk's charcoal, amber for now, a colour a part */
+  :root { --bg: #0e0f12; --panel: #181a1f; --panel-2: #22252c; --line: #2e313a; --dim: #8b8e98; --ink: #f2efe6; --acc: #ffb000;
+          --pad: #a58bff; --acid: #b8f53a; --bass: #ff5a5f; --drum: #ff9a3c; --pluck: #3fd8ff; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.45 "Barlow Semi Condensed", "Helvetica Neue", Arial, sans-serif; }
+  main { max-width: 1500px; margin: 0 auto; padding: 14px 16px 48px; }
+  h1, h2, button, select, .tag, .site nav a { font-family: "Chakra Petch", "Helvetica Neue", Arial, sans-serif; }
+  .site { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem 1.2rem; margin: 0 0 .8rem; padding-bottom: .6rem; border-bottom: 1px solid var(--line); }
+  .site .home { font: 700 1.25rem "Chakra Petch", sans-serif; letter-spacing: .08em; color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: .6rem; }
+  .site .home::before { content: ""; width: 30px; height: 5px; background: linear-gradient(90deg, var(--acc) 0 40%, var(--pad) 40%); }
+  .site nav { margin-left: auto; display: flex; flex-wrap: wrap; gap: .2rem 1rem; font-size: .9rem; }
+  .site nav a { color: var(--ink); text-decoration: none; }
+  .site nav a[aria-current] { color: var(--acc); }
+  button, select { font-size: .85rem; font-weight: 600; letter-spacing: .05em; border-radius: 6px; padding: .4em .9em; cursor: pointer;
+                   background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); }
+  button:hover:not(:disabled) { border-color: var(--acc); }
+  button:disabled { opacity: .4; cursor: default; }
+  button.go { background: var(--acc); color: #0e0f12; border-color: var(--acc); font-weight: 700; }
+  button[aria-pressed=true] { background: var(--acc); color: #0e0f12; border-color: var(--acc); }
+  button.small { font-size: .75rem; padding: .25em .6em; }
+  .bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .bar .sp { flex: 1; }
+  #top { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  #pos { font: 600 .95rem "Chakra Petch", sans-serif; color: var(--acc); min-width: 11em; }
+  #msg { min-height: 1.5em; color: var(--dim); margin: 6px 2px; font-size: .95rem; overflow-wrap: anywhere; }
+  #msg.warn { color: var(--acc); }
+  .loomwrap { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+  #loom { width: 100%; display: block; cursor: pointer; }
+  #start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
+           background: rgba(14, 15, 18, .86); border-radius: 8px; text-align: center; padding: 1rem; }
+  #start[hidden] { display: none; }
+  #start p { max-width: 36em; color: var(--dim); margin: 0; }
+  .lower { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 12px; margin-top: 12px; }
+  @media (max-width: 980px) { .lower { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .edhead { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .8rem; margin-bottom: 8px; }
+  .edhead h2 { margin: 0; font-size: 1.15rem; letter-spacing: .08em; }
+  .tag { font-size: .7rem; font-weight: 700; padding: 1px 6px; border-radius: 3px; letter-spacing: .06em; }
+  .tag.yours { background: var(--acc); color: #0e0f12; }
+  .tag.dice { color: var(--dim); border: 1px dashed #555a66; }
+  #edtools { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+  #edtools .grp { display: inline-flex; gap: 2px; align-items: center; margin-right: .5rem; }
+  #edtools .lbl { font: 600 .72rem "Chakra Petch", sans-serif; color: var(--dim); letter-spacing: .08em; margin-right: 4px; }
+  #ed { width: 100%; display: block; background: #121318; border: 1px solid var(--line); border-radius: 6px; cursor: crosshair; touch-action: none; }
+  #edhelp { color: var(--dim); font-size: .92rem; margin: 6px 0 0; }
+  #screen { width: 240px; height: 240px; image-rendering: pixelated; display: block; margin: 0 auto; border: 1px solid var(--line); border-radius: 6px; background: #000; }
+  aside .muted { color: var(--dim); font-size: .85rem; text-align: center; margin: 4px 0 10px; }
+  #facts { font-size: .92rem; }
+  #facts div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid rgba(255,255,255,.05); padding: 2px 0; }
+  #facts b { font: 600 .9rem "Chakra Petch", sans-serif; color: var(--ink); }
+  #facts span { color: var(--dim); }
+  details.card { margin-top: 12px; }
+  details summary { cursor: pointer; font-family: "Chakra Petch", sans-serif; font-weight: 600; letter-spacing: .04em; }
+  details li { margin: 3px 0; }
+  .muted { color: var(--dim); }
+</style>
+</head>
+<body>
+<main>
+  <header class="site"><a class="home" href="../">PERF-1</a><nav><a href="../emu/">Emulator</a><a href="../install/">Install</a><a href="../editor/">Editor</a><a href="./" aria-current="page">Studio</a><a href="../pieces/">Library &amp; pieces</a><a href="../manual/">Manual</a></nav></header>
+  <div class="bar" id="top">
+    <select id="genre" aria-label="Genre"></select>
+    <select id="piece" aria-label="Piece"></select>
+    <button id="open">Open</button>
+    <button id="play" class="go" disabled>▶ Play / stop</button>
+    <span id="pos">off</span>
+    <span class="sp"></span>
+    <button id="load">Open a .piece or code</button>
+    <input type="file" id="file" accept=".piece" hidden>
+    <button id="midi" disabled title="Next: a MIDI file into a piece (drums to the patterns, the bass to its steps, a melody to the acid or the pluck, the chords to the progression)">MIDI file</button>
+    <!-- TRACK CODES: when the firmware's track codes land (ui.c code_start: a short code such as AB3KD-7QX2M packing a generated track's seed,
+         genre, key and settings), this button takes one: decode it as the firmware does, web_st_open its genre and piece (the recipe), then put its
+         key, mode and tempo in with st_put. Until then it waits. -->
+    <button id="tcode" disabled title="Open from a track code: once track codes are in the firmware">Track code</button>
+    <button id="save" disabled>Download .piece</button>
+    <button id="code" disabled>Copy code</button>
+  </div>
+  <div id="msg"></div>
+  <section class="loomwrap">
+    <canvas id="loom" height="560" aria-label="The Loom: every lane of the piece over its bars"></canvas>
+    <div id="start">
+      <button id="power" class="go">Switch on</button>
+      <p>The studio reads and plays pieces through the emulator (the whole PERF-1 firmware, in this browser). It keeps its pieces where the Emulator page does, so a piece saved there is here too. Nothing reaches your FM-1 until you send it from the Library &amp; pieces page.</p>
+    </div>
+  </section>
+  <section class="lower">
+    <div class="card">
+      <div class="edhead"><h2 id="edtitle">—</h2><span id="edtag" class="tag"></span><div id="edtools"></div></div>
+      <canvas id="ed" height="300" aria-label="The lane's shape: one bar"></canvas>
+      <p id="edhelp"></p>
+    </div>
+    <aside class="card">
+      <canvas id="screen" width="240" height="240" aria-label="The FM-1's screen, as the emulator draws it"></canvas>
+      <p class="muted">The unit's own screen, live</p>
+      <div id="facts"></div>
+    </aside>
+  </section>
+  <details class="card" id="gaps">
+    <summary>What a piece holds, and what it cannot hold yet</summary>
+    <p class="muted">The studio edits only what the FM-1 keeps with a piece, so nothing is lost on the way to the unit:</p>
+    <ul>
+      <li><b>Drums</b>: six patterns of six lanes, sixteen steps; each lane's step tricks (ratchet, push, level), one set a lane.</li>
+      <li><b>Bass</b>: sixteen steps (rest, note, accent, glide), each a scale step above the chord's root and an octave; played when the bass line's mode is Steps.</li>
+      <li><b>Acid</b> and <b>pluck</b>: a sixteen-step line each, kept when frozen (acid: scale steps above the chord with octave, accent, slide; pluck: rungs of the chord's ladder and a level).</li>
+      <li><b>Chords</b>: eight progression slots (a degree, 1, 2, 4 or 8 bars, a chord type each), played in turn, or the genre's walk.</li>
+      <li>Every setting of the piece (tempo, key, mode, levels, sounds, the FILTERS and SCREAM pages).</li>
+    </ul>
+    <p class="muted">The firmware would need new stored fields for: lines longer than one bar (bass, acid, pluck are one-bar shapes that follow the chords); step tricks for each pattern (now one set a lane, shared by all six); the pad's own notes or voicings for each chord; automation of a setting over time; an order of patterns of your own (Song walks the piece's patterns by itself). A MIDI file's longer parts will be cut to these shapes until then.</p>
+  </details>
+</main>
+<script type="application/json" id="pdata">/*PARAMS*/</script>
+<script type="application/json" id="edata">/*PENUM*/</script>
+<script type="module">
+/*LIB*/
+"use strict";
+const $ = (id) => document.getElementById(id);
+const D = JSON.parse($("pdata").textContent), PE = JSON.parse($("edata").textContent);
+const S = shareNames(D), P = D.params, N = D.names;
+const NOTE = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+const COL = { bg: "#0e0f12", panel: "#181a1f", panel2: "#22252c", line: "#2e313a", grid: "#1c1e24", dim: "#8b8e98", ink: "#f2efe6", acc: "#ffb000",
+              pad: "#a58bff", padT: "#2a2440", acid: "#b8f53a", bass: "#ff5a5f", drum: "#ff9a3c", pluck: "#3fd8ff" };
+const FONT = (w, px) => w + " " + px + "px 'Chakra Petch', sans-serif";
+const say = (t, warn) => { $("msg").textContent = t || ""; $("msg").className = warn ? "warn" : ""; };
+
+/* ======================================================================== the piece, as the FM-1 stores it
+ * The record (firmware/src/app/project.c): the pool (2), six patterns of six lanes (16-bit step masks), the settings (a byte each: value less its
+ * lowest), the frozen pluck line in two halves around the frozen acid line, the step tricks. web/emu/amb_web.c's st_io adds the progression,
+ * its chord types, the bass steps and the FILTERS and SCREAM after it. */
+const REC = 376, NPAT = 6, NL = 6, REC_PAR = 2 + 2 * NPAT * NL, REC_CML1 = 250, REC_MOD = REC - NL * 16, REC_ACL = REC_MOD - 24, REC_CML2 = REC_ACL + 18;
+const IO_PRG = REC, IO_PRK = IO_PRG + 6, IO_BS = IO_PRK + 3, IO_FXON = IO_BS + 16, IO_FX = IO_FXON + 1, IO_LEN = IO_FX + 7;
+const BL_STEPS = P[PE.P_BL_MODE].max;                       // the bass line's last mode: Steps
+let io = null;                                              // the piece in hand
+let cur = { genre: 2, piece: 0 };
+const par = (k) => { const p = PE[k]; return P[p].min + io[REC_PAR + p]; };
+const setPar = (k, v) => { const p = PE[k]; io[REC_PAR + p] = Math.max(P[p].min, Math.min(P[p].max, v)) - P[p].min; };
+const parText = (k) => { const p = P[PE[k]], v = par(k); return p.t ? p.t[v - p.min] : String(v); };
+const patGet = (p, l) => io[2 + 2 * (p * NL + l)] | (io[3 + 2 * (p * NL + l)] << 8);
+const patSet = (p, l, m) => { io[2 + 2 * (p * NL + l)] = m & 255; io[3 + 2 * (p * NL + l)] = (m >> 8) & 255; };
+const modGet = (l, s) => io[REC_MOD + l * 16 + s];
+const modSet = (l, s, v) => { io[REC_MOD + l * 16 + s] = v & 255; };
+function unpackBits(b, w, n) {
+  const out = [];
+  let acc = 0, bits = 0, i = 0;
+  for (let s = 0; s < n; s++) {
+    while (bits < w) { acc |= b[i++] << bits; bits += 8; }
+    out.push(acc & ((1 << w) - 1)); acc >>>= w; bits -= w;
+  }
+  return out;
+}
+function packBits(vals, w, nbytes) {
+  const out = new Uint8Array(nbytes);
+  let acc = 0, bits = 0, o = 0;
+  for (const v of vals) { acc |= v << bits; bits += w; while (bits >= 8) { out[o++] = acc & 255; acc >>>= 8; bits -= 8; } }
+  if (bits > 0 && o < nbytes) out[o] = acc & 255;
+  return out;
+}
+const acidOf = (x) => ({ off: x & 15, oct: (x >> 4) & 3, gate: (x >> 6) & 1, acc: (x >> 7) & 1, slide: (x >> 8) & 1 });
+const acidGet = () => unpackBits(io.subarray(REC_ACL, REC_ACL + 18), 9, 16).map(acidOf);
+const acidSet = (st) => io.set(packBits(st.map((s) => (s.off & 15) | (s.oct & 3) << 4 | s.gate << 6 | s.acc << 7 | s.slide << 8), 9, 18), REC_ACL);
+function pluckGet() {
+  const b = new Uint8Array(12);
+  b.set(io.subarray(REC_CML1, REC_CML1 + 6)); b.set(io.subarray(REC_CML2, REC_CML2 + 6), 6);
+  return unpackBits(b, 6, 16).map((x) => ({ rung: x & 15, lvl: (x >> 4) & 3 }));
+}
+function pluckSet(st) {
+  const b = packBits(st.map((s) => (s.rung & 15) | (s.lvl & 3) << 4), 6, 12);
+  io.set(b.subarray(0, 6), REC_CML1); io.set(b.subarray(6), REC_CML2);
+}
+const bsOf = (v) => ({ kind: v & 7, note: (v >> 3) & 7, oct: (v >> 6) & 3 });
+const bsMake = (kind, note, oct) => (kind & 7) | (note & 7) << 3 | (oct & 3) << 6;
+// the progression (amb.h EN_PRG_*): slot s's degree at bits 3s (0 empty: the chord before goes on), its bars at 24 + 2s (1, 2, 4, 8), Play at 40
+const bitGet = (b, bit, n) => { let v = 0; for (let k = 0; k < n; k++) v |= ((b[(bit + k) >> 3] >> ((bit + k) & 7)) & 1) << k; return v; };
+const bitPut = (b, bit, n, v) => { for (let k = 0; k < n; k++) { const B = (bit + k) >> 3, m = 1 << ((bit + k) & 7); b[B] = (v >> k) & 1 ? b[B] | m : b[B] & ~m; } };
+const prg = () => io.subarray(IO_PRG, IO_PRG + 6), prk = () => io.subarray(IO_PRK, IO_PRK + 3);
+const BARS = [1, 2, 4, 8];
+const slotGet = (s) => ({ deg: bitGet(prg(), 3 * s, 3), bars: BARS[bitGet(prg(), 24 + 2 * s, 2)], kind: bitGet(prk(), 3 * s, 3) });
+const progPlay = () => bitGet(prg(), 40, 1);
+
+/* ---- the key: the pool (bit i: the root + i semitones) and the root; a scale index's semitones above the root */
+function scale() {
+  const pool = io[0] | (io[1] << 8), st = [];
+  for (let i = 0; i < 12; i++) if ((pool >> i) & 1) st.push(i);
+  return st.length >= 3 ? st : [0, 2, 3, 5, 7, 8, 10];
+}
+const semis = (st, idx) => 12 * Math.floor(idx / st.length) + st[((idx % st.length) + st.length) % st.length];
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
+function chordName(ri) {                                     // the scale's chord on index ri: its name and numeral
+  const st = scale(), root = par("P_ROOT"), r = semis(st, ri), third = semis(st, ri + 2) - r, fifth = semis(st, ri + 4) - r;
+  const minor = third === 3, dim = fifth === 6, rn = ROMAN[ri % 7] || "?";
+  return { name: NOTE[(root + r) % 12] + (minor ? "m" : "") + (dim ? "°" : ""), roman: (minor ? rn.toLowerCase() : rn) + (dim ? "°" : "") };
+}
+// the chord a loom bar plays over: the progression's (slots in turn), or what the genre's walk played there (heard), else the key's own
+function timeline() {
+  if (!progPlay()) return null;
+  let last = -1;
+  for (let s = 0; s < 8; s++) if (slotGet(s).deg) last = s;
+  if (last < 0) return null;
+  const out = [];
+  let at = 0, deg = 1;
+  for (let s = 0; s <= last; s++) {
+    const sl = slotGet(s);
+    if (sl.deg) deg = sl.deg;
+    out.push({ slot: s, deg, held: !sl.deg, bars: sl.bars, kind: sl.kind, start: at });
+    at += sl.bars;
+  }
+  return { slots: out, total: at };
+}
+function riOfPc(pc) {                                        // a heard chord root (pitch class) as a scale index (nearest)
+  const st = scale(), rel = (pc - par("P_ROOT") + 120) % 12;
+  let best = 0;
+  st.forEach((s, i) => { if (Math.abs(s - rel) < Math.abs(st[best] - rel)) best = i; });
+  return best;
+}
+
+/* ======================================================================== the emulator (../emu/: worklet.js runs amb.wasm) */
+const STORE_KEY = "hyp1-emu-store";
+let node = null, ac = null, reqId = 0;
+const pending = new Map();
+let live = null;
+function loadStore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}"), out = {};
+    for (const [o, b64] of Object.entries(raw)) out[o] = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+    return out;
+  } catch { return {}; }
+}
+function saveStore(store) {
+  try {
+    const raw = {};
+    for (const [o, u8] of Object.entries(store)) { let s = ""; for (const c of u8) s += String.fromCharCode(c); raw[o] = btoa(s); }
+    localStorage.setItem(STORE_KEY, JSON.stringify(raw));
+  } catch { /* storage unavailable: this session only */ }
+}
+function ask(m) {
+  return new Promise((res) => { const id = ++reqId; pending.set(id, res); node.port.postMessage({ ...m, id }); });
+}
+async function switchOn() {
+  $("power").disabled = true; $("power").textContent = "Starting...";
+  try {
+    ac = new AudioContext({ sampleRate: 44100, latencyHint: "interactive" });
+    const [wasm] = await Promise.all([fetch("../emu/amb.wasm", { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error("amb.wasm: " + r.status); return r.arrayBuffer(); }),
+                                      ac.audioWorklet.addModule("../emu/worklet.js?v=" + Date.now())]);
+    node = new AudioWorkletNode(ac, "amb", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    node.connect(ac.destination);
+    const ready = new Promise((res, rej) => {
+      node.port.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === "ready") m.studio ? res() : rej(new Error("this emulator build has no studio hooks: rebuild it (web/emu/build_clang.sh)"));
+        else if (m.type === "st") { const f = pending.get(m.id); pending.delete(m.id); if (f) f(m); }
+        else if (m.type === "frame") {
+          if (m.fb) drawScreen(m.fb);
+          if (m.live) onLive(m.live);
+          if (m.store) saveStore(m.store);
+        }
+      };
+    });
+    node.port.postMessage({ type: "load", wasm, store: loadStore(), master: 2800, seed: (Math.random() * 4294967295) >>> 0 || 1, studio: true }, [wasm]);
+    await ready;
+    await ac.resume();
+    $("start").hidden = true;
+    $("play").disabled = false;
+    await new Promise((r) => setTimeout(r, 900));          // (the boot card)
+    await openPiece(cur.genre, cur.piece);
+  } catch (err) {
+    $("power").disabled = false; $("power").textContent = "Switch on";
+    say("Could not start: " + (err && err.message || err), true);
+  }
+}
+function press(bit) {                                        // a panel button, pressed and let go
+  node.port.postMessage({ type: "buttons", mask: 1 << bit });
+  setTimeout(() => node.port.postMessage({ type: "buttons", mask: 0 }), 90);
+}
+const BTN_PLAY = 10;
+async function openPiece(g, i) {
+  const r = await ask({ type: "st_open", genre: g, piece: i });
+  if (!r.ok) { say("The emulator is busy writing; try again.", true); return; }
+  cur = { genre: g, piece: i };
+  io = new Uint8Array(r.io);
+  resetHistory();
+  $("genre").value = g; fillPieces(); $("piece").value = i;
+  ["save", "code"].forEach((id) => { $(id).disabled = false; });
+  say("Opened " + S.genreName(g) + " " + S.pieceName(g, i) + ". Click a lane to edit it; it plays as you change it.");
+  refresh();
+}
+let putTimer = 0;
+function changed() {                                         // the piece in hand edited: draw it, and into the emulator a moment later
+  refresh();
+  clearTimeout(putTimer);
+  putTimer = setTimeout(() => { if (node && io) node.port.postMessage({ type: "st_put", io: io.slice(), id: ++reqId }); }, 60);
+}
+
+/* ---- what plays: the bar, the chord, the lines the engine makes up (amb_web.c web_st_live) */
+function parseLive(b) {
+  const u16 = (o) => b[o] | (b[o + 1] << 8), s8 = (v) => (v > 127 ? v - 256 : v), sl = (o, n) => Array.from(b.slice(o, o + n));
+  return { t: (b[0] | b[1] << 8 | b[2] << 16 | b[3] << 24) >>> 0, step: b[4], pat: b[5], prog: s8(b[6]), croot: b[7], chord: sl(8, 4), pad: sl(12, 4),
+           bsHist: sl(16, 16), bsPos: s8(b[32]), acLen: b[33] || 16, acPos: b[34], acGate: u16(35), acAcc: u16(37), acSlide: u16(39),
+           acOff: sl(41, 16), acOct: sl(57, 16), cmRung: sl(73, 16), cmLvl: sl(89, 16), cmPos: b[105], laneSrc: sl(106, 6), playing: b[112],
+           genre: b[113], piece: b[114], chordN: b[115], lanePos: sl(116, 6), pool: u16(122), root: b[124], blMode: b[125] };
+}
+let hist = {}, slotT = 0, slotNow = -2, lastBar = -1;
+function resetHistory() { hist = {}; slotT = 0; slotNow = -2; lastBar = -1; }
+let loomPos = -1;                                            // the playhead: a loom bar and its fraction
+function onLive(b) {
+  live = parseLive(b);
+  if (!io) return;
+  const tl = timeline(), nb = loomBars(tl), bar = Math.floor(live.t / 16), frac = (live.t % 16) / 16;
+  let lb;
+  if (tl && live.prog >= 0) {
+    if (live.prog !== slotNow) { slotNow = live.prog; slotT = live.t - (live.t % 16); }
+    const sl = tl.slots[Math.min(live.prog, tl.slots.length - 1)];
+    lb = sl.start + Math.min(sl.bars - 1, Math.floor((live.t - slotT) / 16));
+  } else lb = bar % nb;
+  loomPos = live.playing ? lb + frac : -1;
+  if (live.playing && bar !== lastBar) { lastBar = bar; }
+  if (live.playing) hist[lb] = { croot: live.croot, chordN: live.chordN, pat: live.pat };
+  const ch = live.playing ? NOTE[live.croot % 12] : "";
+  $("pos").textContent = live.playing ? "bar " + (lb + 1) + "." + (Math.floor(live.step / 4) + 1) + "  ·  " + ch + "  ·  P" + (live.pat + 1) : "stopped";
+}
+
+/* ======================================================================== the Loom: every lane over the bars */
+const LANES = [
+  { id: "chords", name: "CHORDS", col: COL.pad, h: 38 },
+  { id: "drums", name: "DRUMS", col: COL.drum, h: 80 },
+  { id: "bass", name: "BASS", col: COL.bass, h: 96 },
+  { id: "acid", name: "ACID", col: COL.acid, h: 96 },
+  { id: "pluck", name: "PLUCK", col: COL.pluck, h: 70 },
+  { id: "pad", name: "PAD", col: COL.pad, h: 62 },
+];
+const LX = 168, HEAD = 30, GAP = 8;
+let sel = "bass", layout = [];
+function loomBars(tl) { return tl ? Math.max(4, Math.min(32, tl.total)) : 16; }
+function laneState(id) {
+  if (!io) return { tag: "", sub: "" };
+  const off = (k) => par(k) === 0;
+  switch (id) {
+    case "chords": return progPlay() && timeline() ? { tag: "YOURS", sub: "progression: " + timeline().slots.length + " slots" } : { tag: "DICE", sub: "the genre's walk" };
+    case "drums": return { tag: "YOURS", sub: "plays P" + (par("P_PATTERN") + 1) + (off("P_PULSE") ? " · level 0" : "") };
+    case "bass": return par("P_BL_MODE") === BL_STEPS ? { tag: "YOURS", sub: "steps" + (off("P_BASS") ? " · level 0" : "") } : { tag: "DICE", sub: "mode: " + parText("P_BL_MODE") + (off("P_BASS") ? " · level 0" : "") };
+    case "acid": return par("P_AC_LOCK") && io.subarray(REC_ACL, REC_ACL + 18).some((v) => v) ? { tag: "YOURS", sub: "frozen line" + (off("P_ACID") ? " · level 0" : "") } : { tag: "DICE", sub: "free: it grows" + (off("P_ACID") ? " · level 0" : "") };
+    case "pluck": return par("P_CM_LOCK") && pluckGet().some((s) => s.lvl) ? { tag: "YOURS", sub: "frozen line" + (off("P_CM_LVL") ? " · level 0" : "") } : { tag: "DICE", sub: "deja vu's loop" + (off("P_CM_LVL") ? " · level 0" : "") };
+    default: return { tag: "DICE", sub: "voices the chords" + (off("P_PAD") ? " · level 0" : "") };
+  }
+}
+// the chord context of loom bar b: scale index of its root, its tones' count, whether it is known
+function ctxAt(b, tl) {
+  if (tl) {
+    const s = tl.slots.find((x) => b >= x.start && b < x.start + x.bars) || tl.slots[tl.slots.length - 1];
+    const k = s.kind || par("P_CHORD");
+    return { ri: s.deg - 1, nt: k >= 2 && k !== 4 && k !== 5 && k !== 6 ? 4 : 3, known: true };
+  }
+  const h = hist[b];
+  return h ? { ri: riOfPc(h.croot), nt: h.chordN === 4 ? 4 : 3, known: true } : { ri: 0, nt: 3, known: false };
+}
+// a lane's notes over nb bars: {b, s, len, m, acc, link (slide or glide into it), ghost}
+function laneNotes(id, nb, tl) {
+  const st = scale(), root = par("P_ROOT"), out = [];
+  const base = (c, lo) => lo + ((root + semis(st, c.ri)) % 12);
+  const rel = (c, n) => semis(st, c.ri + n) - semis(st, c.ri);
+  const state = laneState(id), dice = state.tag === "DICE";
+  if (id === "bass") {
+    const bs = dice ? (live ? live.bsHist : []) : Array.from(io.subarray(IO_BS, IO_BS + 16));
+    const on = bs.map((v, s) => ({ s, ...bsOf(v) })).filter((x) => x.kind >= 1 && x.kind <= 4);
+    for (let b = 0; b < nb; b++) {
+      const c = ctxAt(b, tl);
+      on.forEach((x, i) => {
+        const nx = on[i + 1] ? on[i + 1].s : 16;
+        out.push({ b, s: x.s, len: Math.max(1, Math.min(4, nx - x.s)), m: base(c, 36) + rel(c, x.note) + 12 * (x.oct - 1), acc: x.kind === 2 || x.kind === 4, link: x.kind >= 3, ghost: dice || !c.known });
+      });
+    }
+  } else if (id === "acid") {
+    const line = dice ? (live ? live.acOff.map((o, s) => ({ off: o, oct: live.acOct[s], gate: (live.acGate >> s) & 1, acc: (live.acAcc >> s) & 1, slide: (live.acSlide >> s) & 1 })) : []) : acidGet();
+    const len = live ? live.acLen : 16;
+    for (let b = 0; b < nb && line.length; b++) {
+      const c = ctxAt(b, tl);
+      for (let s = 0; s < 16; s++) {
+        const x = line[(b * 16 + s) % len];
+        if (!x.gate) continue;
+        const prev = line[(b * 16 + s - 1 + len) % len];
+        out.push({ b, s, len: x.slide ? 1.6 : 0.9, m: base(c, 48) + rel(c, x.off) + 12 * (x.oct - 1), acc: !!x.acc, link: !!(prev && prev.gate && prev.slide), ghost: dice || !c.known });
+      }
+    }
+  } else if (id === "pluck") {
+    const line = dice ? (live ? live.cmRung.map((r, s) => ({ rung: r, lvl: live.cmLvl[s] })) : []) : pluckGet();
+    for (let b = 0; b < nb && line.length; b++) {
+      const c = ctxAt(b, tl);
+      line.forEach((x, s) => {
+        if (!x.lvl) return;
+        const t = x.rung % c.nt;
+        out.push({ b, s, len: 0.8, m: base(c, 60) + rel(c, 2 * t) + 12 * Math.floor(x.rung / c.nt) - 12, acc: x.lvl === 3, lvl: x.lvl, ghost: dice || !c.known });
+      });
+    }
+  } else if (id === "pad") {
+    for (let b = 0; b < nb; b++) {
+      const c = ctxAt(b, tl);
+      if (!c.known) continue;                                // (the walk's chords: only as heard)
+      for (let t = 0; t < c.nt; t++) {
+        let m = base(c, 55) + rel(c, 2 * t);
+        while (m > 76) m -= 12;
+        out.push({ b, s: 0, len: 16, m, ghost: true, dim: !c.known });
+      }
+    }
+  }
+  return out;
+}
+function drawLoom() {
+  const cv = $("loom"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth;
+  let H = HEAD;
+  layout = LANES.map((l) => { const r = { ...l, top: H }; H += l.h + GAP; return r; });
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = COL.panel; g.fillRect(0, 0, W, H);
+  if (!io) { g.fillStyle = COL.dim; g.font = FONT(600, 14); g.fillText("No piece open.", LX, 60); return; }
+  const tl = timeline(), nb = loomBars(tl), RX = W - 6, BW = (RX - LX) / nb, SW = BW / 16, X = (b, s) => LX + b * BW + s * SW;
+  // the bar numbers; the drum pattern each bar played (heard), else the one the piece plays
+  g.font = FONT(600, 11);
+  for (let b = 0; b < nb; b++) {
+    g.fillStyle = COL.dim; g.fillText(String(b + 1), X(b, 0) + 3, 12);
+    const h = hist[b], p = h ? h.pat : par("P_PATTERN");
+    g.fillStyle = h ? "#3a2614" : "#22190f"; g.fillRect(X(b, 0) + 1, 16, BW - 2, 11);
+    if (BW > 22) { g.fillStyle = h ? COL.drum : "#7a5530"; g.font = FONT(600, 9); g.fillText("P" + (p + 1), X(b, 0) + 4, 25); g.font = FONT(600, 11); }
+  }
+  for (const L of layout) {
+    const st = laneState(L.id), y0 = L.top, h = L.h;
+    g.fillStyle = "#121318"; g.fillRect(LX, y0, RX - LX, h);
+    if (sel === L.id) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.strokeRect(LX - 1, y0 - 1, RX - LX + 2, h + 2); }
+    for (let b = 0; b <= nb; b++) {                         // bars, beats
+      g.fillStyle = b % 4 === 0 ? "#3a3e4a" : "#262932"; g.fillRect(Math.round(X(b, 0)), y0, 1, h);
+      if (b < nb && BW > 40) { g.fillStyle = COL.grid; for (let q = 1; q < 4; q++) g.fillRect(Math.round(X(b, 4 * q)), y0, 1, h); }
+    }
+    g.fillStyle = L.col; g.fillRect(8, y0 + 4, 4, 16);      // the label: a colour tab, the name, yours or dice
+    g.fillStyle = COL.ink; g.font = FONT(700, 14); g.fillText(L.name, 18, y0 + 17);
+    const tw = g.measureText(L.name).width;
+    if (st.tag) {
+      g.font = FONT(700, 10);
+      const bw = g.measureText(st.tag).width + 10;
+      if (st.tag === "YOURS") { g.fillStyle = COL.acc; g.fillRect(24 + tw, y0 + 6, bw, 14); g.fillStyle = COL.bg; }
+      else { g.strokeStyle = "#555a66"; g.setLineDash([3, 2]); g.strokeRect(24.5 + tw, y0 + 6.5, bw, 13); g.setLineDash([]); g.fillStyle = COL.dim; }
+      g.fillText(st.tag, 29 + tw, y0 + 17);
+    }
+    g.fillStyle = COL.dim; g.font = "500 12px 'Barlow Semi Condensed', sans-serif"; g.fillText(st.sub, 18, y0 + 34);
+    if (L.id === "chords") drawChordLane(g, L, tl, nb, X, BW);
+    else if (L.id === "drums") drawDrumLane(g, L, nb, X, SW);
+    else drawLineLane(g, L, laneNotes(L.id, nb, tl), X, SW);
+  }
+  if (loomPos >= 0) {                                       // the playhead
+    const x = LX + loomPos * BW;
+    g.fillStyle = "rgba(255,176,0,.10)"; g.fillRect(LX + Math.floor(loomPos) * BW, HEAD, BW, H - HEAD - GAP);
+    g.fillStyle = COL.acc; g.fillRect(Math.round(x) - 1, HEAD - 4, 2, H - HEAD - GAP + 4);
+  }
+}
+function drawChordLane(g, L, tl, nb, X, BW) {
+  const y = L.top + 3, h = L.h - 6;
+  const block = (b0, bars, ri, label2, ghost, held) => {
+    const x0 = X(b0, 0) + 2, w = bars * BW - 4, c = chordName(ri);
+    g.fillStyle = ghost ? "#1d1a2b" : COL.padT; g.fillRect(x0, y, w, h);
+    g.fillStyle = COL.pad; g.fillRect(x0, y, 3, h);
+    if (ghost) { g.strokeStyle = "#4b4270"; g.setLineDash([4, 3]); g.strokeRect(x0 + 0.5, y + 0.5, w - 1, h - 1); g.setLineDash([]); }
+    if (w > 26) {
+      g.fillStyle = COL.ink; g.font = FONT(700, 14); g.fillText(c.roman + (held ? "…" : ""), x0 + 8, y + 15);
+      if (w > 60) { g.fillStyle = "#c9beff"; g.font = "500 13px 'Barlow Semi Condensed', sans-serif"; g.fillText(c.name + (label2 ? "  " + label2 : ""), x0 + 8, y + 29); }
+    }
+  };
+  if (tl) for (const s of tl.slots) { if (s.start < nb) block(s.start, Math.min(s.bars, nb - s.start), s.deg - 1, s.kind ? P[PE.P_CHORD].t[s.kind] : "", false, s.held); }
+  else for (let b = 0; b < nb; b++) { const h = hist[b]; if (h) block(b, 1, riOfPc(h.croot), "", true, false); }
+  if (!tl && !Object.keys(hist).length) { g.fillStyle = COL.dim; g.font = "500 13px 'Barlow Semi Condensed', sans-serif"; g.fillText("the genre walks its own chords: they appear as it plays (or set a progression: click here)", X(0, 0) + 8, y + 20); }
+}
+function drawDrumLane(g, L, nb, X, SW) {
+  const rh = (L.h - 8) / NL, LV = [0.85, 0.35, 0.6, 1];
+  for (let b = 0; b < nb; b++) {
+    const h = hist[b], p = h ? h.pat : par("P_PATTERN");
+    for (let l = 0; l < NL; l++) {
+      const m = patGet(p, l), y = L.top + 4 + l * rh;
+      for (let s = 0; s < 16; s++) {
+        if (!((m >> s) & 1)) continue;
+        const md = modGet(l, s), lvl = (md >> 6) & 3, push = ((md >> 3) & 7) / 12, rat = md & 7;
+        g.globalAlpha = LV[lvl]; g.fillStyle = COL.drum;
+        g.fillRect(X(b, s + push) + 0.5, y + (lvl === 1 ? rh * 0.4 : 0), Math.max(1.5, SW * 0.55), (lvl === 1 ? rh * 0.6 : rh) - 1.5);
+        if (rat && SW > 5) { g.globalAlpha = 0.9; g.fillStyle = COL.ink; g.fillRect(X(b, s + push) + SW * 0.6, y + 1, 1, rh - 3); }
+      }
+    }
+  }
+  g.globalAlpha = 1;
+}
+function drawLineLane(g, L, notes, X, SW) {
+  if (!notes.length) {
+    g.fillStyle = COL.dim; g.font = "500 13px 'Barlow Semi Condensed', sans-serif";
+    g.fillText(laneState(L.id).tag === "DICE" ? (live ? "nothing played yet" : "switch on to hear what it plays") : "empty: click to write it", X(0, 0) + 8, L.top + L.h / 2 + 4);
+    return;
+  }
+  let lo = Math.min(...notes.map((n) => n.m)), hi = Math.max(...notes.map((n) => n.m));
+  if (hi - lo < 12) { const c = (hi + lo) / 2; lo = c - 6; hi = c + 6; }
+  const pad = 6, Y = (m) => L.top + L.h - pad - (m - lo) / (hi - lo) * (L.h - 2 * pad);
+  let prev = null;
+  for (const n of notes) {
+    const x = X(n.b, n.s), y = Y(n.m), w = Math.max(2, n.len * SW - 1), th = n.acc ? 5 : 4;
+    if (n.link && prev && prev.b === n.b) {               // a glide or a slide: a ramp from the note before
+      g.strokeStyle = L.col; g.lineWidth = 1.6; g.globalAlpha = n.ghost ? 0.5 : 0.9;
+      g.beginPath(); g.moveTo(prev.x + prev.w, prev.y); g.bezierCurveTo(prev.x + prev.w + 4, prev.y, x - 4, y, x, y); g.stroke();
+    }
+    if (n.ghost) {                                          // the engine's (dice): the same shape, hollow and fainter
+      g.globalAlpha = n.dim ? 0.18 : 0.42; g.fillStyle = L.col; g.fillRect(x, y - th / 2, w, th);
+      g.globalAlpha = n.dim ? 0.3 : 0.75; g.fillRect(x, y - th / 2, w, 1);
+    } else {
+      g.globalAlpha = n.acc ? 1 : 0.8; g.fillStyle = L.col; g.fillRect(x, y - th / 2, w, th);
+      if (n.acc) { g.fillStyle = COL.ink; g.fillRect(x, y - th / 2 - 2, Math.min(w, 4), 1.5); }
+    }
+    g.globalAlpha = 1;
+    prev = { b: n.b, x, y, w };
+  }
+}
+$("loom").addEventListener("click", (e) => {
+  const r = $("loom").getBoundingClientRect(), y = e.clientY - r.top;
+  const L = layout.find((l) => y >= l.top - GAP / 2 && y < l.top + l.h + GAP / 2);
+  if (L) { sel = L.id; refresh(); }
+});
+
+/* ======================================================================== the shape editor: one bar of the lane in hand */
+const ED = { pat: 0, brush: "hit", slot: 0 };
+const RAT = ["off", "x2", "x3", "x4", "x6", "flam", "swell x3", "swell x4"], LVN = ["normal", "ghost", "soft", "accent"];
+let edGrid = null;                                           // what a click lands on: {x0, y0, cw, rh, rows, kind}
+function tools(html) { $("edtools").innerHTML = html; }
+function drawEditor() {
+  const cv = $("ed"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth;
+  const L = LANES.find((l) => l.id === sel), st = laneState(sel);
+  $("edtitle").textContent = L.name; $("edtitle").style.color = L.col;
+  $("edtag").textContent = st.tag; $("edtag").className = "tag " + (st.tag === "YOURS" ? "yours" : "dice");
+  const rows = { drums: NL, bass: 24, acid: 16, pluck: 12, chords: 1, pad: 1 }[sel];
+  const RH = sel === "drums" ? 34 : sel === "chords" ? 90 : sel === "pad" ? 60 : sel === "bass" ? 13 : 15;
+  const H = rows * RH + (sel === "acid" ? 30 : 0) + 22;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
+  if (!io) return;
+  ({ drums: edDrums, bass: edBass, acid: edAcid, pluck: edPluck, chords: edChords, pad: edPad })[sel](g, W, RH, rows);
+}
+function gridBase(g, W, RH, rows, labels, bright) {          // rows of a bar, the beats, the step playing
+  const x0 = 56, cw = (W - x0 - 8) / 16, y0 = 4;
+  for (let r = 0; r < rows; r++) {
+    if (bright && bright(r)) { g.fillStyle = "#1b1d24"; g.fillRect(x0, y0 + r * RH, 16 * cw, RH); }
+    g.fillStyle = "#1a1c22"; g.fillRect(x0, y0 + r * RH, 16 * cw, 1);
+    g.fillStyle = bright && bright(r) ? COL.ink : "#6b6e78"; g.font = FONT(600, 11);
+    g.fillText(labels(r), 6, y0 + r * RH + RH / 2 + 4);
+  }
+  for (let c = 0; c <= 16; c++) { g.fillStyle = c % 4 === 0 ? "#3a3e4a" : "#22252c"; g.fillRect(Math.round(x0 + c * cw), y0, 1, rows * RH); }
+  g.font = FONT(600, 10); g.fillStyle = COL.dim;
+  for (let c = 0; c < 16; c++) g.fillText(String(c + 1), x0 + c * cw + 3, y0 + rows * RH + 14);
+  edGrid = { x0, y0, cw, RH, rows };
+  return edGrid;
+}
+function playStep(g, G, s) {
+  if (s < 0 || !live || !live.playing) return;
+  g.fillStyle = "rgba(255,176,0,.13)"; g.fillRect(G.x0 + s * G.cw, G.y0, G.cw, G.rows * G.RH);
+}
+// ---- drums
+function edDrums(g, W, RH, rows) {
+  const plays = par("P_PATTERN");
+  tools('<span class="grp"><span class="lbl">PATTERN</span>' + [0, 1, 2, 3, 4, 5].map((p) => '<button class="small" data-pat="' + p + '" aria-pressed="' + (p === ED.pat) + '">P' + (p + 1) + (p === plays ? " ▶" : "") + "</button>").join("") + "</span>" +
+        '<button class="small" data-act="playpat"' + (ED.pat === plays ? " disabled" : "") + '>Play P' + (ED.pat + 1) + "</button>" +
+        '<span class="grp"><span class="lbl">BRUSH</span>' + ["hit", "level", "ratchet", "push"].map((b) => '<button class="small" data-brush="' + b + '" aria-pressed="' + (ED.brush === b) + '">' + b.toUpperCase() + "</button>").join("") + "</span>");
+  const G = gridBase(g, W, RH, rows, (r) => D.lanes[r].toUpperCase().slice(0, 6), () => false);
+  playStep(g, G, live && live.playing ? live.lanePos[0] : -1);
+  for (let l = 0; l < NL; l++) {
+    const m = patGet(ED.pat, l);
+    for (let s = 0; s < 16; s++) {
+      const md = modGet(l, s), lvl = (md >> 6) & 3, push = (md >> 3) & 7, rat = md & 7;
+      const x = G.x0 + s * G.cw, y = G.y0 + l * RH;
+      if (!((m >> s) & 1)) {
+        if (md) { g.fillStyle = "#3a3e4a"; g.fillRect(x + G.cw / 2 - 1, y + RH / 2 - 1, 3, 3); }
+        continue;
+      }
+      const hh = [0.62, 0.3, 0.45, 0.8][lvl] * RH, px = push / 12 * G.cw;
+      g.globalAlpha = [0.85, 0.45, 0.65, 1][lvl]; g.fillStyle = COL.drum;
+      g.fillRect(x + 3 + px, y + RH - 3 - hh, G.cw - 6, hh);
+      g.globalAlpha = 1;
+      if (lvl === 3) { g.fillStyle = COL.ink; g.fillRect(x + 3 + px, y + RH - 5 - hh, G.cw - 6, 2); }
+      if (rat) {
+        const n = [1, 2, 3, 4, 6, 2, 3, 4][rat];
+        g.fillStyle = COL.bg;
+        for (let k = 1; k < n; k++) g.fillRect(x + 3 + px + k * (G.cw - 6) / n, y + RH - 3 - hh, 1.5, hh);
+        g.fillStyle = COL.ink; g.font = FONT(600, 9); g.fillText(RAT[rat], x + 4 + px, y + 10);
+      }
+      if (push) { g.fillStyle = COL.acc; g.fillRect(x + 3, y + RH - 2, px, 2); }
+    }
+  }
+  $("edhelp").textContent = "Click a step with the brush: HIT puts a hit in or takes it out; LEVEL goes normal, ghost, soft, accent; RATCHET off, x2, x3, x4, x6, flam, swells; PUSH moves it later in twelfths of a step. " +
+    "Six patterns, one set of tricks a lane (shared by all six: the firmware keeps one set). ▶ marks the pattern the piece plays.";
+}
+function clickDrums(s, r, right) {
+  const m = patGet(ED.pat, r), md = modGet(r, s);
+  if (right || ED.brush === "hit") patSet(ED.pat, r, m ^ (1 << s));
+  else {
+    if (!((m >> s) & 1)) patSet(ED.pat, r, m | (1 << s));
+    if (ED.brush === "level") modSet(r, s, (md & 0x3F) | ((((md >> 6) & 3) + 1) % 4) << 6);
+    else if (ED.brush === "ratchet") modSet(r, s, (md & 0xF8) | (((md & 7) + 1) % 8));
+    else modSet(r, s, (md & 0xC7) | ((((md >> 3) & 7) + 1) % 8) << 3);
+  }
+  changed();
+}
+// ---- bass: eight scale steps above the chord's root, three octaves
+const DEG8 = ["R", "2", "3", "4", "5", "6", "7", "8"];
+function edBass(g, W, RH, rows) {
+  const steps = par("P_BL_MODE") === BL_STEPS;
+  tools('<button class="small" data-act="bcap">Capture the bar it played</button><button class="small" data-act="bclear">Clear</button>' +
+        (steps ? "" : '<button class="small" data-act="bsteps">Play the steps</button><span class="muted">&nbsp;mode now: ' + parText("P_BL_MODE") + "</span>"));
+  const rowOf = (n, o) => rows - 1 - (o * 8 + n);
+  const G = gridBase(g, W, RH, rows, (r) => { const v = rows - 1 - r, o = Math.floor(v / 8), n = v % 8; return DEG8[n] + (n === 0 ? ["  ↓", "", "  ↑"][o] : ""); },
+                     (r) => { const n = (rows - 1 - r) % 8; return n === 0 || n === 2 || n === 4 || n === 7; });
+  playStep(g, G, live ? live.bsPos : -1);
+  const bs = Array.from(io.subarray(IO_BS, IO_BS + 16)).map(bsOf);
+  let prev = null;
+  bs.forEach((x, s) => {
+    if (x.kind < 1 || x.kind > 4) return;
+    const y = G.y0 + rowOf(x.note, Math.min(2, x.oct)) * RH, xx = G.x0 + s * G.cw, acc = x.kind === 2 || x.kind === 4;
+    if (x.kind >= 3 && prev) { g.strokeStyle = "#ffc2c3"; g.lineWidth = 2; g.beginPath(); g.moveTo(prev.x, prev.y); g.bezierCurveTo(prev.x + 10, prev.y, xx - 10, y + RH / 2, xx + 2, y + RH / 2); g.stroke(); }
+    g.fillStyle = acc ? COL.bass : "#c9454a"; g.fillRect(xx + 2, y + 1, G.cw - 4, RH - 2);
+    if (acc) { g.strokeStyle = "#ffc2c3"; g.lineWidth = 1.5; g.strokeRect(xx + 2, y + 1, G.cw - 4, RH - 2); }
+    g.fillStyle = COL.bg; g.font = FONT(700, 9); g.fillText(["", "", "ACC", "GLD", "A+G"][x.kind], xx + 4, y + RH - 3);
+    prev = { x: xx + G.cw - 2, y: y + RH / 2 };
+  });
+  $("edhelp").textContent = "Click a cell: a note on that step, that many scale steps above the chord's root (R, 2, 3 ...; the bright rows are the chord's tones). Click it again: accent, glide, accent + glide, then a rest. Right-click: a rest. " +
+    "The FM-1 plays these sixteen on every chord when the bass line's mode is Steps (an edit switches it to Steps).";
+}
+function clickBass(s, r, right) {
+  const v = 23 - r, o = Math.floor(v / 8), n = v % 8, x = bsOf(io[IO_BS + s]);
+  if (right) io[IO_BS + s] = 0;
+  else if (x.kind >= 1 && x.kind <= 4 && x.note === n && Math.min(2, x.oct) === o) io[IO_BS + s] = x.kind === 4 ? 0 : bsMake(x.kind + 1, n, o);
+  else io[IO_BS + s] = bsMake(1, n, o);
+  if (par("P_BL_MODE") !== BL_STEPS) { setPar("P_BL_MODE", BL_STEPS); say("The bass line now plays its steps (mode: Steps)."); }
+  changed();
+}
+// ---- acid: sixteen scale steps above the chord, an octave a step, accent and slide
+function edAcid(g, W, RH, rows) {
+  const frozen = par("P_AC_LOCK");
+  tools('<button class="small" data-act="acap">Capture the line it plays</button><button class="small" data-act="aclear">Clear</button>' +
+        '<button class="small" data-act="alock" aria-pressed="' + !!frozen + '">' + (frozen ? "Frozen" : "Free: freeze it") + "</button>");
+  const G = gridBase(g, W, RH, rows, (r) => { const n = rows - 1 - r; return n === 0 ? "R" : "+" + n; }, (r) => { const n = (rows - 1 - r) % 7; return n === 0 || n === 2 || n === 4; });
+  playStep(g, G, live && frozen ? live.acPos % 16 : -1);
+  const line = acidGet();
+  let prev = null;
+  line.forEach((x, s) => {
+    const xx = G.x0 + s * G.cw;
+    if (!x.gate) { prev = null; return; }
+    g.fillStyle = x.oct === 1 ? "#555a66" : COL.acid; g.font = FONT(600, 10); g.fillText(["oct −", "oct", "oct +", "oct ++"][x.oct], xx + 3, G.y0 + rows * RH + 26);
+    const y = G.y0 + (rows - 1 - x.off) * RH;
+    if (prev && prev.slide) { g.strokeStyle = "#e4ffb0"; g.lineWidth = 2; g.beginPath(); g.moveTo(prev.x, prev.y); g.lineTo(xx + 2, y + RH / 2); g.stroke(); }
+    g.fillStyle = x.acc ? COL.acid : "#86b52a"; g.fillRect(xx + 2, y + 1, G.cw - 4, RH - 2);
+    g.fillStyle = COL.bg; g.font = FONT(700, 9); g.fillText((x.acc ? "ACC " : "") + (x.slide ? "SL" : ""), xx + 4, y + RH - 3);
+    prev = { x: xx + G.cw - 2, y: y + RH / 2, slide: x.slide };
+  });
+  $("edhelp").textContent = "Click a cell: a note, that many scale steps above the chord. Again: accent, slide (into the next note), accent + slide, then a rest. Right-click: a rest. Click under a step for its octave. " +
+    "An edit freezes the line (it is kept with the piece and Mutate leaves it); free, the acid grows a new line of its own.";
+}
+function clickAcid(s, r, right, below) {
+  const line = acidGet(), x = line[s];
+  if (below) x.oct = (x.oct + 1) % 4;
+  else {
+    const off = 15 - r;
+    if (right) x.gate = 0;
+    else if (x.gate && x.off === off) { const k = x.acc + 2 * x.slide + 1; if (k > 3) x.gate = x.acc = x.slide = 0; else { x.acc = k & 1; x.slide = k >> 1; } }
+    else { x.gate = 1; x.off = off; x.acc = 0; x.slide = 0; if (!x.oct) x.oct = 1; }
+  }
+  acidSet(line);
+  if (!par("P_AC_LOCK")) setPar("P_AC_LOCK", 1);
+  changed();
+}
+// ---- pluck: rungs of the chord's ladder (the chord's tones, up), a level
+function edPluck(g, W, RH, rows) {
+  const frozen = par("P_CM_LOCK");
+  tools('<button class="small" data-act="pcap">Capture the loop it plays</button><button class="small" data-act="pclear">Clear</button>' +
+        '<button class="small" data-act="plock" aria-pressed="' + !!frozen + '">' + (frozen ? "Frozen" : "Free: freeze it") + "</button>");
+  const G = gridBase(g, W, RH, rows, (r) => "rung " + (rows - 1 - r), (r) => (rows - 1 - r) % 3 === 0);
+  playStep(g, G, live && frozen ? live.cmPos % 16 : -1);
+  pluckGet().forEach((x, s) => {
+    if (!x.lvl) return;
+    const y = G.y0 + (rows - 1 - x.rung) * RH, xx = G.x0 + s * G.cw;
+    g.globalAlpha = [0, 0.45, 0.75, 1][x.lvl]; g.fillStyle = COL.pluck; g.fillRect(xx + 2, y + 1, G.cw - 4, RH - 2); g.globalAlpha = 1;
+    g.fillStyle = COL.bg; g.font = FONT(700, 9); g.fillText(["", "SOFT", "", "ACC"][x.lvl], xx + 4, y + RH - 3);
+  });
+  $("edhelp").textContent = "Click a cell: a note on that rung of the chord's ladder (rung 0 the root, then the chord's tones upwards; bright rows: the root's octaves). Again: accent, soft, then a rest. Right-click: a rest. " +
+    "An edit freezes the line as the FM-1's Pluck steps page does (deja vu's loop at sixteen sixteenths).";
+}
+function freezePluck() {                                     // as ui.c ps_freeze: the loop at sixteen sixteenths, every note the same next time
+  setPar("P_CM_RATE", 3); setPar("P_CM_LOOP", 2); setPar("P_CM_VU", 100); setPar("P_CM_LOCK", 1);
+}
+function clickPluck(s, r, right) {
+  const line = pluckGet(), x = line[s], rung = 11 - r;
+  if (right) x.lvl = 0;
+  else if (x.lvl && x.rung === rung) x.lvl = [0, 0, 3, 1][x.lvl];
+  else { x.rung = rung; x.lvl = 2; }
+  pluckSet(line);
+  if (!par("P_CM_LOCK")) freezePluck();
+  changed();
+}
+// ---- chords: the eight slots
+function edChords(g, W, RH) {
+  const play = progPlay(), sl = slotGet(ED.slot), st = scale();
+  const degBtn = (d) => { const c = d ? chordName(d - 1) : null; return '<button class="small" data-deg="' + d + '" aria-pressed="' + (sl.deg === d) + '">' + (d ? c.roman + " " + c.name : "hold") + "</button>"; };
+  tools('<span class="grp"><span class="lbl">PLAY</span><button class="small" data-act="pplay" aria-pressed="' + !!play + '">' + (play ? "the slots" : "the genre's walk") + "</button></span>" +
+        '<span class="grp"><span class="lbl">SLOT ' + (ED.slot + 1) + "</span>" + [0, 1, 2, 3, 4, 5, 6].slice(0, Math.min(7, st.length) + 1).map(degBtn).join("") + "</span>" +
+        '<span class="grp"><span class="lbl">BARS</span>' + BARS.map((b, i) => '<button class="small" data-bars="' + i + '" aria-pressed="' + (sl.bars === b) + '">' + b + "</button>").join("") + "</span>" +
+        '<span class="grp"><span class="lbl">TYPE</span><select data-kind>' + P[PE.P_CHORD].t.map((t, k) => '<option value="' + k + '"' + (sl.kind === k ? " selected" : "") + ">" + (k ? t : "the piece's (" + parText("P_CHORD") + ")") + "</option>").join("") + "</select></span>");
+  const x0 = 8, y0 = 8, total = Array.from({ length: 8 }, (_, s) => slotGet(s).bars).reduce((a, b) => a + b, 0), u = (W - 16) / total;
+  let x = x0;
+  const out = [];
+  for (let s = 0; s < 8; s++) {
+    const q = slotGet(s), w = q.bars * u, c = q.deg ? chordName(q.deg - 1) : null;
+    g.fillStyle = q.deg ? COL.padT : "#16171c"; g.fillRect(x + 2, y0, w - 4, RH);
+    g.fillStyle = q.deg ? COL.pad : "#3a3e4a"; g.fillRect(x + 2, y0, 3, RH);
+    if (s === ED.slot) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.strokeRect(x + 2, y0, w - 4, RH); }
+    if (live && live.playing && live.prog === s) { g.fillStyle = COL.acc; g.fillRect(x + 2, y0 + RH - 4, w - 4, 4); }
+    g.fillStyle = COL.dim; g.font = FONT(600, 10); g.fillText("SLOT " + (s + 1) + " · " + q.bars + (q.bars > 1 ? " BARS" : " BAR"), x + 10, y0 + 14);
+    g.fillStyle = q.deg ? COL.ink : "#555a66"; g.font = FONT(700, w > 70 ? 22 : 14); g.fillText(c ? c.roman : "—", x + 10, y0 + 44);
+    if (c && w > 60) { g.fillStyle = "#c9beff"; g.font = "500 15px 'Barlow Semi Condensed', sans-serif"; g.fillText(c.name, x + 10, y0 + 64); }
+    if (q.kind && w > 60) { g.fillStyle = COL.dim; g.font = "500 13px 'Barlow Semi Condensed', sans-serif"; g.fillText(P[PE.P_CHORD].t[q.kind], x + 10, y0 + 82); }
+    out.push([x, w]);
+    x += w;
+  }
+  edGrid = { chords: out, y0, RH };
+  $("edhelp").textContent = "Click a slot, then its chord (the scale's degrees; hold: the chord before goes on), its length and its type. With Play on the slots, the FM-1 plays them in turn up to the last one set; " +
+    "on the genre's walk it picks its own chords (shown dashed on the Loom as they are heard).";
+}
+function edPad(g, W) {
+  tools('<span class="grp"><span class="lbl">CHORD</span><select data-par="P_CHORD">' + P[PE.P_CHORD].t.map((t, k) => '<option value="' + k + '"' + (par("P_CHORD") === k ? " selected" : "") + ">" + t + "</option>").join("") + "</select></span>" +
+        '<span class="grp"><span class="lbl">VOICING</span><select data-par="P_VOICING">' + (P[PE.P_VOICING].t || ["Close", "Open"]).map((t, k) => '<option value="' + k + '"' + (par("P_VOICING") === k ? " selected" : "") + ">" + t + "</option>").join("") + "</select></span>");
+  g.fillStyle = COL.dim; g.font = "500 15px 'Barlow Semi Condensed', sans-serif";
+  g.fillText("The pad sings the chords: edit the CHORDS lane, and the chord kind and voicing here. Its own notes are not stored (the firmware would need a field for them).", 12, 34);
+  edGrid = null;
+  $("edhelp").textContent = "";
+}
+$("ed").addEventListener("contextmenu", (e) => e.preventDefault());
+$("ed").addEventListener("pointerdown", (e) => {
+  if (!io || !edGrid) return;
+  const r = $("ed").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, right = e.button === 2;
+  if (sel === "chords") {
+    const k = edGrid.chords.findIndex(([x0, w]) => x >= x0 && x < x0 + w);
+    if (k >= 0) { ED.slot = k; refresh(); }
+    return;
+  }
+  const G = edGrid, s = Math.floor((x - G.x0) / G.cw), row = Math.floor((y - G.y0) / G.RH);
+  if (s < 0 || s > 15) return;
+  if (sel === "acid" && row >= G.rows && row <= G.rows + 2) { clickAcid(s, 0, false, true); return; }
+  if (row < 0 || row >= G.rows) return;
+  ({ drums: clickDrums, bass: clickBass, acid: clickAcid, pluck: clickPluck })[sel](s, row, right, false);
+});
+$("edtools").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b || !io) return;
+  const d = b.dataset;
+  if (d.pat !== undefined) { ED.pat = +d.pat; refresh(); return; }
+  if (d.brush) { ED.brush = d.brush; refresh(); return; }
+  if (d.deg !== undefined) { bitPut(prg(), 3 * ED.slot, 3, +d.deg); if (+d.deg && !progPlay() && !timeline()) bitPut(prg(), 40, 1, 1); changed(); return; }
+  if (d.bars !== undefined) { bitPut(prg(), 24 + 2 * ED.slot, 2, +d.bars); changed(); return; }
+  const A = {
+    playpat: () => setPar("P_PATTERN", ED.pat),
+    bcap: () => { if (!live) return say("Switch on and play first.", true); io.set(live.bsHist, IO_BS); setPar("P_BL_MODE", BL_STEPS); },
+    bclear: () => io.fill(0, IO_BS, IO_BS + 16),
+    bsteps: () => setPar("P_BL_MODE", BL_STEPS),
+    acap: () => { if (!live) return say("Switch on and play first.", true); acidSet(live.acOff.map((o, s) => ({ off: o, oct: live.acOct[s], gate: (live.acGate >> s) & 1, acc: (live.acAcc >> s) & 1, slide: (live.acSlide >> s) & 1 }))); setPar("P_AC_LOCK", 1); },
+    aclear: () => { acidSet(acidGet().map(() => ({ off: 0, oct: 1, gate: 0, acc: 0, slide: 0 }))); setPar("P_AC_LOCK", 1); },
+    alock: () => setPar("P_AC_LOCK", par("P_AC_LOCK") ? 0 : 1),
+    pcap: () => { if (!live) return say("Switch on and play first.", true); pluckSet(live.cmRung.map((r, s) => ({ rung: r, lvl: live.cmLvl[s] }))); freezePluck(); },
+    pclear: () => { pluckSet(pluckGet().map(() => ({ rung: 0, lvl: 0 }))); freezePluck(); },
+    plock: () => (par("P_CM_LOCK") ? setPar("P_CM_LOCK", 0) : freezePluck()),
+    pplay: () => bitPut(prg(), 40, 1, progPlay() ? 0 : 1),
+  }[d.act];
+  if (A) { A(); changed(); }
+});
+$("edtools").addEventListener("change", (e) => {
+  const t = e.target;
+  if (!io) return;
+  if (t.dataset.kind !== undefined) bitPut(prk(), 3 * ED.slot, 3, +t.value);
+  else if (t.dataset.par) setPar(t.dataset.par, +t.value);
+  changed();
+});
+
+/* ======================================================================== the unit's screen, the facts, the page */
+function drawScreen(fb) {
+  const g = $("screen").getContext("2d"), img = g.createImageData(240, 240), d = img.data;
+  for (let i = 0; i < 240 * 240; i++) {
+    const c = ((fb[i] >> 8) | (fb[i] << 8)) & 0xFFFF;         // (the panel's byte order)
+    d[4 * i] = ((c >> 11) & 31) * 255 / 31; d[4 * i + 1] = ((c >> 5) & 63) * 255 / 63; d[4 * i + 2] = (c & 31) * 255 / 31; d[4 * i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+}
+function drawFacts() {
+  if (!io) { $("facts").innerHTML = ""; return; }
+  const row = (k, v) => "<div><span>" + k + "</span><b>" + v + "</b></div>";
+  $("facts").innerHTML = row("Piece", S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece)) + row("Tempo", par("P_TEMPO") + " BPM") +
+    row("Key", NOTE[par("P_ROOT")] + " " + parText("P_MODE").toLowerCase()) + row("Bass line", parText("P_BL_MODE")) + row("Chords", parText("P_CHORD")) +
+    row("Levels", ["P_PAD", "P_BASS", "P_ACID", "P_CM_LVL", "P_PULSE"].map((k) => par(k)).join(" · ")) + '<div><span></span><span class="muted">pad · bass · acid · pluck · drums</span></div>';
+}
+let raf = 0;
+function refresh() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; drawLoom(); drawEditor(); drawFacts(); }); }
+setInterval(() => { if (live && live.playing) refresh(); }, 66);
+window.addEventListener("resize", refresh);
+
+function fillPieces() {
+  const g = +$("genre").value;
+  $("piece").innerHTML = (N.pieces[g] || []).map((n, i) => '<option value="' + i + '">' + n + "</option>").join("");
+}
+$("genre").innerHTML = N.genres.map((n, i) => '<option value="' + i + '">' + n + "</option>").join("");
+$("genre").value = cur.genre; fillPieces();
+$("genre").addEventListener("change", fillPieces);
+$("open").addEventListener("click", async () => {
+  cur = { genre: +$("genre").value, piece: +$("piece").value };
+  if (!node) return switchOn();
+  await openPiece(cur.genre, cur.piece);
+});
+$("power").addEventListener("click", switchOn);
+$("play").addEventListener("click", () => node && press(BTN_PLAY));
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space" && node && !/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); press(BTN_PLAY); }
+});
+
+/* ---- a piece as a file or a code (fm1piece.js): out, and in (to its genre and place, put into play) */
+function pieceOut() {
+  return { genre: cur.genre, slot: cur.piece, npar: P.length, rec: io.slice(0, REC), prg: io.slice(IO_PRG, IO_PRG + 6), voice: null,
+           kinds: io.slice(IO_PRK, IO_PRK + 3), fx: io[IO_FXON] ? io.slice(IO_FX, IO_FX + 7) : null, bass: io.slice(IO_BS, IO_BS + 16), meta: { t: S.tagOf({ genre: cur.genre, slot: cur.piece }) + " (studio)" } };
+}
+$("save").addEventListener("click", () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([pcEncode(pieceOut())], { type: "application/octet-stream" }));
+  a.download = "perf1-" + S.genreName(cur.genre).toLowerCase() + "-" + S.pieceName(cur.genre, cur.piece).toLowerCase() + ".piece";
+  a.click();
+  say("Saved. To put it on the FM-1: the Library & pieces page, Add (the file), then send it.");
+});
+$("code").addEventListener("click", async () => {
+  const c = await pcToCode(pieceOut());
+  try { await navigator.clipboard.writeText(c); say("The piece's code is copied (" + c.length + " characters): paste it on the Library & pieces page, or to a friend."); }
+  catch { say(c); }
+});
+async function pieceIn(pc) {
+  if (pc.kind === "set") return say("That is a set: open it on the Library & pieces page.", true);
+  if (!node) { cur = { genre: pc.genre, piece: pc.slot }; await switchOn(); }
+  await openPiece(pc.genre, pc.slot);
+  const rec = pc.rec.slice();
+  for (let p = 0; p < P.length; p++) if (p >= pc.npar || rec[REC_PAR + p] === 0xFF) rec[REC_PAR + p] = io[REC_PAR + p];   // settings the piece predates: as they are
+  io.set(rec, 0); io.set(pc.prg, IO_PRG); io.set(pc.kinds || new Uint8Array(3), IO_PRK); io.set(pc.bass || new Uint8Array(16), IO_BS);
+  if (pc.fx) { io[IO_FXON] = 1; io.set(pc.fx, IO_FX); }
+  changed();
+  say("Opened " + (pc.meta && pc.meta.t ? "“" + pc.meta.t + "”" : "the piece") + " into " + S.genreName(pc.genre) + " " + S.pieceName(pc.genre, pc.slot) + " (in the emulator; your bank is not changed).");
+}
+$("load").addEventListener("click", async () => {
+  const t = prompt("Paste a piece code or link (P1.…), or leave it empty to pick a .piece file:");
+  if (t === null) return;
+  if (!t.trim()) { $("file").click(); return; }
+  try { await pieceIn(await pcFromCode(t)); } catch (err) { say(err.message, true); }
+});
+$("file").addEventListener("change", async () => {
+  const f = $("file").files[0];
+  if (!f) return;
+  try { await pieceIn(pcDecodeAny(new Uint8Array(await f.arrayBuffer()))); } catch (err) { say(err.message, true); }
+  $("file").value = "";
+});
+refresh();
+</script>
+</body>
+</html>
