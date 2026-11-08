@@ -152,6 +152,18 @@ __attribute__((used, visibility("default"))) int web_st_open(int g, int i)
         genre_fx(g);
     }
     set_piece(i);
+    ui.sl_pos = (uint8_t)sl_find();             /* (the set list's place of the piece now, as at power on: PLAY plays its parts) */
+    return web_st_read();
+}
+/* place s of the set list now (as the PRESETS knob does with the song on): its genre and piece, its parts; then st_io as web_st_open */
+__attribute__((used, visibility("default"))) int web_st_go(int s)
+{
+    if ((unsigned)s >= SL_N || !glob.sl[s] || ui.store_wait)
+        return 0;
+    ui.sl_q = 0;
+    sl_go(s);
+    if (glob.sl_on)
+        sl_parts(s);
     return web_st_read();
 }
 /* st_io into the playing piece, as if its settings, steps and lines had been changed on the panel (the track goes on) */
@@ -224,6 +236,7 @@ __attribute__((used, visibility("default"))) uint8_t *web_st_live(void)
         const uint32_t bb = sl_bar_now() - sl_b0;
         b[135] = (uint8_t)ui.sl_pos;
         b[136] = (uint8_t)(en_playing ? (bb > 254u ? 254u : bb) : 255u);
+        b[137] = (uint8_t)en_trk_heard();       /* the tracks muted now (a place's parts out, or GLO's mutes) */
     }
     return b;
 }
@@ -298,6 +311,15 @@ __attribute__((used, visibility("default"))) void web_st_set(int write)
         glob.sl_end = st_sl[3 * SL_N + 1] ? 1 : 0;
         project_globals();
         project_flush_globals();
+        ui.sl_pos = (uint8_t)sl_find();         /* (as the unit's Play knob: the place of the piece playing, its bars from here; its parts heard at once) */
+        ui.sl_q = 0;
+        sl_b0 = sl_bar_now();
+        if (sl_play() && ui.sl_pos < SL_N)
+            sl_parts(ui.sl_pos);
+        else if (!glob.sl_on) {
+            ui.trk_m = 0;                       /* (the song off: every part back) */
+            en_trk(0, 0);
+        }
     }
     for (k = 0; k < SL_N; k++) {
         st_sl[k] = glob.sl[k];

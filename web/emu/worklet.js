@@ -77,11 +77,12 @@ class Amb extends AudioWorkletProcessor {
       else ok = this.ex.web_st_code_now();
       const s = String.fromCharCode(...txt.slice(0, txt.indexOf(0) < 0 ? 15 : txt.indexOf(0)));
       this.port.postMessage({ type: "st", id: m.id, ok, code: s, io: new Uint8Array(this.mem.buffer, this.ex.web_st_io(), this.ex.web_st_io_len()).slice() });
-    } else if (this.studio && (m.type === "st_open" || m.type === "st_put" || m.type === "st_read")) {
+    } else if (this.studio && (m.type === "st_open" || m.type === "st_go" || m.type === "st_put" || m.type === "st_read")) {
       // the studio: a piece taken up (genre, piece), an edited one put into play (its bytes), or the playing one read out; the answer is its bytes
       const io = () => new Uint8Array(this.mem.buffer, this.ex.web_st_io(), this.ex.web_st_io_len());
       let ok;
       if (m.type === "st_open") ok = this.ex.web_st_open(m.genre | 0, m.piece | 0);
+      else if (m.type === "st_go") ok = this.ex.web_st_go ? this.ex.web_st_go(m.place | 0) : 0;
       else if (m.type === "st_put") { io().set(new Uint8Array(m.io).subarray(0, this.ex.web_st_io_len())); ok = this.ex.web_st_put(); }
       else ok = this.ex.web_st_read();
       this.port.postMessage({ type: "st", id: m.id, ok, io: io().slice() });

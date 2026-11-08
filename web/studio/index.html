@@ -384,8 +384,8 @@ function press(bit) {                                        // a panel button, 
   setTimeout(() => node.port.postMessage({ type: "buttons", mask: 0 }), 90);
 }
 const BTN_PLAY = 10;
-async function openPiece(g, i) {
-  const r = await ask({ type: "st_open", genre: g, piece: i });
+async function openPiece(g, i, place) {                     // (place: the set list's place, as the unit's PRESETS knob with the song on: its parts too)
+  const r = await ask(place === undefined ? { type: "st_open", genre: g, piece: i } : { type: "st_go", place });
   if (!r.ok) { say("The emulator is busy writing; try again.", true); return; }
   cur = { genre: g, piece: i };
   io = new Uint8Array(r.io);
@@ -393,7 +393,7 @@ async function openPiece(g, i) {
   $("genre").value = g; fillPieces(); $("piece").value = i;
   ["save", "code"].forEach((id) => { $(id).disabled = false; });
   undoReset(); soundRender(); deskRender();
-  say("Opened " + S.genreName(g) + " " + S.pieceName(g, i) + ". Click a lane to edit it; it plays as you change it.");
+  if (place === undefined) say("Opened " + S.genreName(g) + " " + S.pieceName(g, i) + ". Click a lane to edit it; it plays as you change it.");
   refresh();
   if (typeof codeNow === "function") setTimeout(codeNow, 300);
 }
@@ -412,7 +412,7 @@ function parseLive(b) {
            bsHist: sl(16, 16), bsPos: s8(b[32]), acLen: b[33] || 16, acPos: b[34], acGate: u16(35), acAcc: u16(37), acSlide: u16(39),
            acOff: sl(41, 16), acOct: sl(57, 16), cmRung: sl(73, 16), cmLvl: sl(89, 16), cmPos: b[105], laneSrc: sl(106, 6), playing: b[112],
            genre: b[113], piece: b[114], chordN: b[115], lanePos: sl(116, 6), pool: u16(122), root: b[124], blMode: b[125],
-           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0, slPos: b.length > 136 ? b[135] : 255, slBar: b.length > 136 ? b[136] : 255 };
+           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0, slPos: b.length > 136 ? b[135] : 255, slBar: b.length > 136 ? b[136] : 255, trk: b.length > 137 ? b[137] : 0 };
 }
 let hist = {}, slotT = 0, slotNow = -2, lastBar = -1;
 function resetHistory() { hist = {}; slotT = 0; slotNow = -2; lastBar = -1; }
@@ -1521,14 +1521,33 @@ async function songWrite(msg) {
   songRender();
   if (msg) say(msg);
 }
+async function songPlay(from) {                             // the song from its first place (from -1) or place `from`: Loop if it was Off, then PLAY
+  if (!node || !song) return;
+  if (live && live.playing) {                                 // playing: stop (the button reads Stop while the song plays)
+    press(BTN_PLAY);
+    if (from < 0 && song.on) { setTimeout(songRender, 250); return; }
+    await new Promise((res) => setTimeout(res, 250));
+  }
+  if (!song.on) { song.on = 1; song.end = 0; await songWrite(); }
+  const s = from >= 0 ? from : song.places.findIndex((x) => x);
+  const pq = s >= 0 && song.places[s] ? pcSetPlaces([song.places[s]])[0] : null;
+  if (!pq) return;
+  await openPiece(pq.genre, pq.slot, s);
+  press(BTN_PLAY);
+  setSel = s;
+  setTimeout(songRender, 250);
+  say("The song plays from place " + (s + 1) + ": " + S.genreName(pq.genre) + " " + S.pieceName(pq.genre, pq.slot) + (song.mutes[s] ? ", without " + PARTS.filter((_, k) => (song.mutes[s] >> k) & 1).map(([n]) => n.toLowerCase()).join(", ") : "") +
+    (song.bars[s] ? ", " + song.bars[s] + " bars" : ", Auto") + ". " + (song.end ? "Once: it stops after the last place." : "Loop: round again after the last place."));
+}
 const placeBars = (i) => song.bars[i] || 16;                  // (an Auto place drawn as sixteen bars, hatched: the auto-DJ decides)
 function songRender() {
   if (!song) return;
   const sel = setSel, q = song.places[sel] ? pcSetPlaces([song.places[sel]])[0] : null, mode = !song.on ? 0 : song.end ? 2 : 1;
   const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), total = used.reduce((a, i) => a + (song.bars[i] || 0), 0), autos = used.filter((i) => !song.bars[i]).length;
-  let h = '<div class="bar"><span class="lbl">PLAY</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
+  let h = '<div class="bar"><button id="slPlay"' + (used.length ? "" : " disabled") + '>' + (live && live.playing && song.on ? "■ Stop" : "▶ Play the song") + '</button><button id="slFrom"' + (q ? "" : " disabled") + ">▶ From place " + (sel + 1) + "</button>" +
+    '<span class="lbl">&nbsp;SONG</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
     '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? song.full2 ? "" : " · patterns and energy need 0.17.14" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
-    '<canvas id="songline" height="150" aria-label="The song: a block a place, as long as its bars, a lane a part"></canvas>' +
+    '<canvas id="songline" height="150" aria-label="The song: a block a place, as long as its bars, a lane a part"></canvas><div id="songnow" class="muted" style="margin-top:4px"></div>' +
     '<div class="bar" style="margin-top:8px"><span class="lbl">PLACE ' + (sel + 1) + "</span>" + (q ? "<b>" + S.genreName(q.genre) + " " + S.pieceName(q.genre, q.slot) + "</b>" : '<span class="muted">empty</span>') +
     '<span class="lbl">&nbsp;BARS</span><select id="slBars" aria-label="Place ' + (sel + 1) + ' bars"' + (q ? "" : " disabled") + ">" + SONG_BARS.map((b) => '<option value="' + b + '"' + (song.bars[sel] === b ? " selected" : "") + ">" + (b ? b + " bars" : "Auto") + "</option>").join("") + "</select>" +
     '<span class="lbl">&nbsp;PARTS</span>' + PARTS.map(([n], k) => '<button class="small" data-part="' + k + '" aria-pressed="' + !((song.mutes[sel] >> k) & 1) + '"' + (q ? "" : " disabled") + ">" + n + "</button>").join("") +
@@ -1606,7 +1625,17 @@ function songLine() {                                         // the song as a t
     x += w;
   }
 }
-setInterval(() => { if (view === "song" && song && live && live.playing) songLine(); }, 100);
+const PART_TRK = [0x40, 0x10, 0x20, 0x80, 0x0F];             // (ui.c SL_PARTM: the tracks a part is)
+function songNow() {                                          // what plays now: the place, its bar, the parts the engine has out
+  const el = $("songnow");
+  if (!el || !song) return;
+  const t = !live || !live.playing ? "Stopped." : !song.on ? "Playing; the song is Off, so the piece plays on its own." :
+    live.slPos < 16 ? "Now: place " + (live.slPos + 1) + ", bar " + ((live.slBar === 255 ? 0 : live.slBar) + 1) + (song.bars[live.slPos] ? " of " + song.bars[live.slPos] : "") +
+      " · out: " + (PARTS.filter((_, k) => (live.trk & PART_TRK[k]) === PART_TRK[k]).map(([n]) => n.toLowerCase()).join(", ") || "nothing") :
+    "Playing a piece that is not in the song: Play the song starts it.";
+  if (el.textContent !== t) el.textContent = t;
+}
+setInterval(() => { if (view === "song" && song && live && live.playing) songLine(); if (view === "song") songNow(); }, 100);
 $("song").addEventListener("click", async (e) => {
   if (e.target.id === "songline") {                           // a block on the timeline picks its place
     const r = e.target.getBoundingClientRect(), x = e.clientX - r.left, hit = songHit.find(([x0, w]) => x >= x0 && x < x0 + w);
@@ -1627,6 +1656,7 @@ $("song").addEventListener("click", async (e) => {
     return songWrite("Place " + (setSel + 1) + ": " + (PARTS.filter((_, k) => !((song.mutes[setSel] >> k) & 1)).map(([n]) => n.toLowerCase()).join(", ") || "no parts") + ".");
   }
   const id = b.id;
+  if (id === "slPlay" || id === "slFrom") return songPlay(id === "slFrom" ? setSel : -1);
   if (id === "slPut") { if (!io) return; song.places[setSel] = cur.genre * 10 + cur.piece + 1; await songWrite("Place " + (setSel + 1) + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + ". It plays as saved: Save in the emulator keeps your edits."); }
   else if (id === "slClear") { for (const a of SONG_ARRS(song)) a[setSel] = 0; await songWrite(); }
   else if (id === "slLeft" || id === "slRight") {
@@ -1634,7 +1664,7 @@ $("song").addEventListener("click", async (e) => {
     if (j < 0 || j > 15) return;
     for (const a of SONG_ARRS(song)) [a[setSel], a[j]] = [a[j], a[setSel]];
     setSel = j; await songWrite();
-  } else if (id === "slOpen") { const pq = song.places[setSel] ? pcSetPlaces([song.places[setSel]])[0] : null; if (pq) await openPiece(pq.genre, pq.slot); songRender(); }
+  } else if (id === "slOpen") { const pq = song.places[setSel] ? pcSetPlaces([song.places[setSel]])[0] : null; if (pq) await openPiece(pq.genre, pq.slot, setSel); songRender(); }
 });
 $("song").addEventListener("change", (e) => {
   if (!song) return;
