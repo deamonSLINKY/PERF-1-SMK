@@ -178,7 +178,7 @@
     <p id="impreport"></p>
     <div class="bar"><button id="impgo" class="go">Put it in the piece</button><button id="impcancel">Cancel</button></div>
   </section>
-  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button><button role="tab" data-view="song" aria-selected="false">SONG</button></div>
+  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button><button role="tab" data-view="song" aria-selected="false">SONG</button><span class="sp" style="flex:1"></span><span class="lbl" style="align-self:center">SHOW&nbsp;</span><select id="zoom" aria-label="How many bars the Loom shows"><option value="0">every bar</option><option value="8">8 bars</option><option value="4">4 bars</option><option value="2">2 bars</option></select></div>
   <section class="loomwrap">
     <canvas id="loom" height="560" aria-label="The Loom: every lane of the piece over its bars"></canvas>
     <div id="desk" hidden></div>
@@ -424,7 +424,13 @@ function onLive(b) {
   } else lb = bar % nb;
   loomPos = live.playing ? lb + frac : -1;
   if (live.playing && bar !== lastBar) { lastBar = bar; }
-  if (live.playing) hist[lb] = { croot: live.croot, chordN: live.chordN, pat: live.pat };
+  if (live.playing) {
+    hist[lb] = Object.assign(hist[lb] || {}, { croot: live.croot, chordN: live.chordN, pat: live.pat });
+    if (live.step >= 12) hist[lb].line = {                    // (late in the bar: the bar's bass as heard, the acid and pluck loops as they are)
+      bs: live.bsHist.slice(),
+      ac: live.acOff.map((o, s) => ({ off: o, oct: live.acOct[s], gate: (live.acGate >> s) & 1, acc: (live.acAcc >> s) & 1, slide: (live.acSlide >> s) & 1 })), acLen: live.acLen,
+      cm: live.cmRung.map((r, s) => ({ rung: r, lvl: live.cmLvl[s] })) };
+  }
   const ch = live.playing ? NOTE[live.croot % 12] : "";
   $("pos").textContent = live.playing ? "bar " + (lb + 1) + "." + (Math.floor(live.step / 4) + 1) + "  ·  " + ch + "  ·  P" + (live.pat + 1) : "stopped";
 }
@@ -439,7 +445,7 @@ const LANES = [
   { id: "pad", name: "PAD", col: COL.pad, h: 62 },
 ];
 const LX = 168, HEAD = 30, GAP = 8;
-let sel = "bass", layout = [];
+let sel = "bass", layout = [], zoom = 0, zoomW0 = 0;
 function loomBars(tl) { return tl ? Math.max(4, Math.min(32, tl.total)) : 16; }
 function laneState(id) {
   if (!io) return { tag: "", sub: "" };
@@ -469,36 +475,42 @@ function laneNotes(id, nb, tl) {
   const base = (c, lo) => lo + ((root + semis(st, c.ri)) % 12);
   const rel = (c, n) => semis(st, c.ri + n) - semis(st, c.ri);
   const state = laneState(id), dice = state.tag === "DICE";
+  // the engine's lanes (dice): what it played in that bar when it was heard, else what it plays now (dimmer: not heard there yet)
+  const heard = (b) => (dice && hist[b] && hist[b].line ? hist[b].line : null);
+  const liveLine = live ? { bs: live.bsHist, ac: live.acOff.map((o, s) => ({ off: o, oct: live.acOct[s], gate: (live.acGate >> s) & 1, acc: (live.acAcc >> s) & 1, slide: (live.acSlide >> s) & 1 })), acLen: live.acLen,
+                            cm: live.cmRung.map((r, s) => ({ rung: r, lvl: live.cmLvl[s] })) } : null;
   if (id === "bass") {
-    const bs = dice ? (live ? live.bsHist : []) : Array.from(io.subarray(IO_BS, IO_BS + 16));
-    const on = bs.map((v, s) => ({ s, ...bsOf(v) })).filter((x) => x.kind >= 1 && x.kind <= 4);
+    const mine = Array.from(io.subarray(IO_BS, IO_BS + 16));
     for (let b = 0; b < nb; b++) {
-      const c = ctxAt(b, tl);
+      const c = ctxAt(b, tl), hd = heard(b), bs = !dice ? mine : hd ? hd.bs : liveLine ? liveLine.bs : [];
+      const on = bs.map((v, s) => ({ s, ...bsOf(v) })).filter((x) => x.kind >= 1 && x.kind <= 4);
       on.forEach((x, i) => {
         const nx = on[i + 1] ? on[i + 1].s : 16;
-        out.push({ b, s: x.s, len: Math.max(1, Math.min(4, nx - x.s)), m: base(c, 36) + rel(c, x.note) + 12 * (x.oct - 1), acc: x.kind === 2 || x.kind === 4, link: x.kind >= 3, ghost: dice || !c.known });
+        out.push({ b, s: x.s, len: Math.max(1, Math.min(4, nx - x.s)), m: base(c, 36) + rel(c, x.note) + 12 * (x.oct - 1), acc: x.kind === 2 || x.kind === 4, link: x.kind >= 3, ghost: dice || !c.known, dim: dice && !hd });
       });
     }
   } else if (id === "acid") {
-    const line = dice ? (live ? live.acOff.map((o, s) => ({ off: o, oct: live.acOct[s], gate: (live.acGate >> s) & 1, acc: (live.acAcc >> s) & 1, slide: (live.acSlide >> s) & 1 })) : []) : acidGet();
-    const len = live ? live.acLen : 16;
-    for (let b = 0; b < nb && line.length; b++) {
-      const c = ctxAt(b, tl);
+    const mine = acidGet();
+    for (let b = 0; b < nb; b++) {
+      const c = ctxAt(b, tl), hd = heard(b), line = !dice ? mine : hd ? hd.ac : liveLine ? liveLine.ac : null;
+      if (!line) continue;
+      const len = (dice ? (hd ? hd.acLen : liveLine.acLen) : live ? live.acLen : 16) || 16;
       for (let s = 0; s < 16; s++) {
         const x = line[(b * 16 + s) % len];
         if (!x.gate) continue;
         const prev = line[(b * 16 + s - 1 + len) % len];
-        out.push({ b, s, len: x.slide ? 1.6 : 0.9, m: base(c, 48) + rel(c, x.off) + 12 * (x.oct - 1), acc: !!x.acc, link: !!(prev && prev.gate && prev.slide), ghost: dice || !c.known });
+        out.push({ b, s, len: x.slide ? 1.6 : 0.9, m: base(c, 48) + rel(c, x.off) + 12 * (x.oct - 1), acc: !!x.acc, link: !!(prev && prev.gate && prev.slide), ghost: dice || !c.known, dim: dice && !hd });
       }
     }
   } else if (id === "pluck") {
-    const line = dice ? (live ? live.cmRung.map((r, s) => ({ rung: r, lvl: live.cmLvl[s] })) : []) : pluckGet();
-    for (let b = 0; b < nb && line.length; b++) {
-      const c = ctxAt(b, tl);
+    const mine = pluckGet();
+    for (let b = 0; b < nb; b++) {
+      const c = ctxAt(b, tl), hd = heard(b), line = !dice ? mine : hd ? hd.cm : liveLine ? liveLine.cm : null;
+      if (!line) continue;
       line.forEach((x, s) => {
         if (!x.lvl) return;
         const t = x.rung % c.nt;
-        out.push({ b, s, len: 0.8, m: base(c, 60) + rel(c, 2 * t) + 12 * Math.floor(x.rung / c.nt) - 12, acc: x.lvl === 3, lvl: x.lvl, ghost: dice || !c.known });
+        out.push({ b, s, len: 0.8, m: base(c, 60) + rel(c, 2 * t) + 12 * Math.floor(x.rung / c.nt) - 12, acc: x.lvl === 3, lvl: x.lvl, ghost: dice || !c.known, dim: dice && !hd });
       });
     }
   } else if (id === "pad") {
@@ -523,10 +535,12 @@ function drawLoom() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.fillStyle = COL.panel; g.fillRect(0, 0, W, H);
   if (!io) { g.fillStyle = COL.dim; g.font = FONT(600, 14); g.fillText("No piece open.", LX, 60); return; }
-  const tl = timeline(), nb = loomBars(tl), RX = W - 6, BW = (RX - LX) / nb, SW = BW / 16, X = (b, s) => LX + b * BW + s * SW;
+  const tl = timeline(), nb = loomBars(tl), vis = zoom && zoom < nb ? zoom : nb;
+  if (loomPos >= 0) zoomW0 = Math.floor(Math.floor(loomPos) / vis) * vis;   // (the window follows the playhead, a page at a time)
+  const w0 = Math.max(0, Math.min(nb - vis, zoomW0)), RX = W - 6, BW = (RX - LX) / vis, SW = BW / 16, X = (b, s) => LX + (b - w0) * BW + s * SW;
   // the bar numbers; the drum pattern each bar played (heard), else the one the piece plays
   g.font = FONT(600, 11);
-  for (let b = 0; b < nb; b++) {
+  for (let b = w0; b < w0 + vis; b++) {
     g.fillStyle = COL.dim; g.fillText(String(b + 1), X(b, 0) + 3, 12);
     const h = hist[b], p = patAt(b);
     g.fillStyle = h ? "#3a2614" : "#22190f"; g.fillRect(X(b, 0) + 1, 16, BW - 2, 11);
@@ -536,9 +550,10 @@ function drawLoom() {
     const st = laneState(L.id), y0 = L.top, h = L.h;
     g.fillStyle = "#121318"; g.fillRect(LX, y0, RX - LX, h);
     if (sel === L.id) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.strokeRect(LX - 1, y0 - 1, RX - LX + 2, h + 2); }
-    for (let b = 0; b <= nb; b++) {                         // bars, beats
+    for (let b = w0; b <= w0 + vis; b++) {                  // bars, beats (sixteenths too, zoomed in)
       g.fillStyle = b % 4 === 0 ? "#3a3e4a" : "#262932"; g.fillRect(Math.round(X(b, 0)), y0, 1, h);
-      if (b < nb && BW > 40) { g.fillStyle = COL.grid; for (let q = 1; q < 4; q++) g.fillRect(Math.round(X(b, 4 * q)), y0, 1, h); }
+      if (b < w0 + vis && BW > 40) { g.fillStyle = COL.grid; for (let q = 1; q < 4; q++) g.fillRect(Math.round(X(b, 4 * q)), y0, 1, h); }
+      if (b < w0 + vis && SW > 14) { g.fillStyle = "#16181d"; for (let q = 1; q < 16; q++) if (q % 4) g.fillRect(Math.round(X(b, q)), y0, 1, h); }
     }
     g.fillStyle = L.col; g.fillRect(8, y0 + 4, 4, 16);      // the label: a colour tab, the name, yours or dice
     g.fillStyle = COL.ink; g.font = FONT(700, 14); g.fillText(L.name, 18, y0 + 17);
@@ -551,13 +566,15 @@ function drawLoom() {
       g.fillText(st.tag, 29 + tw, y0 + 17);
     }
     g.fillStyle = COL.dim; g.font = "500 12px 'Barlow Semi Condensed', sans-serif"; g.fillText(st.sub, 18, y0 + 34);
+    g.save(); g.beginPath(); g.rect(LX, y0, RX - LX, h); g.clip();   // (the window's bars only)
     if (L.id === "chords") drawChordLane(g, L, tl, nb, X, BW);
     else if (L.id === "drums") drawDrumLane(g, L, nb, X, SW);
-    else drawLineLane(g, L, laneNotes(L.id, nb, tl), X, SW);
+    else drawLineLane(g, L, laneNotes(L.id, nb, tl).filter((n) => n.b >= w0 - 1 && n.b <= w0 + vis), X, SW);
+    g.restore();
   }
-  if (loomPos >= 0) {                                       // the playhead
-    const x = LX + loomPos * BW;
-    g.fillStyle = "rgba(255,176,0,.10)"; g.fillRect(LX + Math.floor(loomPos) * BW, HEAD, BW, H - HEAD - GAP);
+  if (loomPos >= w0 && loomPos < w0 + vis) {                // the playhead
+    const x = X(loomPos, 0);
+    g.fillStyle = "rgba(255,176,0,.10)"; g.fillRect(X(Math.floor(loomPos), 0), HEAD, BW, H - HEAD - GAP);
     g.fillStyle = COL.acc; g.fillRect(Math.round(x) - 1, HEAD - 4, 2, H - HEAD - GAP + 4);
   }
 }
@@ -582,10 +599,11 @@ function drawDrumLane(g, L, nb, X, SW) {
   for (let b = 0; b < nb; b++) {
     const p = patAt(b);
     for (let l = 0; l < NL; l++) {
-      const m = patGet(p, l), y = L.top + 4 + l * rh;
+      const m = patGet(p, l), y = L.top + 4 + l * rh, ln = Math.max(1, Math.min(16, par("P_LLEN") !== undefined ? P[PE.P_LLEN + l].min + io[REC_PAR + PE.P_LLEN + l] : 16));
       for (let s = 0; s < 16; s++) {
-        if (!((m >> s) & 1)) continue;
-        const md = modGet(l, s), lvl = (md >> 6) & 3, push = ((md >> 3) & 7) / 12, rat = md & 7;
+        const k = ln < 16 ? (b * 16 + s) % ln : s;          // (a lane shorter than the bar: its own loop, from the top of the piece)
+        if (!((m >> k) & 1)) continue;
+        const md = modGet(l, k), lvl = (md >> 6) & 3, push = ((md >> 3) & 7) / 12, rat = md & 7;
         g.globalAlpha = LV[lvl]; g.fillStyle = COL.drum;
         g.fillRect(X(b, s + push) + 0.5, y + (lvl === 1 ? rh * 0.4 : 0), Math.max(1.5, SW * 0.55), (lvl === 1 ? rh * 0.6 : rh) - 1.5);
         if (rat && SW > 5) { g.globalAlpha = 0.9; g.fillStyle = COL.ink; g.fillRect(X(b, s + push) + SW * 0.6, y + 1, 1, rh - 3); }
@@ -672,6 +690,15 @@ function edDrums(g, W, RH, rows) {
         '<button class="small" data-act="playpat"' + (ED.pat === plays ? " disabled" : "") + '>Play P' + (ED.pat + 1) + "</button>" +
         '<span class="grp"><span class="lbl">BRUSH</span>' + ["hit", "level", "ratchet", "push"].map((b) => '<button class="small" data-brush="' + b + '" aria-pressed="' + (ED.brush === b) + '">' + b.toUpperCase() + "</button>").join("") + "</span>");
   const G = gridBase(g, W, RH, rows, (r) => D.lanes[r].toUpperCase().slice(0, 6), () => false);
+  const lv = (k, l) => P[PE[k] + l].min + io[REC_PAR + PE[k] + l];
+  for (let l = 0; l < NL; l++) {                              // its own terms: shorter than the bar, a chance, a condition, busier or sparser
+    const ln = lv("P_LLEN", l), pr = lv("P_PROB", l), cd = lv("P_COND", l), dn = lv("P_DENS", l), y = G.y0 + l * RH, tags = [];
+    if (ln < 16) { g.fillStyle = "rgba(0,0,0,.5)"; g.fillRect(G.x0 + ln * G.cw, y + 1, (16 - ln) * G.cw, RH - 1); g.fillStyle = COL.acc; g.fillRect(G.x0 + ln * G.cw - 1, y + 1, 2, RH - 1); tags.push(ln + " st"); }
+    if (pr < 100) tags.push(pr + "%");
+    if (cd) tags.push(P[PE.P_COND + l].t ? P[PE.P_COND + l].t[cd] : "c" + cd);
+    if (dn !== 50) tags.push((dn > 50 ? "+" : "") + (dn - 50));
+    if (tags.length) { g.fillStyle = COL.acc; g.font = FONT(600, 9); g.fillText(tags.join(" "), 6, y + RH - 5); }
+  }
   playStep(g, G, live && live.playing ? live.lanePos[0] : -1);
   for (let l = 0; l < NL; l++) {
     const m = patGet(ED.pat, l);
@@ -697,7 +724,7 @@ function edDrums(g, W, RH, rows) {
     }
   }
   $("edhelp").textContent = "Click a step with the brush: HIT puts a hit in or takes it out; LEVEL goes normal, ghost, soft, accent; RATCHET off, x2, x3, x4, x6, flam, swells; PUSH moves it later in twelfths of a step. " +
-    "Six patterns, one set of tricks a lane (shared by all six: the firmware keeps one set). ▶ marks the pattern the piece plays.";
+    "Six patterns, one set of tricks a lane (shared by all six: the firmware keeps one set). ▶ marks the pattern the piece plays. Under a lane's name, in amber: its own length (shaded past it), chance, condition and density, set on the SOUND tab.";
 }
 function hearStep(id, x) {                                    // a placed note, heard on the chord playing now (the pad's voice keys, the drum's pad)
   if (!node || !io) return;
@@ -1304,6 +1331,7 @@ document.querySelector(".views").addEventListener("click", (e) => {
   deskRender(); songLoad(); refresh();
 });
 
+$("zoom").addEventListener("change", () => { zoom = +$("zoom").value; refresh(); });
 /* ---- the top's quick settings: tempo, key */
 $("qRoot").innerHTML = NOTE.map((n, i) => '<option value="' + i + '">' + n + "</option>").join("");
 $("qMode").innerHTML = P[PE.P_MODE].t.map((n, i) => '<option value="' + i + '">' + n + "</option>").join("");
