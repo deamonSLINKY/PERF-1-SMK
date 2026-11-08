@@ -466,12 +466,23 @@ static void smk__padq(uint32_t pad, uint32_t vel)     /* a pad hit (vel) or rele
     fm1_in.notes = fm1_in.knotes | fm1_in.pnotes;
 }
 
+/* PERF-1 SMK (2026-11-08, the HW TEST): the last hit's first SMK_HIT_N readings (2.4 ms apart) and its baseline,
+ * to set the pad velocity from a real unit (the maker's pads all read velocity 1: its factory curve starts at 220) */
+#define SMK_HIT_N 8u
+static volatile uint16_t smk_hit_raw[SMK_HIT_N], smk_hit_base;
+static volatile uint8_t smk_hit_pad = 0xFF, smk_hit_n;
 static void smk__pad(uint32_t p, uint32_t raw)
 {
     uint32_t base = fm1_in.pad_base[p], st = fm1_in.pad_st[p];
     fm1_in.pad_raw[p] = (uint16_t)raw;
+    if (p == smk_hit_pad && smk_hit_n < SMK_HIT_N)
+        smk_hit_raw[smk_hit_n++] = (uint16_t)raw;
     if (st == 0u) {
         if (raw > base + SMK_PAD_ON) {
+            smk_hit_pad = (uint8_t)p;
+            smk_hit_base = (uint16_t)base;
+            smk_hit_raw[0] = (uint16_t)raw;
+            smk_hit_n = 1;
             fm1_in.pad_st[p] = 1;
             fm1_in.pad_peak[p] = (uint16_t)raw;
         } else if (base > raw) {

@@ -201,6 +201,12 @@ void plat_smk_hw(smk_hw_t *h)
     h->frames = fm1_in.frames;
     h->adc_ok = fm1_in.adc_ok;
     h->adc_miss = fm1_in.adc_miss;
+    for (i = 0; i < 8u; i++)
+        h->hit_raw[i] = smk_hit_raw[i];
+    h->hit_base = smk_hit_base;
+    h->hit_pad = smk_hit_pad;
+    h->hit_n = smk_hit_n;
+    h->pad_t0 = smk_trim_pad[smk_hit_pad < 16u ? smk_hit_pad : 0u][0];
     fm1__unlock(k);
     h->trim_ok = smk_trim_ok;
     h->flash_chip = flash_chip;

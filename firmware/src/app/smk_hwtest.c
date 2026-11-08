@@ -113,24 +113,34 @@ static void hwt_draw_top(const smk_hw_t *h)
         itoa_u((uint32_t)k, b);
         cv_text(px + 4, py + 2, &FONT_XS, b, pr ? C_WHITE : RGB(120, 120, 130));
     }
-    b[0] = 0;
-    hwt_cat(b, "FLASH ");
-    hwt_cat(b, h->flash_chip == 1u ? "P25Q80" : h->flash_chip == 2u ? "UC25HQ80" : h->flash_chip == 3u ? "OTHER" : "NONE");
-    hwt_cat(b, h->trim_ok ? "  TRIM OK" : "  TRIM DEFAULT");
+    b[0] = 0;                                    /* build 2: the chip, the curves, the ADC misses, the last pad */
+    hwt_cat(b, h->flash_chip == 1u ? "P25Q80" : h->flash_chip == 2u ? "UC25HQ80" : h->flash_chip == 3u ? "OTHER" : "NO FLASH");
+    hwt_cat(b, h->trim_ok ? " TRIM OK" : " TRIM DEF");
+    hwt_cat(b, " MISS ");
+    itoa_u(h->adc_miss, b + hwt_len(b));
     if (hwt.last_pad != 0xFF) {
-        hwt_cat(b, "  PAD ");
+        hwt_cat(b, " PAD ");
         itoa_u(hwt.last_pad, b + hwt_len(b));
         hwt_cat(b, " V");
         itoa_u(hwt.last_pvel, b + hwt_len(b));
     }
     cv_text(4, 88, &FONT_XS, b, h->trim_ok ? RGB(140, 220, 140) : RGB(255, 120, 90));
-    b[0] = 0;
-    hwt_cat(b, "ADC ");
-    itoa_u(h->adc_ok % 100000u, b + 4);
-    hwt_cat(b, " MISS ");
-    itoa_u(h->adc_miss, b + hwt_len(b));
-    hwt_cat(b, "  HOLD KNB+FDR: PERF");
-    cv_text(4, 103, &FONT_XS, b, RGB(150, 150, 160));
+    if (h->hit_pad < 16u) {                      /* the last hit: baseline, curve start, then its readings 2.4 ms apart */
+        char c[48];
+        uint32_t i;
+        c[0] = 0;
+        hwt_cat(c, "B");
+        itoa_u(h->hit_base, c + hwt_len(c));
+        hwt_cat(c, " T");
+        itoa_u(h->pad_t0, c + hwt_len(c));
+        for (i = 0; i < h->hit_n && i < 7u; i++) {
+            hwt_cat(c, " ");
+            itoa_u(h->hit_raw[i], c + hwt_len(c));
+        }
+        cv_text(4, 103, &FONT_XS, c, C_WHITE);
+    } else {
+        cv_text(4, 103, &FONT_XS, "HIT A PAD  /  HOLD KNB+FDR: PERF", RGB(150, 150, 160));
+    }
     cv_blit(0, 0);
 }
 

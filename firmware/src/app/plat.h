@@ -94,6 +94,9 @@ typedef struct {
     uint32_t buttons;                  /* bit i = button id i (smk_input.h: 0 KNOB BANK .. 17 SEQ REC) */
     uint32_t frames, adc_ok, adc_miss;
     uint8_t trim_ok, flash_chip;       /* the factory curves taken; fm1_flash_id.h FL_CHIP */
+    uint16_t hit_raw[8], hit_base;     /* the last pad hit: its first 8 readings (2.4 ms apart) and the baseline */
+    uint8_t hit_pad, hit_n;            /* which pad (0xFF none yet), readings taken */
+    uint16_t pad_t0;                   /* the factory pad curve's first point (velocity 1 at or below it) */
 } smk_hw_t;
 void plat_smk_hw(smk_hw_t *h);
 void plat_smk_btn_leds(uint32_t ids);  /* button LEDs by hardware id (bit i = button id i), for the test screen */

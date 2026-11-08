@@ -137,6 +137,7 @@ void plat_smk_hw(smk_hw_t *h)                    /* the HW TEST screen's snapsho
     h->buttons = smk_btn_held;                   /* (SB_* = button ids 0..3: KNOB BANK, FADER BANK, <, >) */
     h->trim_ok = 1;
     h->flash_chip = 1;
+    h->hit_pad = 0xFF;
 }
 int plat_wheels(int32_t *pitch, int32_t *modw)
 {
