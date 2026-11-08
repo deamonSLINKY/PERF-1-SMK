@@ -125,6 +125,8 @@ uint32_t plat_pad_hits(void)
 int plat_pad_vel(int p) { return (uint32_t)p < SMK_NPADS && pad_vel_v[p] ? pad_vel_v[p] : 100; }
 int plat_fader(int i) { return (uint32_t)i < 4u ? fader_v[i] : -1; }
 void plat_smk_btn_leds(uint32_t ids) { smk_lit = ids & 15u; }
+static uint32_t pad_held;
+uint32_t plat_smk_pads_held(void) { return pad_held; }
 void plat_smk_hw(smk_hw_t *h)                    /* the HW TEST screen's snapshot, from the script's state */
 {
     int i;
@@ -1032,6 +1034,18 @@ int main(int argc, char **argv)
             int pd = atoi(a) & 15;
             pad_vel_v[pd] = b[0] ? atoi(b) : 100;
             pad_hits |= 1u << pd;
+            pad_held |= 1u << pd;                    /* (held 60 ms, as a tap) */
+            run_ms(60);
+            pad_held &= ~(1u << pd);
+            run_ms(40);
+        } else if (!strcmp(cmd, "paddown") || !strcmp(cmd, "padup")) {   /* paddown P / padup P: pad P held / let go */
+            int pd = atoi(a) & 15;
+            if (cmd[3] == 'd') {
+                pad_hits |= 1u << pd;
+                pad_held |= 1u << pd;
+            } else {
+                pad_held &= ~(1u << pd);
+            }
             run_ms(40);
         } else if (!strcmp(cmd, "fader")) {
             fader_v[atoi(a) & 3] = atoi(b);

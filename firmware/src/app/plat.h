@@ -100,4 +100,5 @@ typedef struct {
 } smk_hw_t;
 void plat_smk_hw(smk_hw_t *h);
 void plat_smk_btn_leds(uint32_t ids);  /* button LEDs by hardware id (bit i = button id i), for the test screen */
+uint32_t plat_smk_pads_held(void);     /* pads held now: bit p = pad p (0..7 the top row) */
 #endif

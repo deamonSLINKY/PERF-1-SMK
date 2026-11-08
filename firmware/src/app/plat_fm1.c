@@ -170,6 +170,14 @@ static void smk_trim_init(void)
         smk_trim_ok = (uint8_t)smk_trim_load(smk_trim_buf);
 }
 
+uint32_t plat_smk_pads_held(void)
+{
+    uint32_t i, m = 0;
+    for (i = 0; i < SMK_NPAD; i++)
+        m |= (uint32_t)((fm1_in.pad_st[i] & 0x80u) != 0) << i;
+    return m;
+}
+
 /* the HW TEST screen: button LEDs by hardware id (bit i = button i's LED, smk_input.h), not through the FM-1 map */
 void plat_smk_btn_leds(uint32_t ids)
 {

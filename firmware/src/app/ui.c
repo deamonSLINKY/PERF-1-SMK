@@ -574,7 +574,10 @@ static struct {
     uint8_t factory_done;              /* SEL + SAVE held on Global: the piece went back to its factory settings */
     uint8_t save_fact;                 /* SAVE went down on Global with SEL held: a factory reset if held on, never a store */
     uint32_t shift_keys;               /* keys pressed while SEL (shift) was held: not notes, not effects */
-    uint8_t piece_q;                   /* a piece waiting for the bar (SEL + PRESETS): its number + 1 */
+#if BOARD_SMK37
+    uint32_t bkeys, shift_bkeys, lock_bkeys;   /* the keys' button duties, from the pads (smk_pads.c): input()'s bkeys */
+#endif
+    uint8_t piece_q;                  /* a piece waiting for the bar (SEL + PRESETS): its number + 1 */
     uint8_t shift_hint;                /* SEL held alone: its hint shown this hold */
     uint8_t key_voice[NKEYS];          /* a key playing a voice: its EN_V_* + 1 (the note-off goes there) */
     uint8_t splash, theme;             /* the boot cards are up (2: the HYP-1 card); the theme drawn */
@@ -3922,17 +3925,45 @@ static int runner_on(void);
 static void runner_input(uint32_t btn, uint32_t keys);
 static void runner_start(void);
 
+/* The 27 keys have two duties: notes (Jam, a voice by hand, Global's scale) and buttons (the effects, the mix map, steps,
+ * slots, fills, pedal, SEL's shifts, the game). On the FM-1 both are the same keys: bkeys, bch and the BK_* state below
+ * are the note keys' own names, so the FM-1 build is the code it was. On the SMK the keys are only notes and the button
+ * duties come from the pads (smk_pads.c smk_bkeys: the pad mode makes a pad one of the FM-1's keys). */
+#if BOARD_SMK37
+#include "smk_pads.c"                            /* smk_bkeys: the pads as the FM-1's keys, by page */
+#define BK_SHIFT ui.shift_bkeys
+#define BK_LOCK ui.lock_bkeys
+#define KEYS_ALL (keys | bkeys)
+#define CH_ALL (ch | bch)
+#else
+#define bkeys keys
+#define bch ch
+#define BK_SHIFT ui.shift_keys
+#define BK_LOCK ui.lock_keys
+#define KEYS_ALL keys
+#define CH_ALL ch
+#endif
 static void input(void)
 {
     uint32_t btn = plat_buttons(), keys = plat_keys(), ch, i;
+#if BOARD_SMK37
+    uint32_t bkeys = smk_bkeys(), bch;
+#endif
     int32_t e;
     if (runner_on()) {                           /* the secret: the game has the panel */
-        runner_input(btn, keys);
+        runner_input(btn, KEYS_ALL);
         return;
     }
     if (ui.saver_on) {                           /* the screensaver: the touch that wakes it only wakes (it was the visualizer's: a key muted a track, a knob moved the filter) */
         const uint32_t nb = btn & ~ui.btn, nk = keys & ~ui.keys;
         int r;
+#if BOARD_SMK37
+        const uint32_t nbk = bkeys & ~ui.bkeys;
+        BK_SHIFT |= nbk;
+        ui.bkeys = bkeys;
+        if (nbk)
+            ui.act_t = plat_ms();
+#endif
         ui.btn_used |= nb;                       /* its button does nothing when let go, nor held */
         ui.shift_keys |= nk;                     /* its key is no note, effect or mute until let go */
         ui.btn = btn;
@@ -4058,7 +4089,12 @@ static void input(void)
     ch = keys ^ ui.keys;
     ui.keys = keys;
     ui.shift_keys &= keys;                     /* let go: no longer the shift's */
-    if (ui.pat_key >= 0 && !(keys >> ui.pat_key & 1u)) {   /* the pattern key let go: a tap kept its pattern; a hold sends it back, once it has played */
+#if BOARD_SMK37
+    bch = bkeys ^ ui.bkeys;
+    ui.bkeys = bkeys;
+    BK_SHIFT &= bkeys;
+#endif
+    if (ui.pat_key >= 0 && !(bkeys >> ui.pat_key & 1u)) {   /* the pattern key let go: a tap kept its pattern; a hold sends it back, once it has played */
         ui.pat_key = -1;
         if (plat_ms() - ui.pat_t < TAP_MS)
             ui.pat_rev = 0;
@@ -4067,17 +4103,17 @@ static void input(void)
     }
     if ((btn >> B_SEL & 1u) && (ch & keys) && ui.view == V_JAM && !ui.fx_menu) {   /* the JAM page: SEL held, the keys play accents (jam_down), not the shift */
         ui.btn_used |= 1u << B_SEL;
-    } else if ((btn >> B_SEL & 1u) && (ch & keys)) {  /* SEL held: the keys pressed are the shift's */
-        ui.shift_keys |= ch & keys;
+    } else if ((btn >> B_SEL & 1u) && (bch & bkeys)) {  /* SEL held: the keys pressed are the shift's */
+        BK_SHIFT |= bch & bkeys;
         ui.btn_used |= 1u << B_SEL;
         for (i = 0; i < NKEYS; i++)
-            if ((ch & keys) >> i & 1u)
+            if ((bch & bkeys) >> i & 1u)
                 shift_key((int)i);
     }
     if (!(btn >> B_SEL & 1u) && ((btn >> B_GLO & 1u) || (perf_like() && !ui.fx_menu)) &&
-        (ch & keys & ~ui.shift_keys)) {        /* GLO held, or the perform screen: the track mix on the keys */
-        uint32_t p = ch & keys & ~ui.shift_keys;
-        ui.shift_keys |= p;
+        (bch & bkeys & ~BK_SHIFT)) {           /* GLO held, or the perform screen: the track mix on the keys */
+        uint32_t p = bch & bkeys & ~BK_SHIFT;
+        BK_SHIFT |= p;
         if (btn >> B_GLO & 1u)
             ui.btn_used |= 1u << B_GLO;        /* not a trip to the Global page */
         for (i = 0; i < NKEYS; i++)
@@ -4094,11 +4130,11 @@ static void input(void)
     if ((btn >> B_GLO & 1u) && !(btn >> B_SEL & 1u) && !(ui.btn_used >> B_GLO & 1u) &&
         plat_ms() - ui.down_t[B_GLO] >= 400u)
         ui.btn_used |= 1u << B_GLO;            /* held for the mix: letting go does nothing either */
-    ui.lock_keys &= keys;
+    BK_LOCK &= bkeys;
     if (!ui.fx_menu || ui.fx_page)
         ui.fx_tap = 0;
     if (ui.fx_menu && ((!ui.fx_page && fx_bank == 3) || ui.fx_page == 20)) {   /* the snips (their bank, and their settings page, to try them): each key down is one (let go: the note off, with the other voices' keys) */
-        const uint32_t down = ch & keys & ~ui.shift_keys;
+        const uint32_t down = bch & bkeys & ~BK_SHIFT;
         for (i = 0; i < NKEYS; i++)
             if (down >> i & 1u) {
                 en_note(EN_V_SAMPLE, 53 + (int)i, 1);
@@ -4106,7 +4142,7 @@ static void input(void)
             }
     }
     if (ui.fx_menu && !ui.fx_page) {           /* the FX keys: tapped, latched; held, played; a latched one tapped, off */
-        const uint32_t down = ch & keys & ~ui.shift_keys, up = ch & ~keys;
+        const uint32_t down = bch & bkeys & ~BK_SHIFT, up = bch & ~bkeys;
         for (i = 0; i < NKEYS; i++) {
             const uint64_t bit = fxbit((int)i);
             if (fx_bank == 0 && i == FILL_KEY && (down >> i & 1u)) {   /* F#5: a drum fill in the next bar */
@@ -4121,7 +4157,7 @@ static void input(void)
                 ui.fx_open_t = 0;              /* (a key since the menu opened: FX again closes it) */
                 if ((ui.fx_lock & bit) && (key_flex((int)i) < 0 || ui.flex_lock == key_flex((int)i))) {   /* (Flex: only the latched pattern's own key) */
                     ui.fx_lock &= ~bit;        /* off at once, and not played while it's held */
-                    ui.lock_keys |= 1u << i;
+                    BK_LOCK |= 1u << i;
                 } else {
                     ui.fx_down_t[i] = plat_ms();
                     ui.fx_tap |= 1u << i;
@@ -4151,7 +4187,7 @@ static void input(void)
         }
         m = ui.fx_lock;
         if (ui.fx_menu && ui.fx_page && FXP[ui.fx_page - 1].bit != 63 &&
-            (!FXP[ui.fx_page - 1].hold || (keys & ~ui.shift_keys)))   /* an edit page: its effect on, */
+            (!FXP[ui.fx_page - 1].hold || (bkeys & ~BK_SHIFT)))   /* an edit page: its effect on, */
             m |= FXB(FXP[ui.fx_page - 1].bit);                                                 /* to be heard as it is edited (a roll or riser: with a key held) */
         {
             uint8_t flxh = 0;                  /* a Flex Beat pad held down by hand (the engine goes on with a one shot while it is) */
@@ -4159,7 +4195,7 @@ static void input(void)
             int fsel = (m >> FX_FLEX & 1u) ? ui.flex_lock : -1;   /* the Flex pattern to play: a pad held (the lowest), else the latched one */
             if (ui.fx_menu && !ui.fx_page) {
                 for (i = 0; i < NKEYS; i++)
-                    if ((keys & ~ui.shift_keys & ~ui.lock_keys) >> i & 1u) {
+                    if ((bkeys & ~BK_SHIFT & ~BK_LOCK) >> i & 1u) {
                         m |= fxbit(i);
                         if (key_flex((int)i) >= 0 && !flxh) {
                             ui.flex_last = FLEX_PAT[i];
@@ -4194,18 +4230,26 @@ static void input(void)
         }
     }
     if (ui.fx_menu && ui.fx_page == FXP_SAMPLE + 1)   /* the SAMPLE page: a key a sound, or a run */
-        smp_keys(ch & keys & ~ui.shift_keys, ch & ~keys);
+        smp_keys(bch & bkeys & ~BK_SHIFT, bch & ~bkeys);
     if (ui.fx_menu && ui.fx_page == 1)           /* the gate's page: the white keys are the pattern's steps */
         for (i = 0; i < NKEYS; i++)
-            if ((ch & keys & ~ui.shift_keys) >> i & 1u) {
+            if ((bch & bkeys & ~BK_SHIFT) >> i & 1u) {
                 int s;
                 for (s = 0; s < 16; s++)
                     if (WHITE_KEY[s] == i)
                         gx_step(s);
             }
+#if BOARD_SMK37   /* the pages where a key is a button (steps, slots, fills): the pads; everywhere else the keys play */
+    const uint32_t kdown = ui.view == V_SEQ || ui.view == V_ACSTEP || ui.view == V_SETL || ui.view == V_PROG ||
+                           ui.view == V_BLSTEP || ui.view == V_CMSTEP || ui.view == V_STEPS ? bch & bkeys & ~BK_SHIFT
+                                                                                            : ch & keys & ~ui.shift_keys;
+#define KDOWN kdown
+#else
+#define KDOWN (ch & keys & ~ui.shift_keys)
+#endif
     if (!ui.fx_menu)
         for (i = 0; i < NKEYS; i++)
-            if ((ch & keys & ~ui.shift_keys) >> i & 1u) {
+            if (KDOWN >> i & 1u) {
                 if (ui.view == V_SEQ) {          /* the sequencer: a white key is a step */
                     int s;
                     for (s = 0; s < 16; s++)
@@ -4294,11 +4338,11 @@ static void input(void)
         if (ui.jam_n[i] && !(keys >> i & 1u))
             jam_up((int)i);
     for (i = 0; i < NKEYS; i++)                  /* let go: its note off, wherever it went */
-        if (ui.key_voice[i] && !(keys >> i & 1u)) {
+        if (ui.key_voice[i] && !(KEYS_ALL >> i & 1u)) {   /* (the SMK: a snip from a pad too) */
             en_note(ui.key_voice[i] - 1, 53 + (int)i, 0);
             ui.key_voice[i] = 0;
         }
-    if (btn || keys || ch)
+    if (btn || KEYS_ALL || CH_ALL)
         ui.act_t = plat_ms();
     midi_in();
     cc_out();
@@ -4477,6 +4521,15 @@ static void input(void)
         }
     help_tick(btn, keys);
 }
+#undef KDOWN
+#undef BK_SHIFT
+#undef BK_LOCK
+#undef KEYS_ALL
+#undef CH_ALL
+#if !BOARD_SMK37
+#undef bkeys
+#undef bch
+#endif
 
 /* ------------------------------------------------------------- screen --- */
 /* three bands: the header (28 px), the main area (144), the knobs (68) */

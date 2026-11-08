@@ -1,0 +1,54 @@
+# PERF-1 SMK: the pads as the FM-1's keys in their button duties (smk_pads.c). The FM-1's own scenarios cover what
+# each key does; this checks that the pads reach it on the SMK, and that the keybed's keys don't.
+seed 0
+wait 3000
+# the FX menu: KEYS layout, page 2 (>) has keys 17..27. Pad 1 = key 17 (G3, beat repeat 1/4) held: its effect
+tap FX
+wait 100
+expect fxon 1
+sbtn RIGHT
+paddown 1
+wait 300
+expect fxmask 8388608
+padup 1
+wait 300
+expect fxmask 0
+# a pad tapped latches: pad 8 = key 24 (F5, the low-pass)
+pad 8
+wait 300
+expect fxlock 4096
+pad 8
+wait 300
+expect fxlock 0
+# a keybed key is a note here, not an effect
+tapkey 17
+wait 300
+expect fxmask 0
+tap FX
+wait 100
+expect fxon 0
+# the mix map: GLO held, pad 0 (page 1 again: <) = key 0 (F3), the kick's mute
+sbtn LEFT
+press GLO
+pad 0
+release GLO
+wait 200
+expect trkmute 1
+press GLO
+pad 0
+release GLO
+wait 200
+expect trkmute 0
+# the sequencer (SEQ held): STEPS layout, pad 1 = white key 2 = step 2 of the lane
+press SEQ
+wait 900
+release SEQ
+wait 100
+expect view 36
+expect lanewrit0 0x1111
+pad 1
+wait 200
+expect lanewrit0 0x1113
+pad 1
+wait 200
+expect lanewrit0 0x1111

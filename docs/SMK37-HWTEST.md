@@ -47,3 +47,20 @@ FM-1's keys, the pads its white keys). That's a first look, not the SMK controls
   settings and part of USRFLASH, the stock presets). Whether stock rebuilds its presets when reinstalled isn't known
   yet (the kit doesn't say): if they're missing, the dump has them. The calibration (0xC1000) and pairing (0xC0000)
   are never written.
+
+## Build 4: the pads do the FM-1 keys' button jobs
+
+On the SMK the 37 keys are only notes. Whatever the FM-1 does with a key as a button comes from a pad, laid out by
+the page (the pads light dim in the layout's colour, white while held):
+
+| Where | Pads | Colour |
+|---|---|---|
+| Sequencer (SEQ held), Acid / Bass / Pluck steps, Steps, the gate, SAMPLE | the 16 steps: top row 1-8, bottom row 9-16 | orange |
+| Set list, Progression, and anywhere with SCALE (SEL) held | top row: white keys 1-8 (slots, patterns); bottom row: black keys 1-8 (parts, fills, pattern copies) | orange / purple |
+| FX keys (FX), the mix map (GLOBE held, the Perform screen), elsewhere | keys 1-16 in order (F3 ..); `>`: keys 17-27, `<`: back | blue / green |
+
+The FM-1's manual's key maps apply: count the keys from F3. The FM-1 build is unchanged (byte-identical).
+
+Try: FX, then hold pads (effects while held, a quick tap latches); GLOBE held + pads (mutes, solos, scenes); SEQ held,
+then pads (steps); SCALE held + a pad (patterns). The keys play notes as on the FM-1 (the middle 27, F3..G5); on the
+step, Set list and Progression pages they do nothing yet (the pads have those jobs).
