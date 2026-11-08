@@ -1490,8 +1490,9 @@ setInterval(() => { if (ac && node && !analyser) scopeStart(); }, 500);
 
 /* ======================================================================== the SONG: the set list (project.c glob: sixteen places) as a song
  * (0.17.13, song mode) Each place plays its piece for its bars (Auto: the auto-DJ's rounds) with the parts it leaves out; Play goes Off, Loop (round
- * again) or Once (stop after the last). A place plays its piece as saved in the bank (Save in the emulator). The timeline draws the song: a block a
- * place as long as its bars, a lane a part (left out: empty), the place and bar playing. */
+ * again) or Once (stop after the last). (0.17.14) A place can also set the drum pattern it plays (0 the piece's own, 1..6) and its energy (the mood
+ * macro: 0 as it is, else mood + 1). A place plays its piece as saved in the bank (Save in the emulator). The timeline draws the song: a block a
+ * place as long as its bars, a lane a part (left out: empty), its energy as a line, the place and bar playing. */
 let song = null, setSel = 0;
 const GENRE_COL = [COL.pad, COL.acid, COL.drum, COL.bass, COL.pluck];
 const SONG_BARS = [0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128];
@@ -1499,9 +1500,14 @@ const PARTS = [["PAD", COL.pad], ["BASS", COL.bass], ["ACID", COL.acid], ["PLUCK
 function bankOf(g) {                                          // a genre's bank as the emulator keeps it (this browser), or empty
   try { const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}")[S.objOf(g)]; return raw ? Uint8Array.from(atob(raw), (c) => c.charCodeAt(0)) : new Uint8Array(0); } catch { return new Uint8Array(0); }
 }
-const songFrom = (b) => ({ places: Array.from(b.slice(0, 16)), on: b[16], bars: b.length >= 50 ? Array.from(b.slice(17, 33)) : new Array(16).fill(0),
-                         mutes: b.length >= 50 ? Array.from(b.slice(33, 49)) : new Array(16).fill(0), end: b.length >= 50 ? b[49] : 0, full: b.length >= 50 });
-const songBytes = (x) => Uint8Array.from([...x.places, x.on ? 1 : 0, ...x.bars, ...x.mutes, x.end ? 1 : 0]);
+const SONG_MOODS = [0, ...Array.from({ length: 21 }, (_, k) => k * 5 + 1)];   // As is, then energy 0..100 in 5s (stored + 1, as the unit's knob)
+const z16 = () => new Array(16).fill(0);
+const songFrom = (b) => ({ places: Array.from(b.slice(0, 16)), on: b[16], bars: b.length >= 50 ? Array.from(b.slice(17, 33)) : z16(),
+                         mutes: b.length >= 50 ? Array.from(b.slice(33, 49)) : z16(), end: b.length >= 50 ? b[49] : 0, full: b.length >= 50,
+                         pats: b.length >= 82 ? Array.from(b.slice(50, 66)) : z16(), moods: b.length >= 82 ? Array.from(b.slice(66, 82)) : z16(), full2: b.length >= 82 });
+const songBytes = (x) => Uint8Array.from([...x.places, x.on ? 1 : 0, ...x.bars, ...x.mutes, x.end ? 1 : 0, ...x.pats, ...x.moods]);
+const SONG_ARRS = (x) => [x.places, x.bars, x.mutes, x.pats, x.moods];
+const moodName = (m) => (m ? "energy " + (m - 1) : "energy as is");
 async function songLoad() {
   if (view !== "song") return;
   if (!node) { $("song").innerHTML = '<p class="muted">Switch on to see and arrange the song.</p>'; return; }
@@ -1521,11 +1527,13 @@ function songRender() {
   const sel = setSel, q = song.places[sel] ? pcSetPlaces([song.places[sel]])[0] : null, mode = !song.on ? 0 : song.end ? 2 : 1;
   const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), total = used.reduce((a, i) => a + (song.bars[i] || 0), 0), autos = used.filter((i) => !song.bars[i]).length;
   let h = '<div class="bar"><span class="lbl">PLAY</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
-    '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? "" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
+    '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? song.full2 ? "" : " · patterns and energy need 0.17.14" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
     '<canvas id="songline" height="150" aria-label="The song: a block a place, as long as its bars, a lane a part"></canvas>' +
     '<div class="bar" style="margin-top:8px"><span class="lbl">PLACE ' + (sel + 1) + "</span>" + (q ? "<b>" + S.genreName(q.genre) + " " + S.pieceName(q.genre, q.slot) + "</b>" : '<span class="muted">empty</span>') +
     '<span class="lbl">&nbsp;BARS</span><select id="slBars" aria-label="Place ' + (sel + 1) + ' bars"' + (q ? "" : " disabled") + ">" + SONG_BARS.map((b) => '<option value="' + b + '"' + (song.bars[sel] === b ? " selected" : "") + ">" + (b ? b + " bars" : "Auto") + "</option>").join("") + "</select>" +
-    '<span class="lbl">&nbsp;PARTS</span>' + PARTS.map(([n], k) => '<button class="small" data-part="' + k + '" aria-pressed="' + !((song.mutes[sel] >> k) & 1) + '"' + (q ? "" : " disabled") + ">" + n + "</button>").join("") + "</div>" +
+    '<span class="lbl">&nbsp;PARTS</span>' + PARTS.map(([n], k) => '<button class="small" data-part="' + k + '" aria-pressed="' + !((song.mutes[sel] >> k) & 1) + '"' + (q ? "" : " disabled") + ">" + n + "</button>").join("") +
+    '<span class="lbl">&nbsp;PATTERN</span><select id="slPat" aria-label="Place ' + (sel + 1) + ' drum pattern"' + (q && song.full2 ? "" : " disabled") + ">" + [0, 1, 2, 3, 4, 5, 6].map((v) => '<option value="' + v + '"' + (song.pats[sel] === v ? " selected" : "") + ">" + (v ? "Pattern " + v : "The piece's") + "</option>").join("") + "</select>" +
+    '<span class="lbl">&nbsp;ENERGY</span><select id="slMood" aria-label="Place ' + (sel + 1) + ' energy"' + (q && song.full2 ? "" : " disabled") + ">" + (SONG_MOODS.includes(song.moods[sel]) ? SONG_MOODS : [...SONG_MOODS, song.moods[sel]].sort((a, b) => a - b)).map((v) => '<option value="' + v + '"' + (song.moods[sel] === v ? " selected" : "") + ">" + (v ? v - 1 + (v === 1 ? " chill" : v === 101 ? " peak" : "") : "As is") + "</option>").join("") + "</select></div>" +
     '<div class="bar"><button id="slPut">Put the open piece in place ' + (sel + 1) + '</button><button id="slOpen"' + (q ? "" : " disabled") + ">Open it</button>" +
     '<button id="slLeft">◀ Move</button><button id="slRight">Move ▶</button><button id="slClear">Clear place ' + (sel + 1) + "</button>" +
     '<span class="muted">Click a block (or a place below) to pick it; drag the places to reorder. Parts lit play; the others are left out of that place.</span></div><div class="places">';
@@ -1535,6 +1543,7 @@ function songRender() {
     const bank = bankOf(pq.genre), saved = !pcBankCheck(bank, pq.genre) && ((pcSaved(bank) >> pq.slot) & 1);
     h += '<div class="place' + (i === sel ? " sel" : "") + (now ? " now" : "") + '" data-i="' + i + '" draggable="true" style="--c:' + GENRE_COL[pq.genre % 5] + '"><div class="n">' + (i + 1) + " · " + (song.bars[i] ? song.bars[i] + " bars" : "auto") +
       '</div><div class="g">' + S.genreName(pq.genre) + '</div><div class="pc">' + S.pieceName(pq.genre, pq.slot) + '</div><canvas data-mini="' + i + '" width="160" height="36"></canvas><div class="st">' + (saved ? "saved" : "its recipe") +
+      (song.pats[i] ? " · pattern " + song.pats[i] : "") + (song.moods[i] ? " · " + moodName(song.moods[i]) : "") +
       (song.mutes[i] ? " · without " + PARTS.filter((_, k) => (song.mutes[i] >> k) & 1).map(([n]) => n.toLowerCase()).join(", ") : "") + "</div></div>";
   });
   $("song").innerHTML = h + "</div>";
@@ -1546,7 +1555,7 @@ function songRender() {
     let pc = null;
     try { pc = pcFromBank(bank, pq.genre, pq.slot); } catch { pc = null; }
     if (!pc) { g.fillStyle = "#3a3e4a"; g.font = "600 10px 'Chakra Petch', sans-serif"; g.fillText("as the genre makes it", 6, 22); return; }
-    const pat = Math.max(0, Math.min(5, pcGet(pc, PE.P_PATTERN, 0) || 0));
+    const pat = song.pats[i] ? song.pats[i] - 1 : Math.max(0, Math.min(5, pcGet(pc, PE.P_PATTERN, 0) || 0));   // (the place's pattern when it sets one)
     for (let l = 0; l < 6; l++) {
       const m = pc.rec[2 + 2 * (pat * 6 + l)] | (pc.rec[3 + 2 * (pat * 6 + l)] << 8);
       for (let st = 0; st < 16; st++) if ((m >> st) & 1) { g.fillStyle = COL.drum; g.globalAlpha = l ? 0.75 : 1; g.fillRect(2 + st * 9.75, 2 + l * 5.5, 7, 4.5); }
@@ -1576,12 +1585,17 @@ function songLine() {                                         // the song as a t
     g.fillStyle = i === setSel ? "#2a2416" : "#181a1f"; g.fillRect(x + 1, 2, w - 2, H - 4);
     g.fillStyle = gc; g.fillRect(x + 1, 2, w - 2, 3);
     g.font = FONT(700, 11); g.fillStyle = COL.ink; g.save(); g.beginPath(); g.rect(x + 1, 0, w - 2, H); g.clip();
-    g.fillText((i + 1) + " " + S.genreName(pq.genre) + " " + S.pieceName(pq.genre, pq.slot) + "  " + (auto ? "auto" : song.bars[i] + " bars"), x + 5, 17);
+    g.fillText((i + 1) + " " + S.genreName(pq.genre) + " " + S.pieceName(pq.genre, pq.slot) + "  " + (auto ? "auto" : song.bars[i] + " bars") + (song.pats[i] ? "  P" + song.pats[i] : ""), x + 5, 17);
     PARTS.forEach(([n, c], k) => {                            // a part's lane: lit where it plays
       if ((song.mutes[i] >> k) & 1) { g.strokeStyle = "#2e313a"; g.setLineDash([2, 3]); g.strokeRect(x + 3.5, top + k * lh + 3.5, w - 7, lh - 7); g.setLineDash([]); return; }
       g.fillStyle = hexA(c, auto ? 0.28 : 0.55); g.fillRect(x + 3, top + k * lh + 3, w - 6, lh - 6);
       if (auto) { g.strokeStyle = hexA(c, 0.5); g.lineWidth = 1; for (let hx = x + 3; hx < x + w - 6; hx += 8) { g.beginPath(); g.moveTo(hx, top + k * lh + lh - 3); g.lineTo(hx + 6, top + k * lh + 3); g.stroke(); } }
     });
+    if (song.moods[i]) {                                      // its energy: a line, low chill .. high peak
+      const ey = H - 6 - (song.moods[i] - 1) / 100 * (H - top - 12);
+      g.strokeStyle = COL.ink; g.globalAlpha = 0.8; g.lineWidth = 2; g.beginPath(); g.moveTo(x + 4, ey); g.lineTo(x + w - 4, ey); g.stroke(); g.globalAlpha = 1;
+      g.font = FONT(700, 10); g.fillStyle = COL.ink; g.fillText("E" + (song.moods[i] - 1), x + w - 30, ey - 3);
+    }
     g.restore();
     if (i === setSel) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.strokeRect(x + 1, 1, w - 2, H - 2); }
     if (live && live.playing && live.slPos === i && song.on) {   // the bar playing in it
@@ -1614,16 +1628,19 @@ $("song").addEventListener("click", async (e) => {
   }
   const id = b.id;
   if (id === "slPut") { if (!io) return; song.places[setSel] = cur.genre * 10 + cur.piece + 1; await songWrite("Place " + (setSel + 1) + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + ". It plays as saved: Save in the emulator keeps your edits."); }
-  else if (id === "slClear") { song.places[setSel] = 0; song.bars[setSel] = 0; song.mutes[setSel] = 0; await songWrite(); }
+  else if (id === "slClear") { for (const a of SONG_ARRS(song)) a[setSel] = 0; await songWrite(); }
   else if (id === "slLeft" || id === "slRight") {
     const j = setSel + (id === "slLeft" ? -1 : 1);
     if (j < 0 || j > 15) return;
-    for (const a of [song.places, song.bars, song.mutes]) [a[setSel], a[j]] = [a[j], a[setSel]];
+    for (const a of SONG_ARRS(song)) [a[setSel], a[j]] = [a[j], a[setSel]];
     setSel = j; await songWrite();
   } else if (id === "slOpen") { const pq = song.places[setSel] ? pcSetPlaces([song.places[setSel]])[0] : null; if (pq) await openPiece(pq.genre, pq.slot); songRender(); }
 });
 $("song").addEventListener("change", (e) => {
-  if (e.target.id !== "slBars" || !song) return;
+  if (!song) return;
+  if (e.target.id === "slPat") { song.pats[setSel] = +e.target.value; return songWrite("Place " + (setSel + 1) + ": " + (song.pats[setSel] ? "drum pattern " + song.pats[setSel] : "the piece's own pattern") + "."); }
+  if (e.target.id === "slMood") { song.moods[setSel] = +e.target.value; return songWrite("Place " + (setSel + 1) + ": " + moodName(song.moods[setSel]) + (song.moods[setSel] ? " (the mood macro, from its first bar)" : "") + "."); }
+  if (e.target.id !== "slBars") return;
   song.bars[setSel] = +e.target.value;
   songWrite("Place " + (setSel + 1) + ": " + (song.bars[setSel] ? song.bars[setSel] + " bars, exactly" : "Auto (the auto-DJ's rounds)") + ".");
 });
@@ -1635,7 +1652,7 @@ $("song").addEventListener("drop", async (e) => {
   if (!pl || dragFrom < 0 || !song) return;
   e.preventDefault();
   const to = +pl.dataset.i;
-  for (const a of [song.places, song.bars, song.mutes]) { const x = a.splice(dragFrom, 1)[0]; a.splice(to, 0, x); }
+  for (const a of SONG_ARRS(song)) { const x = a.splice(dragFrom, 1)[0]; a.splice(to, 0, x); }
   setSel = to; dragFrom = -1;
   await songWrite();
 });

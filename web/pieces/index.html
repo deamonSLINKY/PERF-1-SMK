@@ -573,7 +573,7 @@ $("scan").addEventListener("click", async () => {
         if (k >= 0 && pc.voice) { vidx = vslot.indexOf(k); if (vidx < 0) { vslot.push(k); voices.push(pc.voice); vidx = voices.length - 1; } }
         pieces.push({ ...pc, vidx });
       }
-      mySet = { kind: "set", list: gl.list, on: gl.on, mix: gl.mix, bars: gl.bars, mutes: gl.mutes, end: gl.end, pieces, voices, meta: {} };   // (bars, parts, end: 0.17.13's song mode)
+      mySet = { kind: "set", list: gl.list, on: gl.on, mix: gl.mix, bars: gl.bars, mutes: gl.mutes, end: gl.end, pats: gl.pats, moods: gl.moods, pieces, voices, meta: {} };   // (bars, parts, end: 0.17.13's song mode; patterns, energy: 0.17.14)
     }
     $("scanbar").value = 100;
     showMine();

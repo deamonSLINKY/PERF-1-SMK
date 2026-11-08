@@ -277,8 +277,9 @@ __attribute__((used, visibility("default"))) int web_st_save(void)
     return 1;
 }
 /* the set list (glob): sixteen places (genre * 10 + piece + 1, 0 empty) and Play; (0.17.13, song mode) each place's bars (0 Auto) and the parts it leaves
- * out, and the end (0 Loop, 1 Once). st_sl: places 0..15, Play 16, bars 17..32, parts 33..48, end 49; write 1: into glob (and the flash), then read back */
-#define ST_SLN (SL_N * 3 + 2)
+ * out, and the end (0 Loop, 1 Once); (0.17.14) each place's pattern (0 the piece's, 1..6) and energy (0 as is, else mood + 1). st_sl: places 0..15,
+ * Play 16, bars 17..32, parts 33..48, end 49, patterns 50..65, energy 66..81; write 1: into glob (and the flash), then read back */
+#define ST_SLN (SL_N * 5 + 2)
 static uint8_t st_sl[ST_SLN];
 __attribute__((used, visibility("default"))) uint8_t *web_st_sl(void) { return st_sl; }
 __attribute__((used, visibility("default"))) int web_st_sl_len(void) { return ST_SLN; }
@@ -290,6 +291,8 @@ __attribute__((used, visibility("default"))) void web_st_set(int write)
             glob.sl[k] = st_sl[k] <= EN_NGENRE * NPIECES ? st_sl[k] : 0;
             glob.sl_bars[k] = st_sl[SL_N + 1 + k];
             glob.sl_mute[k] = (uint8_t)(st_sl[2 * SL_N + 1 + k] & 31u);
+            glob.sl_pat[k] = st_sl[3 * SL_N + 2 + k] <= EN_NPAT ? st_sl[3 * SL_N + 2 + k] : 0;
+            glob.sl_mood[k] = st_sl[4 * SL_N + 2 + k] <= 101 ? st_sl[4 * SL_N + 2 + k] : 0;
         }
         glob.sl_on = st_sl[SL_N] ? 1 : 0;
         glob.sl_end = st_sl[3 * SL_N + 1] ? 1 : 0;
@@ -300,6 +303,8 @@ __attribute__((used, visibility("default"))) void web_st_set(int write)
         st_sl[k] = glob.sl[k];
         st_sl[SL_N + 1 + k] = glob.sl_bars[k];
         st_sl[2 * SL_N + 1 + k] = glob.sl_mute[k];
+        st_sl[3 * SL_N + 2 + k] = glob.sl_pat[k];
+        st_sl[4 * SL_N + 2 + k] = glob.sl_mood[k];
     }
     st_sl[SL_N] = glob.sl_on;
     st_sl[3 * SL_N + 1] = glob.sl_end;
