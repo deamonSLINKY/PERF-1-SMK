@@ -57,6 +57,9 @@ class Amb extends AudioWorkletProcessor {
       this.ex.web_enc(m.role, m.n | 0);
     } else if (m.type === "master") {
       this.ex.web_master(m.value | 0);
+    } else if (this.studio && m.type === "st_roll" && this.ex.web_st_roll) {
+      this.ex.web_st_roll();                                  // a new take: the engine's own parts anew, the piece as it is
+      this.port.postMessage({ type: "st", id: m.id, ok: 1 });
     } else if (this.studio && (m.type === "st_code" || m.type === "st_code_now") && this.ex.web_st_txt) {
       // a track code started (its text), or the playing track's code asked for; the answer: the result, the code, and the piece's bytes
       const txt = new Uint8Array(this.mem.buffer, this.ex.web_st_txt(), 16);

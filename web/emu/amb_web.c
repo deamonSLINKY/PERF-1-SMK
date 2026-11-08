@@ -222,3 +222,8 @@ __attribute__((used, visibility("default"))) int web_st_code_play(void)
     return web_st_read();
 }
 __attribute__((used, visibility("default"))) int web_st_code_now(void) { return ui_code_now(st_txt); }
+/* a new take: the track from its start with a new seed, the piece as it is (the panel's roll); the engine's own parts come out anew */
+__attribute__((used, visibility("default"))) void web_st_roll(void)
+{
+    track_fresh(1, 1);
+}

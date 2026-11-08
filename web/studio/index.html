@@ -16,6 +16,7 @@
   :root { --bg: #0e0f12; --panel: #181a1f; --panel-2: #22252c; --line: #2e313a; --dim: #8b8e98; --ink: #f2efe6; --acc: #ffb000;
           --pad: #a58bff; --acid: #b8f53a; --bass: #ff5a5f; --drum: #ff9a3c; --pluck: #3fd8ff; color-scheme: dark; }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.45 "Barlow Semi Condensed", "Helvetica Neue", Arial, sans-serif; }
   main { max-width: 1500px; margin: 0 auto; padding: 14px 16px 48px; }
   h1, h2, button, select, .tag, .site nav a { font-family: "Chakra Petch", "Helvetica Neue", Arial, sans-serif; }
@@ -74,6 +75,47 @@
   details summary { cursor: pointer; font-family: "Chakra Petch", sans-serif; font-weight: 600; letter-spacing: .04em; }
   details li { margin: 3px 0; }
   .muted { color: var(--dim); }
+  .lbl { font: 600 .72rem "Chakra Petch", sans-serif; color: var(--dim); letter-spacing: .08em; }
+  #top2 { margin-top: 6px; padding: 0 10px; }
+  #top2 select, #top2 input { font-size: .85rem; }
+  .views { display: flex; gap: 2px; margin: 0 0 6px; }
+  .views button { border-radius: 6px 6px 0 0; border-bottom: 0; padding: .35em 1.2em; color: var(--dim); }
+  .views button[aria-selected=true] { background: var(--panel); color: var(--acc); border-color: var(--line); }
+  .views.small { margin: 0; }
+  .views.small button { border-radius: 4px; border-bottom: 1px solid var(--line); padding: .2em .7em; font-size: .75rem; }
+  #scope { width: 100%; display: block; margin-top: 6px; border-radius: 6px; background: #121318; }
+  /* a control: a label, its value, a bar to drag (or a list) */
+  .ctls { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; }
+  .sec { margin: 0 0 12px; }
+  .sec h3 { font: 600 .75rem "Chakra Petch", sans-serif; letter-spacing: .1em; color: var(--dim); margin: 0 0 6px; text-transform: uppercase; }
+  .ctl { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px 6px; user-select: none; touch-action: none; cursor: ew-resize; outline: none; }
+  .ctl:focus-visible { border-color: var(--acc); }
+  .ctl .top { display: flex; justify-content: space-between; gap: 6px; font-size: .8rem; color: var(--dim); }
+  .ctl .v { font: 700 .95rem "Chakra Petch", sans-serif; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 9em; }
+  .ctl .trk { height: 5px; background: var(--line); border-radius: 3px; margin-top: 5px; position: relative; }
+  .ctl .trk i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--c, var(--acc)); }
+  .ctl.list { cursor: default; }
+  .ctl.list select { width: 100%; margin-top: 3px; font-size: .8rem; padding: .2em .3em; }
+  .lanes6 { border-collapse: collapse; width: 100%; font-size: .85rem; }
+  .lanes6 th { font: 600 .7rem "Chakra Petch", sans-serif; color: var(--dim); letter-spacing: .06em; text-align: left; padding: 2px 4px; }
+  .lanes6 td { padding: 2px 3px; }
+  .lanes6 .ctl { padding: 2px 6px 4px; }
+  .lanes6 .ctl .top span:first-child { display: none; }
+  /* the desk: a strip a part */
+  #desk { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)) minmax(240px, 1.6fr); gap: 8px; }
+  @media (max-width: 1100px) { #desk { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .strip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+  .strip .cap { height: 6px; background: var(--c); }
+  .strip h3 { font: 700 1rem "Chakra Petch", sans-serif; letter-spacing: .08em; margin: 6px 8px 2px; display: flex; justify-content: space-between; align-items: center; }
+  .strip .body { padding: 4px 8px 8px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .fader { position: relative; height: 150px; width: 34px; margin: 4px auto; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; cursor: ns-resize; touch-action: none; outline: none; }
+  .fader:focus-visible { border-color: var(--acc); }
+  .fader i { position: absolute; left: 3px; right: 3px; bottom: 3px; border-radius: 4px; background: var(--c); opacity: .85; }
+  .fader b { position: absolute; left: -6px; right: -6px; height: 8px; margin-bottom: -4px; background: var(--ink); border-radius: 2px; }
+  .strip .lv { text-align: center; font: 700 1.3rem "Chakra Petch", sans-serif; color: var(--c); }
+  .strip .mute[aria-pressed=true] { background: var(--bass); color: #fff; border-color: var(--bass); }
+  .deskside { display: flex; flex-direction: column; gap: 8px; }
+  .deskside .ctls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 </style>
 </head>
 <body>
@@ -97,6 +139,16 @@
     <span id="tc" class="tag dice" title="The code of the track playing" hidden></span>
     <button id="save" disabled>Download .piece</button>
     <button id="code" disabled>Copy code</button>
+    <button id="send" disabled title="Opens the Library &amp; pieces page with this piece, to add it to your FM-1 over USB">Send to the FM-1</button>
+  </div>
+  <div class="bar" id="top2">
+    <span class="lbl">TEMPO</span><input type="number" id="qTempo" min="70" max="190" style="width:4.6em" aria-label="Tempo" disabled>
+    <span class="lbl">KEY</span><select id="qRoot" aria-label="Root" disabled></select><select id="qMode" aria-label="Mode" disabled></select>
+    <span class="sp"></span>
+    <button id="roll" disabled title="A new take: the engine plays its own parts anew (the dice lanes), the piece as it is">⟳ New take</button>
+    <button id="mine" disabled title="Keep what the engine plays now: its bass, acid and pluck lines and the chords it walked become the piece's own">Make it mine</button>
+    <button id="undoB" disabled title="Undo (Ctrl+Z)">↶ Undo</button>
+    <button id="redoB" disabled title="Redo (Ctrl+Shift+Z)">↷ Redo</button>
   </div>
   <div id="msg"></div>
   <section class="card" id="imp" hidden>
@@ -112,8 +164,11 @@
     <p id="impreport"></p>
     <div class="bar"><button id="impgo" class="go">Put it in the piece</button><button id="impcancel">Cancel</button></div>
   </section>
+  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button></div>
   <section class="loomwrap">
     <canvas id="loom" height="560" aria-label="The Loom: every lane of the piece over its bars"></canvas>
+    <div id="desk" hidden></div>
+    <canvas id="scope" height="64" aria-label="What comes out: the waveform and the spectrum"></canvas>
     <div id="start">
       <button id="power" class="go">Switch on</button>
       <p>The studio reads and plays pieces through the emulator (the whole PERF-1 firmware, in this browser). It keeps its pieces where the Emulator page does, so a piece saved there is here too. Nothing reaches your FM-1 until you send it from the Library &amp; pieces page.</p>
@@ -121,9 +176,12 @@
   </section>
   <section class="lower">
     <div class="card">
-      <div class="edhead"><h2 id="edtitle">—</h2><span id="edtag" class="tag"></span><div id="edtools"></div></div>
-      <canvas id="ed" height="300" aria-label="The lane's shape: one bar"></canvas>
-      <p id="edhelp"></p>
+      <div class="edhead"><h2 id="edtitle">—</h2><span id="edtag" class="tag"></span>
+        <span class="views small" role="tablist"><button role="tab" data-pane="shape" aria-selected="true">SHAPE</button><button role="tab" data-pane="sound" aria-selected="false">SOUND</button></span>
+        <div id="edtools"></div></div>
+      <div id="shapepane"><canvas id="ed" height="300" aria-label="The lane's shape: one bar"></canvas>
+      <p id="edhelp"></p></div>
+      <div id="sound" hidden></div>
     </div>
     <aside class="card">
       <canvas id="screen" width="240" height="240" aria-label="The FM-1's screen, as the emulator draws it"></canvas>
@@ -315,12 +373,14 @@ async function openPiece(g, i) {
   resetHistory();
   $("genre").value = g; fillPieces(); $("piece").value = i;
   ["save", "code"].forEach((id) => { $(id).disabled = false; });
+  undoReset(); soundRender(); deskRender();
   say("Opened " + S.genreName(g) + " " + S.pieceName(g, i) + ". Click a lane to edit it; it plays as you change it.");
   refresh();
   if (typeof codeNow === "function") setTimeout(codeNow, 300);
 }
 let putTimer = 0;
-function changed() {                                         // the piece in hand edited: draw it, and into the emulator a moment later
+function changed(quiet) {                                    // the piece in hand edited: draw it, and into the emulator a moment later
+  if (!quiet) undoNote();
   refresh();
   clearTimeout(putTimer);
   putTimer = setTimeout(() => { if (node && io) node.port.postMessage({ type: "st_put", io: io.slice(), id: ++reqId }); }, 60);
@@ -453,7 +513,7 @@ function drawLoom() {
   g.font = FONT(600, 11);
   for (let b = 0; b < nb; b++) {
     g.fillStyle = COL.dim; g.fillText(String(b + 1), X(b, 0) + 3, 12);
-    const h = hist[b], p = h ? h.pat : par("P_PATTERN");
+    const h = hist[b], p = patAt(b);
     g.fillStyle = h ? "#3a2614" : "#22190f"; g.fillRect(X(b, 0) + 1, 16, BW - 2, 11);
     if (BW > 22) { g.fillStyle = h ? COL.drum : "#7a5530"; g.font = FONT(600, 9); g.fillText("P" + (p + 1), X(b, 0) + 4, 25); g.font = FONT(600, 11); }
   }
@@ -505,7 +565,7 @@ function drawChordLane(g, L, tl, nb, X, BW) {
 function drawDrumLane(g, L, nb, X, SW) {
   const rh = (L.h - 8) / NL, LV = [0.85, 0.35, 0.6, 1];
   for (let b = 0; b < nb; b++) {
-    const h = hist[b], p = h ? h.pat : par("P_PATTERN");
+    const p = patAt(b);
     for (let l = 0; l < NL; l++) {
       const m = patGet(p, l), y = L.top + 4 + l * rh;
       for (let s = 0; s < 16; s++) {
@@ -549,7 +609,7 @@ function drawLineLane(g, L, notes, X, SW) {
 $("loom").addEventListener("click", (e) => {
   const r = $("loom").getBoundingClientRect(), y = e.clientY - r.top;
   const L = layout.find((l) => y >= l.top - GAP / 2 && y < l.top + l.h + GAP / 2);
-  if (L) { sel = L.id; refresh(); }
+  if (L) { sel = L.id; if (pane === "sound") soundRender(); refresh(); }
 });
 
 /* ======================================================================== the shape editor: one bar of the lane in hand */
@@ -829,7 +889,7 @@ function drawFacts() {
     row("Levels", ["P_PAD", "P_BASS", "P_ACID", "P_CM_LVL", "P_PULSE"].map((k) => par(k)).join(" · ")) + '<div><span></span><span class="muted">pad · bass · acid · pluck · drums</span></div>';
 }
 let raf = 0;
-function refresh() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; drawLoom(); drawEditor(); drawFacts(); }); }
+function refresh() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (view === "loom") drawLoom(); drawEditor(); drawFacts(); syncCtls(); syncQuick(); }); }
 setInterval(() => { if (live && live.playing) refresh(); }, 66);
 window.addEventListener("resize", refresh);
 
@@ -960,7 +1020,7 @@ $("impgo").addEventListener("click", async () => {
   if (!node) await switchOn();
   if (!io) return;
   const R = impPreview(), o = impOpts();
-  undoIo = io.slice();
+  undoBase = io.slice(); undoT = 0;
   const lift = (k) => { if (par(k) === 0) setPar(k, P[PE[k]].def || 50); };   // a part written into a silent layer: its level up
   if (R.pats) {
     for (let p = 0; p < NPAT; p++) for (let l = 0; l < NL; l++) patSet(p, l, R.pats[p][l]);
@@ -1026,16 +1086,282 @@ $("tcode").addEventListener("click", async () => {
   resetHistory();
   $("genre").value = d.genre; fillPieces(); $("piece").value = d.piece;
   ["save", "code"].forEach((id) => { $(id).disabled = false; });
+  undoReset(); soundRender(); deskRender();
   say("Track " + d.text + ": " + S.genreName(d.genre) + " " + S.pieceName(d.genre, d.piece) + " · " + NOTE[d.root] + " " + P[PE.P_MODE].t[d.mode].toLowerCase() + " · " + d.tempo + " BPM, the same notes as on the FM-1. Edit it here; Download .piece keeps your version.");
   refresh();
   codeNow();
 });
-$("undo").addEventListener("click", () => {
-  if (!undoIo) return;
-  io = undoIo; undoIo = null; $("undo").hidden = true;
-  resetHistory(); changed();
-  say("The import is undone.");
+$("undo").addEventListener("click", () => { undo(); $("undo").hidden = true; say("The import is undone."); });
+
+/* ======================================================================== undo and redo: every change to the piece (a drag is one step) */
+let undoStack = [], redoStack = [], undoBase = null, undoT = 0, view = "loom", pane = "shape";
+function undoReset() { undoStack = []; redoStack = []; undoBase = io ? io.slice() : null; undoT = 0; undoButtons(); }
+function undoNote() {                                         // (called after a change: the state before it goes on the stack, once a gesture)
+  const now = performance.now();
+  if (undoBase && now - undoT > 700) { undoStack.push(undoBase); if (undoStack.length > 200) undoStack.shift(); redoStack = []; }
+  undoT = now; undoBase = io.slice(); undoButtons();
+}
+function undoButtons() { $("undoB").disabled = !undoStack.length; $("redoB").disabled = !redoStack.length; }
+function undoGo(from, to) {
+  if (!from.length || !io) return;
+  to.push(io.slice()); io = from.pop(); undoBase = io.slice(); undoT = 0;
+  changed(true); undoButtons(); soundRender(); deskRender();
+}
+const undo = () => undoGo(undoStack, redoStack), redo = () => undoGo(redoStack, undoStack);
+$("undoB").addEventListener("click", undo);
+$("redoB").addEventListener("click", redo);
+document.addEventListener("keydown", (e) => {
+  if (!(e.ctrlKey || e.metaKey) || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.code === "KeyZ" && !e.shiftKey) { e.preventDefault(); undo(); }
+  else if ((e.code === "KeyZ" && e.shiftKey) || e.code === "KeyY") { e.preventDefault(); redo(); }
 });
+
+/* ======================================================================== controls: a setting as the unit's knob (a bar to drag, a list of names) */
+const parV = (p) => P[p].min + io[REC_PAR + p];
+const parSetV = (p, v) => { v = Math.max(P[p].min, Math.min(P[p].max, Math.round(v))); if (parV(p) === v) return false; io[REC_PAR + p] = v - P[p].min; return true; };
+const valText = (p, v) => (P[p].t ? (P[p].t[v - P[p].min] ?? String(v)) : String(v));
+const shortLabel = (l) => String(l).replace(/\s*\(.*\)\s*$/, "");
+function ctlHTML(p, label, col) {
+  const q = P[p];
+  if (!q) return "";
+  const lab = shortLabel(label || q.n).replace(/[<&]/g, "");
+  if (q.t && q.t.length > 2)
+    return '<div class="ctl list" data-p="' + p + '"><div class="top"><span>' + lab + '</span></div><select data-p="' + p + '" aria-label="' + lab + '">' +
+      q.t.map((t, i) => '<option value="' + (q.min + i) + '">' + String(t).replace(/[<&]/g, "") + "</option>").join("") + "</select></div>";
+  return '<div class="ctl" tabindex="0" role="slider" aria-label="' + lab + '" aria-valuemin="' + q.min + '" aria-valuemax="' + q.max + '" data-p="' + p + '" style="--c:' + (col || COL.acc) +
+    '"><div class="top"><span>' + lab + '</span><span class="v"></span></div><div class="trk"><i></i></div></div>';
+}
+function syncCtls() {                                         // every control on the page to the piece's values
+  if (!io) return;
+  document.querySelectorAll(".ctl[data-p]").forEach((el) => {
+    const p = +el.dataset.p, v = parV(p), q = P[p];
+    if (el.classList.contains("list")) { const sl = el.querySelector("select"); if (document.activeElement !== sl && +sl.value !== v) sl.value = v; return; }
+    el.querySelector(".v").textContent = valText(p, v);
+    el.querySelector("i").style.width = (100 * (v - q.min) / Math.max(1, q.max - q.min)) + "%";
+    el.setAttribute("aria-valuenow", v);
+  });
+  document.querySelectorAll(".fader[data-p]").forEach((el) => {
+    const p = +el.dataset.p, q = P[p], f = (parV(p) - q.min) / Math.max(1, q.max - q.min);
+    el.querySelector("i").style.height = "calc(" + (f * 100) + "% - 6px)"; el.querySelector("b").style.bottom = (f * 100) + "%";
+    el.setAttribute("aria-valuenow", parV(p));
+    const lv = el.parentElement.querySelector(".lv"); if (lv) lv.textContent = parV(p);
+  });
+  document.querySelectorAll(".mute[data-p]").forEach((b) => b.setAttribute("aria-pressed", String(parV(+b.dataset.p) === 0)));
+}
+function setFromCtl(p, v) { if (io && parSetV(p, v)) changed(); }
+let drag = null;
+document.addEventListener("pointerdown", (e) => {
+  const el = e.target.closest(".ctl:not(.list), .fader");
+  if (!el || !io) return;
+  const p = +el.dataset.p, r = el.getBoundingClientRect();
+  drag = { el, p, x: e.clientX, y: e.clientY, v0: parV(p), moved: false, fader: el.classList.contains("fader"), r };
+  el.setPointerCapture(e.pointerId); el.focus(); e.preventDefault();
+  if (drag.fader) setFromCtl(p, P[p].min + (r.bottom - e.clientY) / r.height * (P[p].max - P[p].min));
+});
+document.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const q = P[drag.p], range = q.max - q.min;
+  if (drag.fader) { setFromCtl(drag.p, q.min + (drag.r.bottom - e.clientY) / drag.r.height * range); return; }
+  const dx = e.clientX - drag.x;
+  if (Math.abs(dx) > 2) drag.moved = true;
+  if (drag.moved) setFromCtl(drag.p, drag.v0 + dx / Math.max(80, drag.r.width) * range * (e.shiftKey ? 0.2 : 1));
+});
+document.addEventListener("pointerup", () => {
+  if (drag && !drag.moved && !drag.fader) { const q = P[drag.p]; if (q.max - q.min === 1) setFromCtl(drag.p, parV(drag.p) ? q.min : q.max); }   // a switch: a click turns it over
+  drag = null;
+});
+document.addEventListener("dblclick", (e) => { const el = e.target.closest(".ctl:not(.list), .fader"); if (el && io) setFromCtl(+el.dataset.p, P[+el.dataset.p].def); });
+document.addEventListener("wheel", (e) => {
+  const el = e.target.closest(".ctl:not(.list), .fader");
+  if (!el || !io) return;
+  e.preventDefault();
+  setFromCtl(+el.dataset.p, parV(+el.dataset.p) + (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 10 : 1));
+}, { passive: false });
+document.addEventListener("keydown", (e) => {
+  const el = document.activeElement;
+  if (!el || !el.matches || !el.matches(".ctl:not(.list), .fader") || !io) return;
+  const p = +el.dataset.p, st = e.shiftKey ? 10 : 1;
+  const k = { ArrowRight: st, ArrowUp: st, ArrowLeft: -st, ArrowDown: -st }[e.key];
+  if (k) { e.preventDefault(); setFromCtl(p, parV(p) + k); }
+  else if (e.key === "Home") setFromCtl(p, P[p].min);
+  else if (e.key === "End") setFromCtl(p, P[p].max);
+});
+document.addEventListener("change", (e) => {
+  const sl = e.target.closest(".ctl.list select");
+  if (sl && io) setFromCtl(+sl.dataset.p, +sl.value);
+});
+
+/* ---- the SOUND pane: the lane's own page on the FM-1, every knob (params.json's tabs: the unit's pages, as ui.c has them) */
+const LANE_TAB = { chords: "Pad", pad: "Pad", bass: "Bass", acid: "Acid", pluck: "Pluck", drums: "Drums" };
+function soundRender() {
+  if (pane !== "sound") return;
+  const tab = D.tabs.find((t) => t.name === LANE_TAB[sel]), col = (LANES.find((l) => l.id === sel) || {}).col;
+  if (!tab || !io) { $("sound").innerHTML = ""; return; }
+  const plain = tab.sections.filter((x) => !/ lane$/.test(x.name)), lanes = tab.sections.filter((x) => / lane$/.test(x.name));
+  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + '</h3><div class="ctls">' + x.knobs.map((k) => ctlHTML(k.p, k.label, col)).join("") + "</div></div>").join("");
+  if (lanes.length) {                                         // the drums' six lanes: a row each
+    h += '<div class="sec"><h3>Each lane</h3><table class="lanes6"><tr><th></th>' + lanes[0].knobs.map((k) => "<th>" + shortLabel(k.label).replace("Probability", "Chance").replace("Length", "Steps") + "</th>").join("") + "</tr>" +
+      lanes.map((x) => "<tr><th>" + x.name.replace(/ lane$/, "").toUpperCase() + "</th>" + x.knobs.map((k) => "<td>" + ctlHTML(k.p, k.label, col) + "</td>").join("") + "</tr>").join("") + "</table></div>";
+  }
+  $("sound").innerHTML = h + '<p class="muted">Drag a control (Shift: finer), turn the mouse wheel over it, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
+  syncCtls();
+}
+document.querySelector(".edhead .views").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-pane]");
+  if (!b) return;
+  pane = b.dataset.pane;
+  document.querySelectorAll(".edhead .views button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+  $("shapepane").hidden = pane !== "shape"; $("edtools").hidden = pane !== "shape"; $("sound").hidden = pane !== "sound";
+  soundRender(); refresh();
+});
+
+/* ---- the DESK: a strip a part (its level, place, send, sound, octave, mute), the space and the master bus beside them */
+const tabOf = (n) => D.tabs.find((t) => t.name === n);
+const knobIn = (tabName, re, secRe) => { const t = tabOf(tabName); for (const x of t ? t.sections : []) if (!secRe || secRe.test(x.name)) for (const k of x.knobs) if (re.test(k.label)) return k.p; return -1; };
+function deskStrips() {
+  const mix = tabOf("Mixer"), sec = (n) => (mix.sections.find((x) => x.name.startsWith(n)) || { knobs: [] }).knobs;
+  const L = sec("Levels"), Pn = sec("Pan"), Sd = sec("Send");
+  const parts = [["PAD", "Pad", COL.pad], ["BASS", "Bass", COL.bass], ["ACID", "Acid", COL.acid], ["PLUCK", "Pluck", COL.pluck], ["DRUMS", "Drums", COL.drum], ["VINYL", "Vinyl", "#c9c6bd"]];
+  return parts.map(([n, t, c]) => {
+    const lv = L.find((k) => k.label === t), pn = Pn.find((k) => k.label === t), sd = Sd.find((k) => k.label === t);
+    const extra = [];
+    if (t === "Drums") { ["Kick", "Snare", "Hats", "Perc"].forEach((k) => extra.push([knobIn("Drums", new RegExp("^" + k + "$"), /^Kit/), k])); extra.push([knobIn("Drums", /^Drive$/), "Drive"]); extra.push([knobIn("Drums", /^Swing$/), "Swing"]); }
+    else if (t === "Vinyl") { sec("Vinyl").forEach((k) => extra.push([k.p, k.label])); }
+    else { extra.push([knobIn(t, /^Sound$/), "Sound"]); extra.push([knobIn(t, /^Octave$/), "Octave"]); }
+    return { n, c, lvl: lv ? lv.p : -1, pan: pn ? pn.p : -1, send: sd ? sd.p : -1, extra: extra.filter((x) => x[0] >= 0) };
+  });
+}
+const muteMem = {};
+function deskRender() {
+  if (view !== "desk" || !io) return;
+  let h = deskStrips().map((st) => '<div class="strip" style="--c:' + st.c + '"><div class="cap"></div><h3>' + st.n +
+    (st.lvl >= 0 ? '<button class="small mute" data-p="' + st.lvl + '" title="Mute (the level to 0, and back)">M</button>' : "") + '</h3><div class="body">' +
+    (st.lvl >= 0 ? '<div class="fader" tabindex="0" role="slider" aria-label="' + st.n + ' level" data-p="' + st.lvl + '"><i></i><b></b></div><div class="lv"></div>' : "") +
+    (st.pan >= 0 ? ctlHTML(st.pan, "Pan", st.c) : "") + (st.send >= 0 ? ctlHTML(st.send, "Send", st.c) : "") + st.extra.map(([p, l]) => ctlHTML(p, l, st.c)).join("") + "</div></div>").join("");
+  const sp = tabOf("Space & master"), tg = tabOf("Tempo & global"), skip = new Set([PE.P_THEME, PE.P_MIDI, PE.P_TUNE]);
+  h += '<div class="deskside">' + [...sp.sections, ...tg.sections].map((x) => {
+    const ks = x.knobs.filter((k) => !skip.has(k.p));
+    return ks.length ? '<div class="sec"><h3>' + shortLabel(x.name) + '</h3><div class="ctls">' + ks.map((k) => ctlHTML(k.p, k.label)).join("") + "</div></div>" : "";
+  }).join("") + "</div>";
+  $("desk").innerHTML = h;
+  syncCtls();
+}
+$("desk").addEventListener("click", (e) => {
+  const b = e.target.closest(".mute");
+  if (!b || !io) return;
+  const p = +b.dataset.p;
+  if (parV(p)) { muteMem[p] = parV(p); parSetV(p, 0); } else parSetV(p, muteMem[p] || P[p].def || 50);
+  changed();
+});
+document.querySelector(".views").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-view]");
+  if (!b) return;
+  view = b.dataset.view;
+  document.querySelectorAll(".views button[data-view]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+  $("loom").hidden = view !== "loom"; $("desk").hidden = view !== "desk";
+  deskRender(); refresh();
+});
+
+/* ---- the top's quick settings: tempo, key */
+$("qRoot").innerHTML = NOTE.map((n, i) => '<option value="' + i + '">' + n + "</option>").join("");
+$("qMode").innerHTML = P[PE.P_MODE].t.map((n, i) => '<option value="' + i + '">' + n + "</option>").join("");
+function syncQuick() {
+  if (!io) return;
+  ["qTempo", "qRoot", "qMode"].forEach((id) => { $(id).disabled = false; });
+  ["send", "roll", "mine"].forEach((id) => { $(id).disabled = !node; });
+  if (document.activeElement !== $("qTempo")) $("qTempo").value = par("P_TEMPO");
+  $("qRoot").value = par("P_ROOT"); $("qMode").value = par("P_MODE");
+}
+$("qTempo").addEventListener("change", () => { setPar("P_TEMPO", +$("qTempo").value || 120); changed(); });
+$("qRoot").addEventListener("change", () => { setPar("P_ROOT", +$("qRoot").value); changed(); });
+$("qMode").addEventListener("change", () => { const m = +$("qMode").value, pool = midiPool(m); setPar("P_MODE", m); io[0] = pool & 255; io[1] = pool >> 8; changed(); });
+
+/* ---- the drum pattern a loom bar plays: as heard, else the phrase's chain (P_CHAIN: a pattern a bar, e.g. 1123), else the piece's */
+function patAt(b) {
+  if (hist[b]) return hist[b].pat;
+  const c = par("P_CHAIN"), t = P[PE.P_CHAIN].t;
+  if (c > 0 && t && /^\d+$/.test(t[c])) return Math.min(NPAT - 1, +t[c][b % t[c].length] - 1);
+  return par("P_PATTERN");
+}
+
+/* ---- a new take (the engine plays its own parts anew), and making what it plays the piece's own */
+$("roll").addEventListener("click", async () => {
+  if (!node) return;
+  await ask({ type: "st_roll" });
+  resetHistory(); refresh(); setTimeout(codeNow, 400);
+  say("A new take: the dice lanes play anew. Make it mine keeps what you hear.");
+});
+$("mine").addEventListener("click", () => {
+  if (!io || !live) return say("Switch on and let it play a few bars first.", true);
+  const done = [];
+  if (laneState("bass").tag === "DICE" && live.bsHist.some((v) => (v & 7) >= 1 && (v & 7) <= 4)) { io.set(live.bsHist, IO_BS); setPar("P_BL_MODE", BL_STEPS); done.push("the bass"); }
+  if (laneState("acid").tag === "DICE" && live.acGate) { acidSet(live.acOff.map((o, s) => ({ off: o, oct: live.acOct[s], gate: (live.acGate >> s) & 1, acc: (live.acAcc >> s) & 1, slide: (live.acSlide >> s) & 1 }))); setPar("P_AC_LOCK", 1); done.push("the acid"); }
+  if (laneState("pluck").tag === "DICE" && live.cmLvl.some((x) => x)) { pluckSet(live.cmRung.map((r, s) => ({ rung: r, lvl: live.cmLvl[s] }))); freezePluck(); done.push("the pluck"); }
+  if (!timeline()) {                                          // the walk's chords as heard, from the first bar on, as slots
+    const degs = [], nb = loomBars(null);
+    let b0 = 0;                                               // the run heard: from a heard bar whose bar before was not heard, round the loom
+    for (let b = 0; b < nb; b++) if (hist[b] && !hist[(b + nb - 1) % nb]) { b0 = b; break; }
+    for (let k = 0; k < nb && hist[(b0 + k) % nb]; k++) degs.push(riOfPc(hist[(b0 + k) % nb].croot) % 7 + 1);
+    if (degs.length >= 2) {
+      const slots = [];
+      let i = 0;
+      while (i < degs.length && slots.length < 8) {
+        let j = i; while (j < degs.length && degs[j] === degs[i]) j++;
+        let left = j - i, first = true;
+        for (const c of [8, 4, 2, 1]) while (left >= c && slots.length < 8) { slots.push({ deg: first ? degs[i] : 0, bars: c }); first = false; left -= c; }
+        i = j;
+      }
+      const unit = bitGet(prg(), 41, 2);
+      prg().fill(0);
+      slots.forEach((x, k) => { bitPut(prg(), 3 * k, 3, x.deg); bitPut(prg(), 24 + 2 * k, 2, BARS.indexOf(x.bars)); });
+      bitPut(prg(), 40, 1, 1); bitPut(prg(), 41, 2, unit);
+      done.push("the chords (" + degs.length + " bars heard)");
+    }
+  }
+  if (!done.length) return say("Nothing to keep: every lane is yours already (or nothing has played yet).");
+  resetHistory(); changed();
+  say("Yours now: " + done.join(", ") + ". They are stored with the piece and play the same every time.");
+});
+$("send").addEventListener("click", async () => {
+  if (!io) return;
+  const c = await pcToCode(pieceOut());
+  window.open("../pieces/#p=" + c, "_blank", "noopener");
+  say("The piece is on the Library & pieces page (a new tab): connect the FM-1 there and add it to a place.");
+});
+
+/* ---- the scope: what comes out, its waveform over its spectrum in the parts' colours (low: bass, drums; up: acid, pluck, pad) */
+let analyser = null;
+function scopeStart() {
+  if (analyser || !ac || !node) return;
+  analyser = ac.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.7;
+  node.connect(analyser);
+  const wave = new Uint8Array(analyser.fftSize), spec = new Uint8Array(analyser.frequencyBinCount);
+  const BANDCOL = [COL.bass, COL.drum, COL.acid, COL.pluck, COL.pad];
+  (function draw() {
+    requestAnimationFrame(draw);
+    const cv = $("scope"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = 64;
+    if (!W) return;
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
+    const g = cv.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
+    analyser.getByteFrequencyData(spec); analyser.getByteTimeDomainData(wave);
+    const NB = 72, bw = W / NB;
+    for (let i = 0; i < NB; i++) {                            // bands on a log scale, 30 Hz .. 16 kHz
+      const f0 = 30 * Math.pow(16000 / 30, i / NB), f1 = 30 * Math.pow(16000 / 30, (i + 1) / NB);
+      const k0 = Math.floor(f0 / (ac.sampleRate / 2) * spec.length), k1 = Math.max(k0 + 1, Math.floor(f1 / (ac.sampleRate / 2) * spec.length));
+      let m = 0; for (let k = k0; k < k1 && k < spec.length; k++) m = Math.max(m, spec[k]);
+      const h = (m / 255) * (H - 4);
+      g.globalAlpha = 0.55; g.fillStyle = BANDCOL[Math.min(4, Math.floor(i / NB * 5))];
+      g.fillRect(i * bw + 1, H - h, bw - 2, h);
+    }
+    g.globalAlpha = 1; g.strokeStyle = COL.acc; g.lineWidth = 1.5; g.beginPath();
+    for (let x = 0; x < W; x++) { const v = wave[Math.floor(x / W * wave.length)] / 128 - 1, y = H / 2 - v * (H / 2 - 4); x ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.stroke();
+  })();
+}
+setInterval(() => { if (ac && node && !analyser) scopeStart(); }, 500);
+
 refresh();
 </script>
 </body>
