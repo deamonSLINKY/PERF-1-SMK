@@ -401,13 +401,17 @@ static const uint8_t BLACK_KEY[11] = {1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25};
 #define FACTORY_HOLD 1500u             /* SAVE held this long on Global: the piece to its factory settings */
 
 /* ---------------------------------------------------------------- themes --- */
-/* six palettes for the screen (Global > Theme; the look, Imp, is the same in all of them): a ground, its panel and lines, the text, an accent for what is
+/* seven palettes for the screen (Global > Theme; the layout, Console since 0.17.3, is the same in all of them): a ground, its panel and lines, the text, an accent for what is
  * happening now, a primary for the music in three shades (the pad and the chord; the acid; the drone),
  * the drums' colour, and a colour for the sections and freeze. Each layer has a dark tint for shapes at rest. */
 typedef struct {
     uint16_t bg, panel, line, dim, text, acc, pad, pad_t, acid, acid_t, bass, bass_t, pulse, pulse_t, frost, pluck;
 } theme_t;
 static const theme_t THEMES[EN_NTHEME] = {
+    /* Console (0.17.3, the default): a desk's charcoal, amber for now, a colour a channel */
+    {RGB(14, 15, 18), RGB(24, 26, 31), RGB(46, 49, 58), RGB(139, 142, 152), RGB(242, 239, 230), RGB(255, 176, 0),
+     RGB(165, 139, 255), RGB(52, 44, 84), RGB(184, 245, 58), RGB(50, 70, 16), RGB(255, 90, 95), RGB(80, 26, 30),
+     RGB(255, 154, 60), RGB(90, 52, 22), RGB(150, 210, 255), RGB(63, 216, 255)},
     /* Imp: warm black, bone, crimson, lime, pink; ember is for "now" (the playhead, the knob you touched) */
     {RGB(20, 14, 12), RGB(42, 30, 27), RGB(78, 56, 49), RGB(166, 140, 126), RGB(244, 232, 200), RGB(255, 212, 71),
      RGB(242, 230, 196), RGB(86, 78, 62), RGB(182, 242, 60), RGB(60, 80, 22), RGB(224, 52, 79), RGB(84, 22, 32),
@@ -432,19 +436,10 @@ static const theme_t THEMES[EN_NTHEME] = {
     {RGB(6, 14, 8), RGB(14, 32, 18), RGB(26, 58, 32), RGB(80, 160, 96), RGB(170, 255, 190), RGB(220, 255, 120),
      RGB(60, 255, 120), RGB(14, 70, 30), RGB(150, 255, 170), RGB(24, 76, 40), RGB(30, 190, 90), RGB(10, 56, 26),
      RGB(120, 220, 140), RGB(20, 52, 28), RGB(240, 255, 140), RGB(200, 240, 150)},
-    /* Console (0.17.2, a test): a desk's charcoal, amber for now, a colour a channel */
-    {RGB(14, 15, 18), RGB(24, 26, 31), RGB(46, 49, 58), RGB(139, 142, 152), RGB(242, 239, 230), RGB(255, 176, 0),
-     RGB(165, 139, 255), RGB(52, 44, 84), RGB(184, 245, 58), RGB(50, 70, 16), RGB(255, 90, 95), RGB(80, 26, 30),
-     RGB(255, 154, 60), RGB(90, 52, 22), RGB(150, 210, 255), RGB(63, 216, 255)},
-    /* Ritual (0.17.2, a test): the circle's black, bone, crimson, gold for now */
-    {RGB(7, 4, 10), RGB(28, 14, 32), RGB(64, 28, 70), RGB(150, 120, 132), RGB(243, 233, 210), RGB(255, 204, 77),
-     RGB(180, 140, 255), RGB(50, 30, 70), RGB(184, 245, 58), RGB(40, 60, 14), RGB(255, 77, 99), RGB(80, 20, 30),
-     RGB(255, 154, 60), RGB(90, 50, 20), RGB(255, 47, 79), RGB(63, 216, 255)},
 };
 static const theme_t *th = &THEMES[0];
-#define LOOK_SYNTH (th == &THEMES[1])           /* the Synth theme has a look of its own: the horizon behind the sigil, the neon imp */
-#define LOOK_CONSOLE (th == &THEMES[6])         /* 0.17.2, a test: channel strips, a tracker, faders (the looks, before draw_main) */
-#define LOOK_RITUAL (th == &THEMES[7])          /* 0.17.2, a test: the whole screen one circle, the knobs in its corners */
+#define LOOK_SYNTH (th == &THEMES[2])           /* the Synth theme has a look of its own: the horizon behind the sigil, the neon imp */
+#define LOOK_CONSOLE 1                          /* 0.17.3: the Console layout is every theme's (the old HYP-1 frame's code is left for now, unused) */
 #define K_BG (th->bg)
 #define K_PANEL (th->panel)
 #define K_LINE (th->line)
@@ -464,7 +459,7 @@ static const theme_t *th = &THEMES[0];
 uint32_t ui_splash_ms = 3200u;           /* the boot cards: RedtailWorks, then HYP-1 (the host's tests set 0) */
 
 static struct {
-    uint8_t view, last_dial, rit_full;   /* rit_full: the Ritual look has the whole screen (no header, no knob strip) */
+    uint8_t view, last_dial;
     uint32_t btn, keys, btn_used;
     uint32_t enc_t[NE];
     uint8_t enc_run[NE];               /* detents in the current quick run, per knob (accel) */
@@ -4074,6 +4069,8 @@ static void cv_round(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
     int32_t j;
     if (r > 6)
         r = 6;
+    if (LOOK_CONSOLE && r > 1)                   /* the Console layout: a desk's square keys, every chip and tag at once */
+        r = 1;
     if (r > h / 2)
         r = h / 2;
     cv_rect(x, y + r, w, h - 2 * r, c);
@@ -4303,7 +4300,7 @@ static void draw_header(void)
         int32_t x = cv_text(10, 6, &FONT_B, ui.msg[0], K_TEXT);
         cv_text(x + 8, 6, &FONT_B, ui.msg[1], K_ACC);
     } else {
-        int32_t x = 207, w;
+        int32_t x = LOOK_CONSOLE ? 236 : 207, w;   /* (the Console layout: no imp up here, the status runs to the edge) */
         const uint32_t bv = plat_battery();
         if (bv != 0xFFFFFFFFu && bv > 100u) {      /* the battery, left of the mascot: a cell, its charge in three steps (the stock firmware's own: the divider's reading under 531 is the last, 561 and 591 the others), a bolt in it while USB powers the unit */
             const int lvl = bv >= 591u ? 3 : bv >= 561u ? 2 : bv >= 531u ? 1 : 0;
@@ -4321,7 +4318,8 @@ static void draw_header(void)
             }
             x -= 20;
         }
-        draw_mascot(212 + (en_playing && en_sec == EN_SEC_BUILD ? (int)(ui.frame / 2u & 1u) * 2 - 1 : 0), 3, en_playing && en_sec == EN_SEC_BREAK);
+        if (!LOOK_CONSOLE)
+            draw_mascot(212 + (en_playing && en_sec == EN_SEC_BUILD ? (int)(ui.frame / 2u & 1u) * 2 - 1 : 0), 3, en_playing && en_sec == EN_SEC_BREAK);
         if (project_pending()) {                   /* not yet in flash (the theme, Tune, MIDI out: two seconds on) */
             cv_round(x - 5, 12, 5, 5, 2, K_DIM);
             x -= 11;
@@ -4406,7 +4404,7 @@ static void draw_header(void)
             for (j = 0; j < 5; j++)
                 cv_rect(x + 2 + j, 9 + j, 1, 11 - 2 * j, K_DIM);
         }
-        if (LOOK_CONSOLE || LOOK_RITUAL) {        /* the looks: the piece's name in the accent, no tag; unstored changes a dot after it */
+        if (LOOK_CONSOLE) {                       /* the Console layout: the piece's name in the accent, no tag; unstored changes a dot after it */
             w = cv_text(6, 5, &FONT_B, piece_name(proj.piece), K_ACC) - 4;
             if (proj.edited >> proj.piece & 1u) {
                 cv_round(w + 7, 12, 4, 4, 1, K_ACC);
@@ -6332,26 +6330,9 @@ static void draw_zoom(int i)
  * RITUAL: the whole screen one circle: the bar's 16 steps on the rim, a voice an orbit with its notes as beads, the chord's star and the
  *   eye in the middle; the page's four knobs in the square's corners, each a quarter arc. Drawn in two halves (a canvas is 144 rows at
  *   most); the pages that draw a picture of their own keep the bands. */
-static const int16_t S16[16] = {0, 392, 724, 946, 1024, 946, 724, 392, 0, -392, -724, -946, -1024, -946, -724, -392};   /* sin x 1024, step k of 16, clockwise from the top */
-#define C16(k) S16[((k) + 4) & 15]
-static const int16_t S12[12] = {0, 512, 887, 1024, 887, 512, 0, -512, -887, -1024, -887, -512};
-#define C12(k) S12[((k) + 3) % 12]
 enum { LK_PAD, LK_BASS, LK_ACID, LK_PLUCK, LK_DRUMS };
 static const char *const LK_NAME[5] = {"PAD", "BASS", "ACID", "PLUCK", "DRUMS"};
 
-static void cv_ring(int32_t cx, int32_t cy, int32_t r, uint16_t c)   /* a circle's outline (the midpoint way: no sines) */
-{
-    int32_t x = r, y = 0, e = 1 - r;
-    while (x >= y) {
-        cv_pset(cx + x, cy + y, c), cv_pset(cx - x, cy + y, c), cv_pset(cx + x, cy - y, c), cv_pset(cx - x, cy - y, c);
-        cv_pset(cx + y, cy + x, c), cv_pset(cx - y, cy + x, c), cv_pset(cx + y, cy - x, c), cv_pset(cx - y, cy - x, c);
-        y++;
-        if (e < 0)
-            e += 2 * y + 1;
-        else
-            x--, e += 2 * (y - x) + 1;
-    }
-}
 static uint16_t lk_col(int v) { return v == LK_PAD ? K_PAD : v == LK_BASS ? K_BASS : v == LK_ACID ? K_ACID : v == LK_PLUCK ? IMP_TEAL : K_PULSE; }
 static int lk_quiet(int v)                      /* the voice is out: muted, or another soloed */
 {
@@ -6453,13 +6434,11 @@ static void lk_sound(int v, char *u)            /* the voice's sound, short, or 
     caps(u, t, 7);                               /* six letters fit a strip */
 }
 
-/* CONSOLE: the strips (the main band, on every page that showed the sigil) */
-static void console_home(void)
+/* CONSOLE: the main band's top line: the chord, where it goes (and why), the section, the way to the next chord */
+static void console_top(void)
 {
-    const int cur = lk_voice();
-    char nm[16], u[16];
+    char nm[16];
     int32_t x;
-    int v, d, k;
     lk_chord(nm);
     x = cv_text(6, 1, &FONT_B, nm, en_frozen ? K_FROST : K_TEXT);
     if (en_frozen)
@@ -6482,6 +6461,15 @@ static void console_home(void)
             cv_rect(236 - w, 15, f, 3, K_ACC);
     }
     cv_rect(0, 21, 240, 1, K_LINE);
+}
+
+/* CONSOLE: the strips (home, Global: the five voices side by side) */
+static void console_home(void)
+{
+    const int cur = lk_voice();
+    char u[16];
+    int v, d, k;
+    console_top();
     for (v = 0; v < 5; v++) {
         const int32_t sx = 2 + v * 47, sw = v == 4 ? 46 : 45;
         const int q = lk_quiet(v), lit = v == cur;
@@ -6528,6 +6516,138 @@ static void console_home(void)
     }
 }
 
+/* CONSOLE: a folded strip (the other voices beside a wide one): its letter, its meter, red when it is out */
+static void console_sliver(int v, int32_t x)
+{
+    const int q = lk_quiet(v);
+    const uint16_t col = lk_col(v);
+    char l[2] = {LK_NAME[v][0], 0};
+    int k;
+    const int n = q ? 0 : (int)(fm_clampf(lk_level(v), 0.0f, 1.0f) * 10.0f + 0.5f);
+    cv_rect(x, 24, 11, 120, q ? mix(K_PANEL, K_BASS, 4) : K_PANEL);
+    cv_rect(x, 24, 11, 2, q ? K_LINE : col);
+    cv_text(x + 6 - text_w(&FONT_XS, l) / 2, 25, &FONT_XS, l, q ? K_BASS : col);
+    for (k = 0; k < 10; k++)
+        cv_rect(x + 3, 134 - k * 9, 5, 6, k < n ? (k >= 8 ? K_BASS : k >= 6 ? K_ACC : col) : K_LINE);
+}
+
+/* CONSOLE: the bar of a line voice as a roll: sixteen steps across, the note's height up, accents bigger, the acid's slides joined, now lit */
+static void console_roll(int v, int32_t x0, int32_t y0, int32_t w, int32_t h)
+{
+    const int32_t cw = w / 16;
+    const int pos = v == LK_ACID ? (int)en_acid_pos : v == LK_PLUCK ? (int)en_cm_pos : en_bs_pos >= 0 ? (int)en_bs_pos : (int)en_drum_pos;
+    const uint16_t col = lk_col(v);
+    int s, px = -1, py = 0, any = 0;
+    for (s = 0; s < 16; s++) {
+        const int32_t x = x0 + s * cw;
+        int acc;
+        cv_rect(x, y0, 1, h, s % 4 ? mix(K_PANEL, K_LINE, 8) : K_LINE);
+        any |= lk_note(v, s, &acc) >= 0;
+    }
+    if (!any) {                                  /* nothing on the steps: the bass a held drone (a bar across, breathing with it); the others quiet */
+        if (v == LK_BASS) {
+            cv_rect(x0, y0 + h - 14, w, 6, mix(K_PANEL, col, 5 + q16(fm_clampf(en_bass_level, 0.0f, 1.0f)) * 10 / 16));
+            cv_text(x0 + 2, y0 + h - 32, &FONT_XS, "HELD: THE DRONE", K_DIM);
+        } else
+            cv_text(x0 + 2, y0 + h / 2 - 8, &FONT_XS, "NO NOTES THIS BAR", K_DIM);
+        return;
+    }
+    if (en_playing)
+        cv_rect(x0 + (pos & 15) * cw, y0, cw, h, mix(K_PANEL, K_ACC, 3));
+    for (s = 0; s < 16; s++) {                   /* step s of the bar: d steps from now */
+        const int d = (s - (pos & 15)) & 15;
+        int acc, n = lk_note(v, d, &acc);
+        if (n < 0) {
+            px = -1;
+            continue;
+        }
+        n = n > 23 ? 23 : n;
+        {
+            const int32_t x = x0 + s * cw + 1, y = y0 + h - 6 - n * (h - 8) / 23;
+            const uint16_t c = d == 0 && en_playing ? K_TEXT : acc ? col : mix(K_PANEL, col, 11);
+            if (v == LK_ACID && px >= 0 && (en_acid_slide >> ((s + 15) & 15) & 1u))
+                cv_line(px, py + 2, x, y + 2, mix(K_PANEL, col, 9));   /* a slide into it */
+            cv_rect(x, y - (acc ? 1 : 0), cw - 2, acc ? 6 : 4, c);
+            px = x + cw - 3, py = y;
+        }
+    }
+}
+
+/* CONSOLE: a voice's own pages: its strip opened wide (a picture of what it plays), the other four folded at the side */
+static void console_voice(int v)
+{
+    static const uint8_t ORDER[5] = {LK_PAD, LK_BASS, LK_ACID, LK_PLUCK, LK_DRUMS};
+    const uint16_t col = lk_col(v);
+    const int q = lk_quiet(v);
+    char u[16];
+    int i, j = 0, k;
+    console_top();
+    cv_rect(2, 24, 184, 120, mix(K_PANEL, col, 2));
+    cv_rect(2, 24, 184, 2, col);
+    {
+        int32_t x = cv_text(6, 25, &FONT_XS, LK_NAME[v], q ? K_BASS : col);
+        lk_sound(v, u);
+        cv_text(x + 6, 25, &FONT_XS, u, q ? K_BASS : K_DIM);
+    }
+    for (i = 0; i < 5; i++)
+        if (ORDER[i] != v)
+            console_sliver(ORDER[i], 188 + (j++) * 13);
+    if (v == LK_PAD) {                           /* the pad: its voices on two octaves of keys, the chord's notes named */
+        static const uint8_t WK[7] = {0, 2, 4, 5, 7, 9, 11};
+        static const int8_t BK[12] = {-1, 0, -1, 1, -1, -1, 2, -1, 3, -1, 4, -1};   /* a black key: after white key n of the octave */
+        int lo = 127, base, o, held[4] = {0}, nh = 0;
+        for (k = 0; k < EN_NPAD; k++)
+            lo = en_pad_note[k] < lo ? en_pad_note[k] : lo;
+        base = lo / 12 * 12;
+        for (k = 0; k < EN_NPAD; k++)
+            held[nh++] = en_pad_note[k] - base;
+        for (o = 0; o < 14; o++) {               /* the white keys */
+            const int n = o / 7 * 12 + WK[o % 7];
+            int on = 0;
+            for (k = 0; k < nh; k++)
+                on |= held[k] == n;
+            cv_rect(8 + o * 12, 44, 11, 54, on ? (q ? mix(K_PANEL, col, 6) : col) : K_TEXT);
+        }
+        for (o = 0; o < 24; o++)                 /* the black keys */
+            if (BK[o % 12] >= 0) {
+                int on = 0;
+                for (k = 0; k < nh; k++)
+                    on |= held[k] == o;
+                cv_rect(8 + (o / 12 * 7 + BK[o % 12]) * 12 + 8, 44, 7, 32, on ? (q ? mix(K_PANEL, col, 6) : col) : K_BG);
+            }
+        {   /* the notes, named, under the keys */
+            int32_t x = 8;
+            for (k = 0; k < nh; k++)
+                x = cv_text(x, 102, &FONT_S, EN_NOTE_NAME[(base + held[k]) % 12], K_TEXT) + 8;
+        }
+        {   /* the pad's level */
+            const int32_t f = (int32_t)(fm_clampf(en_pad_level, 0.0f, 1.0f) * 172.0f);
+            cv_rect(8, 132, 172, 3, K_LINE);
+            if (!q)
+                cv_rect(8, 132, f, 3, col);
+        }
+    } else if (v == LK_DRUMS) {                  /* the drums: six lanes by sixteen steps, the lane's name lit by its hit */
+        const int p = en_pat_now % EN_NPAT;
+        int l, s;
+        for (l = 0; l < EN_NLANE && l < 6; l++) {
+            const int32_t y = 42 + l * 16;
+            char ln[8];
+            caps(ln, EN_LANE_NAME[l], 5);
+            cv_text(6, y - 3, &FONT_XS, ln, mix(K_DIM, K_TEXT, q16(fm_clampf(en_drum_glow[l], 0.0f, 1.0f))));
+            for (s = 0; s < 16; s++) {
+                const int32_t x = 36 + s * 9;
+                const int hit = (int)(en_pats[p][l] >> s & 1u), now = en_playing && s == (int)en_drum_pos;
+                const int lvl = en_mod[l][s] >> 6 & 3;
+                cv_rect(x, y, 8, 12, hit ? (now ? K_TEXT : lvl == 3 ? K_ACC : lvl == 1 ? mix(K_PANEL, col, 8) : col) : now ? K_LINE : mix(K_PANEL, K_LINE, s % 4 ? 6 : 12));
+            }
+        }
+    } else {                                     /* a line: the bar as a roll */
+        console_roll(v, 8, 42, 176, 92);
+        if (v == LK_ACID && en_acid_ans)
+            cv_text(184 - text_w(&FONT_XS, "ANSWER"), 25, &FONT_XS, "ANSWER", K_ACC);
+    }
+}
+
 /* CONSOLE: the sequencer as a tracker: the steps down, a lane a column; the chosen lane lit; an accent in the accent, a ghost half wide, a ratchet split */
 static void console_seq(void)
 {
@@ -6571,235 +6691,7 @@ static void console_seq(void)
     }
 }
 
-/* RITUAL: a knob in a corner (0 top left, 1 top right, 2 bottom left, 3 bottom right): its name, its value, a quarter arc round the corner filled to it */
-static void rit_corner(int i)
-{
-    const int k = view_knob(i), hot = plat_ms() < ui.touch_until && ui.touched == i, rt = i & 1, bt = i & 2;
-    int lo, hi, v, j, fill;
-    char t[16], u[16];
-    const felucca_font_t *vf = &FONT_B;
-    if (k == K_NONE)
-        return;
-    knob_range(k, &lo, &hi);
-    v = knob_get(k);
-    fill = hi > lo ? (v - lo) * 24 / (hi - lo) : -1;
-    for (j = 0; j <= 24; j++) {                  /* from the corner's top or bottom edge round to its side */
-        const float a = (float)j * (FM_PI / 48.0f);
-        const int32_t px = (rt ? 240 : 0) + (rt ? -1 : 1) * (int32_t)(54.0f * fm_cosf(a)),
-                      py = (bt ? 240 : 0) + (bt ? -1 : 1) * (int32_t)(54.0f * fm_sinf(a));
-        cv_rect(px - 1, py - 1, 3, 3, j <= fill ? (hot ? K_ACC : K_FROST) : K_PANEL);
-    }
-    caps(u, view_label(i), sizeof u);
-    knob_text(k, t);
-    if (!(k == K_PGCH && knob_get(k)))
-        caps(t, t, sizeof t);
-    if (text_w(vf, t) > 42)
-        vf = &FONT_XS;
-    if (!bt) {
-        cv_text(rt ? 237 - text_w(&FONT_XS, u) : 3, -1, &FONT_XS, u, hot ? K_TEXT : K_DIM);
-        cv_text(rt ? 237 - text_w(vf, t) : 3, 11, vf, t, hot ? K_ACC : K_TEXT);
-    } else {
-        cv_text(rt ? 237 - text_w(vf, t) : 3, 207, vf, t, hot ? K_ACC : K_TEXT);
-        cv_text(rt ? 237 - text_w(&FONT_XS, u) : 3, 224, &FONT_XS, u, hot ? K_TEXT : K_DIM);
-    }
-}
-static void rit_pt(int32_t r, int k, int32_t *x, int32_t *y) { *x = 120 + r * S16[k & 15] / 1024, *y = 120 - r * C16(k & 15) / 1024; }
-static void rit_label(int32_t y, const felucca_font_t *f, const char *s, uint16_t c)   /* centred, on a patch of ground over the lines */
-{
-    const int32_t w = text_w(f, s);
-    cv_rect(120 - w / 2 - 2, y + 3, w + 4, (int32_t)f->h - 5, K_BG);
-    text_c(120, y, f, s, c);
-}
-static void rit_orbits(void)
-{
-    static const int16_t R[5] = {94, 82, 70, 58, 46};
-    const int cur = lk_voice();
-    int32_t x, y;
-    int k, v, d;
-    for (k = 0; k < 16; k++) {                   /* the rim: the bar's steps; played ones crimson, now gold */
-        const int now = en_playing && k == (int)en_drum_pos;
-        rit_pt(105, k, &x, &y);
-        cv_rect(x - (now ? 2 : 1), y - (now ? 2 : 1), now ? 5 : 3, now ? 5 : 3, now ? K_ACC : en_playing && k < (int)en_drum_pos ? K_FROST : K_LINE);
-    }
-    if (en_playing) {                            /* the hand */
-        int32_t x0, y0;
-        rit_pt(34, en_drum_pos, &x0, &y0);
-        rit_pt(100, en_drum_pos, &x, &y);
-        cv_line(x0, y0, x, y, mix(K_BG, K_ACC, 6));
-    }
-    for (v = 0; v < 5; v++) {
-        const int q = lk_quiet(v), lit = v == cur;
-        const uint16_t col = q ? mix(K_BG, lk_col(v), 4) : lk_col(v);
-        if (v == LK_PAD) {                       /* the pad: a ring that breathes; its notes on the circle of fifths */
-            cv_ring(120, 120, R[0], q ? K_PANEL : mix(K_BG, col, 6 + q16(en_pad_level) / 2));
-            if (lit)
-                cv_ring(120, 120, R[0] - 1, col), cv_ring(120, 120, R[0] + 1, col);
-            for (k = 0; k < EN_NPAD; k++) {
-                const int f = en_pad_note[k] % 12 * 7 % 12;
-                cv_disc(120 + R[0] * S12[f] / 1024, 120 - R[0] * C12(f) / 1024, lit ? 3 : 2, q ? col : K_TEXT);
-            }
-            continue;
-        }
-        cv_ring(120, 120, R[v], lit ? mix(K_BG, col, 7) : K_PANEL);
-        for (d = 0; d < 16; d++) {
-            const int s = ((int)en_drum_pos + d) & 15;
-            const uint16_t bc = d == 0 && en_playing && !q ? K_TEXT : col;
-            rit_pt(R[v], s, &x, &y);
-            if (v == LK_DRUMS) {
-                const uint16_t m = en_pats[en_pat_now % EN_NPAT][0] >> s & 1u ? 2u : 0u;
-                int l, any = 0;
-                for (l = 1; l < EN_NLANE; l++)
-                    any |= (int)(en_pats[en_pat_now % EN_NPAT][l] >> s & 1u);
-                if (m)
-                    cv_disc(x, y, 3, bc);
-                else if (any)
-                    cv_disc(x, y, 1, bc);
-            } else {
-                int acc;
-                if (lk_note(v, d, &acc) >= 0)
-                    cv_disc(x, y, acc ? 3 : 2, bc);
-            }
-        }
-    }
-    {   /* the middle: the chord's tones joined on the circle of fifths, the eye, the chord and where it goes */
-        int pcs[5], n = 0, j;
-        char nm[16], t[24];
-        pcs[n++] = en_chord_root % 12;
-        for (k = 0; k < EN_NPAD; k++) {
-            const int pc = en_chord[k] % 12;
-            for (j = 0; j < n && pcs[j] != pc; j++)
-                ;
-            if (j == n && n < 5)
-                pcs[n++] = pc;
-        }
-        for (k = 0; k < 12; k++)
-            cv_rect(120 + 30 * S12[k] / 1024, 120 - 30 * C12(k) / 1024, 1, 1, K_LINE);
-        for (k = 0; k < n; k++) {
-            const int a = pcs[k] * 7 % 12, b = pcs[(k + 1) % n] * 7 % 12;
-            cv_line(120 + 30 * S12[a] / 1024, 120 - 30 * C12(a) / 1024, 120 + 30 * S12[b] / 1024, 120 - 30 * C12(b) / 1024, K_FROST);
-        }
-        for (k = 0; k < n; k++) {
-            const int a = pcs[k] * 7 % 12;
-            cv_disc(120 + 30 * S12[a] / 1024, 120 - 30 * C12(a) / 1024, 2, K_TEXT);
-        }
-        if (en_playing && en_sec == EN_SEC_BREAK)
-            cv_rect(110, 110, 20, 2, K_TEXT);    /* a breakdown: shut */
-        else {
-            const int wide = en_playing && en_sec == EN_SEC_BUILD;
-            cv_round(110 - wide, 106 - wide, 20 + 2 * wide, 9 + 2 * wide, 4, K_TEXT);
-            cv_disc(120, 110, 3, K_FROST);
-            cv_rect(120, 108, 1, 5, K_BG);
-        }
-        if (plat_ms() < ui.msg_until) {          /* a message (stored, a piece ...) where the chord is */
-            rit_label(116, &FONT_B, ui.msg[0], K_TEXT);
-            rit_label(134, &FONT_XS, ui.msg[1], K_ACC);
-        } else {
-            lk_chord(nm);
-            rit_label(116, &FONT_B, nm, en_frozen ? K_FROST : K_TEXT);
-            if (en_frozen)
-                rit_label(134, &FONT_XS, "HELD", K_FROST);
-            else if (en_walk_next >= 0) {
-                const char *nx = EN_NOTE_NAME[en_walk_next_root % 12];
-                int i = 0;
-                t[i++] = '>', t[i++] = ' ';
-                while (*nx)
-                    t[i++] = *nx++;
-                if (en_chord_alt) {
-                    const char *w = en_chord_alt == 1 ? "  V OF NEXT" : "  BORROWED";
-                    while (*w && i < 22)
-                        t[i++] = *w++;
-                }
-                t[i] = 0;
-                rit_label(134, &FONT_XS, t, en_chord_alt ? K_ACC : K_DIM);
-            }
-        }
-        if (cur >= 0 && ui.view != V_TEMPO) {    /* a voice's page: its name above */
-            caps(t, VIEW_NAME[ui.view], sizeof t);
-            rit_label(84, &FONT_XS, t, lk_col(cur));
-        } else {
-            const char *sn = en_sec == EN_SEC_BREAK ? "BREAK" : en_sec == EN_SEC_BUILD ? "BUILD" : en_playing ? "GROOVE" : "STOPPED";
-            rit_label(84, &FONT_XS, sn, en_sec == EN_SEC_GROOVE ? K_DIM : K_FROST);
-        }
-        {   /* the piece and its key, below */
-            const char *pn = piece_name(proj.piece);
-            int i = 0;
-            while (*pn && i < 6)
-                t[i++] = *pn++;
-            t[i++] = ' ';
-            pn = EN_NOTE_NAME[proj.par[P_ROOT] % 12];
-            while (*pn && i < 10)
-                t[i++] = *pn++;
-            t[i] = 0;
-            rit_label(146, &FONT_XS, t, K_DIM);
-        }
-    }
-}
-/* RITUAL's sequencer: a ring a lane (kick outside, perc inside), its sixteen steps round it, the hand sweeping; the chosen lane lit */
-static void rit_seq(void)
-{
-    const int p = seq_pat();
-    int l, s;
-    int32_t x, y;
-    char t[16];
-    for (s = 0; s < 16; s++) {
-        const int now = en_playing && s == (int)en_drum_pos && p == (int)en_pat_now;
-        rit_pt(108, s, &x, &y);
-        cv_rect(x - (now ? 2 : 1), y - (now ? 2 : 1), now ? 5 : 3, now ? 5 : 3, now ? K_ACC : K_LINE);
-    }
-    if (en_playing && p == (int)en_pat_now) {
-        int32_t x0, y0;
-        rit_pt(30, en_drum_pos, &x0, &y0);
-        rit_pt(104, en_drum_pos, &x, &y);
-        cv_line(x0, y0, x, y, mix(K_BG, K_ACC, 6));
-    }
-    for (l = 0; l < EN_NLANE && l < 6; l++) {
-        const int32_t r = 98 - l * 12;
-        const int sel = l == ui.lane;
-        if (sel)
-            cv_ring(120, 120, r, mix(K_BG, K_PULSE, 6));
-        for (s = 0; s < 16; s++) {
-            rit_pt(r, s, &x, &y);
-            if (en_pats[p % EN_NPAT][l] >> s & 1u) {
-                const int lvl = en_mod[l][s] >> 6 & 3;
-                cv_disc(x, y, lvl == 1 ? 2 : 3, lvl == 3 ? K_ACC : sel ? K_TEXT : K_PULSE);
-            } else
-                cv_rect(x, y, 2, 2, sel ? K_DIM : K_LINE);
-        }
-    }
-    caps(t, EN_LANE_NAME[ui.lane % EN_NLANE], sizeof t);
-    rit_label(100, &FONT_B, t, K_PULSE);
-    {
-        char u[16] = "PATTERN ";
-        u[8] = (char)('1' + p % 9), u[9] = 0;
-        rit_label(118, &FONT_XS, u, K_DIM);
-    }
-    {
-        char u[8];
-        const int st = (int)en_drum_pos + 1;
-        u[0] = (char)('0' + st / 10), u[1] = (char)('0' + st % 10), u[2] = '/', u[3] = '1', u[4] = '6', u[5] = 0;
-        rit_label(132, &FONT_XS, en_playing ? u : "STOPPED", K_DIM);
-    }
-}
-/* RITUAL, the whole screen: two halves of 120 rows, the same drawing offset */
-static void rit_full(int seq)
-{
-    int pass, i;
-    ui.rit_full = 1;
-    for (pass = 0; pass < 2; pass++) {
-        cv_begin(240, 120, K_BG);
-        cv_oy = -120 * pass;
-        cv_ring(120, 120, 112, K_LINE);
-        if (seq)
-            rit_seq();
-        else
-            rit_orbits();
-        for (i = 0; i < 4; i++)
-            rit_corner(i);
-        cv_oy = 0;
-        cv_blit(0, 120u * (uint32_t)pass);
-    }
-}
-static uint32_t rit_hash(uint32_t h)            /* what the corners and the circle show besides the band's own */
+static uint32_t lk_hash(uint32_t h)             /* what the strips and the tracker show besides the band's own */
 {
     int i;
     for (i = 0; i < 4; i++)
@@ -6811,19 +6703,7 @@ static uint32_t rit_hash(uint32_t h)            /* what the corners and the circ
     return h;
 }
 
-static void draw_main_band(void);
-static void draw_main(void)                     /* the main band; or (RITUAL) the whole screen, the header and the knobs then left alone */
-{
-    const uint8_t was = ui.rit_full;
-    if (ui.frame % 2u)
-        return;
-    ui.rit_full = 0;
-    draw_main_band();
-    if (was && !ui.rit_full)                     /* out of the circle: the header and the knobs again */
-        ui.sig[0] = ui.sig[2] = 0;
-}
-
-static void draw_main_band(void)
+static void draw_main(void)
 {
     uint32_t h = hash(2166136261u, pool_abs() | (uint32_t)sound_root() << 12 | (uint32_t)en_frozen << 16 | proj.piece << 24 |
                                         (uint32_t)en_playing << 17 | (uint32_t)proj.par[P_MODE] << 20), i;
@@ -7010,6 +6890,8 @@ static void draw_main_band(void)
             ui.sig[1] = h;
             cv_begin(240, MAIN_H, K_BG);
             draw_scope(scope_kind(ui.view));
+            if (LOOK_CONSOLE)                    /* the Console layout: a picture page wears its channel's colour along the top, as a strip does */
+                cv_rect(0, 0, 240, 2, view_color());
             cv_blit(0, MAIN_Y);
         }
         return;
@@ -7022,21 +6904,15 @@ static void draw_main_band(void)
         h = hash(h, ui.lane | (uint32_t)proj.par[P_PATTERN] << 16);
         for (i = 0; i < EN_NLANE; i++)
             h = hash(h, (uint32_t)proj.par[P_PROB + i] | (uint32_t)proj.par[P_LLEN + i] << 8 | (uint32_t)proj.par[P_LSRC + i] << 16);
-        if (LOOK_RITUAL || LOOK_CONSOLE) {       /* the looks: the step tricks show too */
+        {                                        /* the step tricks show too */
             int s;
             for (s = 0; s < 16; s++)
                 h = hash(h, (uint32_t)en_mod[0][s] | (uint32_t)en_mod[1][s] << 8 | (uint32_t)en_mod[2][s] << 16 | (uint32_t)en_mod[3][s] << 24);
-            h = rit_hash(h);
+            h = lk_hash(h);
         }
-        if (LOOK_RITUAL)
-            ui.rit_full = 1;
         if (h == ui.sig[1])
             return;
         ui.sig[1] = h;
-        if (LOOK_RITUAL) {
-            rit_full(1);
-            return;
-        }
         cv_begin(240, MAIN_H, K_BG);
         if (LOOK_CONSOLE)
             console_seq();
@@ -7055,20 +6931,16 @@ static void draw_main_band(void)
     for (i = 0; i < 5; i++)
         h = hash(h, (uint32_t)proj.par[i]);
     h = hash(h, (en_playing ? plat_ms() / 66u : 0u) | (uint32_t)en_sec << 28 | (uint32_t)ui.centre_imp << 30 | (uint32_t)en_shed_level << 26);   /* the sigil moves: 15 frames a second while playing */
-    if (LOOK_RITUAL || LOOK_CONSOLE)
-        h = rit_hash(h);
-    if (LOOK_RITUAL)
-        ui.rit_full = 1;
+    h = lk_hash(h);
     if (h == ui.sig[1])
         return;
     ui.sig[1] = h;
-    if (LOOK_RITUAL) {
-        rit_full(0);
-        return;
-    }
     cv_begin(240, MAIN_H, K_BG);
     if (LOOK_CONSOLE) {
-        console_home();
+        if (lk_voice() >= 0 && ui.view != V_TEMPO && ui.view != V_GLOBAL)
+            console_voice(lk_voice());   /* a voice's page: its strip opened wide */
+        else
+            console_home();
         cv_blit(0, MAIN_Y);
         return;
     }
@@ -7132,6 +7004,26 @@ static void imp_tabs(void)
     }
 }
 
+/* the Console layout's page groups: ten equal keys across; the group you are in lit in its colour, a pip a page in it (the page you are on dark) */
+static void console_tabs(void)
+{
+    const uint16_t col[10] = {K_TEXT, K_PAD, K_BASS, K_ACID, IMP_TEAL, K_PULSE, K_FROST, K_DIM, K_TEXT, KC_MOVE};
+    const int v = ui.view == V_SEQ ? V_DRUMS : ui.view >= V_PERF ? V_TEMPO : (int)ui.view;
+    int i, p;
+    for (i = 0; i < 10; i++) {
+        const int32_t x = i * 24;
+        const int on = v >= TB[i].first && v < TB[i].first + TB[i].n;
+        char l[2] = {TB[i].ltr, 0};
+        cv_rect(x + 1, 11, 22, 13, on ? col[i] : K_PANEL);
+        cv_text(x + 12 - text_w(&FONT_XS, l) / 2, 9, &FONT_XS, l, on ? K_BG : K_DIM);
+        if (!on)
+            cv_rect(x + 1, 22, 22, 2, mix(K_PANEL, col[i], 7));
+        else
+            for (p = 0; TB[i].n > 1 && p < TB[i].n; p++)
+                cv_rect(x + 12 - TB[i].n * 2 + p * 4, 21, 3, 2, p == v - TB[i].first ? K_BG : mix(col[i], K_BG, 7));
+    }
+}
+
 static void draw_knobs(void)
 {
     uint32_t h = hash(2166136261u, ui.view | (uint32_t)ui.touched << 8 | (uint32_t)ui.lane << 16 | (uint32_t)ui.theme << 24), i;
@@ -7166,8 +7058,9 @@ static void draw_knobs(void)
         } else {
             caps(t, VIEW_NAME[ui.view], sizeof t);
         }
+        const int32_t x0 = LOOK_CONSOLE && !ui.fx_menu ? cv_text(4, -1, &FONT_XS, t, view_color()) + 6 : 4;   /* the Console layout: the page's name first, in its voice's colour (no dots: the tabs say where) */
         int32_t xl = 0;                          /* where the left text ends: the page's name only if it clears it */
-        xt = xd - 5 - text_w(&FONT_XS, t);
+        xt = LOOK_CONSOLE && !ui.fx_menu ? 236 : xd - 5 - text_w(&FONT_XS, t);   /* (Console: the room an octave tag may use) */
         if (ui.view == V_GLOBAL) {               /* Global: the piece's state, and what SAVE does */
             char u[24];
             int32_t xs;
@@ -7189,7 +7082,7 @@ static void draw_knobs(void)
                     u[j++] = *q++;
                 u[j] = 0;
             }
-            xs = cv_text(4, -1, &FONT_XS, u, proj.edited >> proj.piece & 1u ? K_TEXT : K_DIM);
+            xs = cv_text(x0, -1, &FONT_XS, u, proj.edited >> proj.piece & 1u ? K_TEXT : K_DIM);
             if (xt - 9 > xs + 4)
                 cv_rect(xs + 4, 5, xt - 9 - xs - 4, LOOK_CONSOLE ? 0 : 1, K_LINE);   /* (the Console look: no rule) */
             xl = xs;
@@ -7207,9 +7100,9 @@ static void draw_knobs(void)
                 int same = proj.par[P_KIT_SNARE] == k && proj.par[P_KIT_HAT] == k && proj.par[P_KIT_PERC] == k;
                 caps(u, same ? EN_KIT_NAME[(unsigned)k < EN_NKIT ? k : 0] : "Mixed kit", sizeof u);
             } else {
-                caps(u, "PERF-1", sizeof u);
+                caps(u, LOOK_CONSOLE ? "" : "PERF-1", sizeof u);
             }
-            xs = cv_text(4, -1, &FONT_XS, u, K_DIM);
+            xs = cv_text(x0, -1, &FONT_XS, u, K_DIM);
             if (by_hand(vc))                     /* the voice off the algorithm: said beside its sound */
                 xs = cv_text(xs + 5, -1, &FONT_XS, "BY HAND", K_ACC);
             else if (proj.par[P_LINKS])          /* the links on: said beside it */
@@ -7235,13 +7128,13 @@ static void draw_knobs(void)
                 cv_rect(xs + 4, 5, xt - 9 - xs - 4, LOOK_CONSOLE ? 0 : 1, K_LINE);   /* (the Console look: no rule) */
             xl = xs;
         }
-        if (xt >= xl + 6)                        /* (a long sound name, BY HAND or the store's state would run into it) */
+        if (!(LOOK_CONSOLE && !ui.fx_menu) && xt >= xl + 6)                        /* (a long sound name, BY HAND or the store's state would run into it) */
             cv_text(xt, -1, &FONT_XS, t, K_ACC);
         if (!ui.fx_menu && (ui.btn >> B_SEL & 1u))
             cv_text(4, 14, &FONT_XS, ui.view == V_SEQ ? "SEL: KEYS=PATTERNS KNOBS=TRICKS" :
                                      voice_of(ui.view) >= 0 ? "SEL: ALGO=SOUND ENV=HAND PRE=PIECE" : "SEL: PRESETS=PIECE ALGO=SOUND", K_ACC);   /* the footer hint: what shift does here */
         else if (!ui.fx_menu)
-            imp_tabs();                          /* tabs, a chip a group */
+            LOOK_CONSOLE ? console_tabs() : imp_tabs();   /* tabs: Console's ten keys, or a chip a group */
         else for (k = 0; k < ndots; k++) {
             int cur, same;
             if (ui.fx_menu) {
@@ -7322,14 +7215,8 @@ static void draw_knobs(void)
                     vf = &FONT_XS, vy = 41;
                 text_c(cx, vy, vf, vt, hot ? K_ACC : K_TEXT);
             }
-            if (LOOK_RITUAL) {                   /* the Ritual look: twelve beads, lit to the value */
-                const int lit = hi > lo ? (int)((v - lo) * 12 / (hi - lo)) : 0;
-                int j;
-                for (j = 0; j < 12; j++)
-                    cv_disc(cx - 22 + j * 4, 64, 1, j < lit || (j == 0 && v > lo) ? fill : K_LINE);
-            } else
             cv_rect(cx - 24, 63, 48, 3, hot ? K_BG : K_LINE);
-            if (hi > lo && !LOOK_RITUAL) {
+            if (hi > lo) {
                 if (lo < 0) {                    /* bipolar: from the middle */
                     const int32_t m = 24 + (int32_t)(v - lo) * 48 / (hi - lo) - 24;
                     cv_rect(cx - 24 + (m < 24 ? m : 24), 63, m < 24 ? 24 - m : m - 24, 3, fill);
@@ -8317,10 +8204,10 @@ void ui_frame(void)
         return;
     }
     cv_scan = ui.scan;
-    if (!ui.saver_on && !ui.rit_full)
-        draw_header();                           /* (the screensaver has the whole screen; so has the Ritual look's circle) */
+    if (!ui.saver_on)
+        draw_header();                           /* (the screensaver has the whole screen) */
     draw_main();
-    if (!ui.saver_on && !ui.rit_full)
+    if (!ui.saver_on)
         draw_knobs();
     leds();
     ui.frame++;

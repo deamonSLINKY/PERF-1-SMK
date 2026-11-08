@@ -30,7 +30,7 @@
 #define EN_NPAT 6                      /* drum patterns */
 #define EN_NSTEP 16
 #define EN_NPAD 4                      /* pad voices */
-#define EN_NTHEME 8                    /* the screen's colour themes (the UI's; kept with the settings); 6 Console and 7 Ritual are looks of their own (0.17.2, a test) */
+#define EN_NTHEME 7                    /* the screen's colour themes (the UI's; kept with the settings); 0 Console, the default (0.17.3) */
 #define EN_NSTYLE 5                    /* the old styles (before 1.0.27): a stored piece's is turned into sounds
                                         * and a kit (en_style_sounds); they were kits 0..4 */
 #define EN_NSOUND 24                   /* the sounds each of pad and drone can play */
