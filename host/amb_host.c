@@ -816,6 +816,14 @@ static int expect(const char *what, const char *val)
         got = ui.sl_pos;
     else if (!strcmp(what, "seton"))              /* the set list's Play */
         got = glob.sl_on;
+    else if (!strncmp(what, "setbars", 7))        /* (0.17.13, song mode) place N's bars, its parts left out, Once */
+        got = glob.sl_bars[atoi(what + 7) % SL_N];
+    else if (!strncmp(what, "setmute", 7))
+        got = glob.sl_mute[atoi(what + 7) % SL_N];
+    else if (!strcmp(what, "setend"))
+        got = glob.sl_end;
+    else if (!strcmp(what, "setbar"))             /* the bar of the place playing (from 0) */
+        got = en_playing ? (int)(sl_bar_now() - sl_b0) : -1;
     else if (!strcmp(what, "djon"))               /* the auto-DJ: on */
         got = ui.dj_on;
     else if (!strcmp(what, "djphase"))            /* groove 0, breakdown 1, build 2 */

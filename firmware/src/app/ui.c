@@ -255,7 +255,8 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_MC_RATIO, P_MC_THR, P_MC_MAKE, P_ML_CEIL},   /* the master bus: compressor and limiter */
     {K_MXT, K_MXL, K_MXP, K_MXS},                  /* the mixer: a layer chosen, its level, its place, its send (the level is also on the layer's own page) */
     {P_ROOT, P_THEME, P_TUNE, K_GENRE},            /* global: the song's root, the look, the tuning, the genre (MIDI out is on the USB & MIDI settings page since 0.14.7) */
-    {K_SLSL, K_SLGN, K_SLPC, K_SLON},              /* the set list (0.15.21): the slot (or a white key), its genre and piece, and Play (the auto-DJ and PRESETS go through it) */
+    {K_SLSL, K_SLGN, K_SLPC, K_SLON},              /* the set list (0.15.21): the slot (or a white key), its piece (0.17.13: genre by genre, one knob), its bars (song mode), and
+                                                    * Play: off, loop, once (the auto-DJ and PRESETS go through it); the black keys 1-5 its parts */
     {K_CDPOS, K_CDCHR, K_CDROLL, K_NONE},          /* the track code (0.17.11): the place in it, the letter there, a new roll of the dice; PLAY starts it */
     {K_NONE, K_NONE, K_NONE, K_NONE},              /* Jam: its knobs are the FXP table's last page (view_knob) */
     {K_LVL, K_TUNE, K_DEC, P_PATTERN},
@@ -296,7 +297,7 @@ static const char *const KNOB_LABEL[NVIEWS][4] = {
     {"Ratio", "Thresh", "Make-up", "Ceiling"},
     {"Track", "Level", "Pan", "Send"},
     {"Root", "Theme", "Tune", "Genre"},
-    {"Slot", "Genre", "Piece", "Play"},
+    {"Slot", "Piece", "Bars", "Play"},
     {"Place", "Letter", "Roll", ""},
     {"Voice", "Keys", "Octave", "Sound"},
     {"Level", "Tune", "Decay", "Pattern"},
@@ -779,6 +780,58 @@ static int sl_step(int from, int d)             /* the slot set after (d 1) or b
     return -1;
 }
 static int sl_play(void) { return glob.sl_on && sl_step(0xFF, 1) >= 0; }
+/* SONG MODE (0.17.13, stage 1): a place can have a length in bars and parts left out. With Play on, a place with bars plays exactly that many (from the bar
+ * it came in on), then the next comes in on its last step; Once stops at the list's end (back on the first, ready), Loop goes round. Its parts as set:
+ * the others muted while it plays. Auto (0 bars): the auto-DJ's rounds, as before. */
+#define SL_NBARS 11
+#define SL_NPART 5
+static const uint8_t SL_BARS[SL_NBARS] = {0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128};
+static const char *const SL_PART[SL_NPART] = {"PAD", "BASS", "ACID", "PLUCK", "DRUMS"};
+static const uint8_t SL_PARTM[SL_NPART] = {0x40, 0x10, 0x20, 0x80, 0x0F};   /* their tracks (ui.trk_m) */
+static uint32_t sl_b0;                          /* the bar the place playing came in on */
+static uint8_t sl_stop;                         /* the list's end: stop on this bar's last step */
+static uint8_t sl_fresh;                        /* PLAY pressed: the engine's bars are the old run's until it starts (wait for them to come round) */
+static uint32_t sl_bar_now(void) { return en_bars ? (en_bars - 1u) >> 4 : 0u; }   /* the bar playing (en_bars counts the steps played) */
+static int sl_bars_i(int b)
+{
+    int i;
+    for (i = SL_NBARS - 1; i > 0 && SL_BARS[i] > b; i--)
+        ;
+    return i;
+}
+static int sl_exact(void) { return sl_play() && ui.sl_pos < SL_N && glob.sl_bars[ui.sl_pos]; }
+static void sl_parts(int s)                     /* place s's parts: the ones it leaves out muted */
+{
+    uint8_t m = 0;
+    int i;
+    for (i = 0; i < SL_NPART; i++)
+        if (glob.sl_mute[s % SL_N] >> i & 1u)
+            m |= SL_PARTM[i];
+    ui.trk_m = m;
+    ui.trk_s = 0;
+    en_trk(m, 0);
+}
+static void sl_tick(void)                       /* each frame while playing: the place's last bar asks for the next */
+{
+    uint32_t bar;
+    int n, s;
+    if (sl_fresh) {
+        if (!en_playing || en_bars >= 16u)
+            return;
+        sl_fresh = 0;
+    }
+    if (!en_playing || !sl_exact() || ui.sl_q || sl_stop || sl_bar_now() < sl_b0)
+        return;
+    bar = sl_bar_now() - sl_b0;
+    n = glob.sl_bars[ui.sl_pos];
+    if ((int)bar < n - 1)
+        return;
+    s = sl_step(ui.sl_pos, 1);
+    if (glob.sl_end && s <= (int)ui.sl_pos)
+        sl_stop = 1;                            /* Once: the end */
+    else if (s >= 0)
+        ui.sl_q = (uint8_t)(s + 1);
+}
 
 static int pool_count(uint32_t p)
 {
@@ -1371,12 +1424,12 @@ static int knob_get(int k)
     }
     if (k == K_CDROLL)
         return code_roll;
-    if (k == K_SLGN || k == K_SLPC) {            /* (an empty slot: genre 0, "Empty") */
-        const int e = glob.sl[ui.slsl % SL_N];
-        return !e ? 0 : k == K_SLGN ? (e - 1) / NPIECES + 1 : (e - 1) % NPIECES;
-    }
+    if (k == K_SLGN)                             /* the piece: genre * NPIECES + piece + 1 (0 Empty) */
+        return glob.sl[ui.slsl % SL_N];
+    if (k == K_SLPC)                             /* its bars: the place in SL_BARS */
+        return sl_bars_i(glob.sl_bars[ui.slsl % SL_N]);
     if (k == K_SLON)
-        return glob.sl_on;
+        return glob.sl_on ? 1 + (glob.sl_end & 1u) : 0;
     if (k == K_PGTY)
         return pk_get(ui.pgsl & 7);
     if (k == K_PGCH || k == K_PGBR || k == K_PGPL) {
@@ -1459,7 +1512,7 @@ static void knob_range(int k, int *lo, int *hi)
     }
     if (k == K_SLSL || k == K_SLGN || k == K_SLPC || k == K_SLON) {
         *lo = 0;
-        *hi = k == K_SLSL ? SL_N - 1 : k == K_SLGN ? EN_NGENRE : k == K_SLPC ? NPIECES - 1 : 1;
+        *hi = k == K_SLSL ? SL_N - 1 : k == K_SLGN ? EN_NGENRE * NPIECES : k == K_SLPC ? SL_NBARS - 1 : 2;
         return;
     }
     if (k == K_PGSL || k == K_PGCH || k == K_PGBR || k == K_PGPL || k == K_PGTY) {
@@ -1541,15 +1594,30 @@ static void knob_text(int k, char *b)
         b[1] = 0;
         return;
     }
-    if (k == K_SLSL || k == K_SLGN || k == K_SLPC || k == K_SLON) {   /* the set list: the slot (1 ..), its genre (or Empty), its piece (01 ..), Play */
-        const int v = knob_get(k), e = glob.sl[ui.slsl % SL_N];
-        const char *s = k == K_SLON ? (v ? "On" : "Off") : k == K_SLGN ? (e ? en_genre_name(v - 1) : "Empty") : k == K_SLPC && !e ? "-" : 0;
+    if (k == K_SLSL || k == K_SLGN || k == K_SLPC || k == K_SLON) {   /* the set list: the slot (1 ..), its piece (a genre's short name and number, or Empty), its bars
+                                                 * (Auto, 4 ..), Play (Off, Loop, Once) */
+        const int v = knob_get(k);
+        const char *s = k == K_SLON ? (v == 2 ? "Once" : v ? "Loop" : "Off") : k == K_SLGN && !v ? "Empty" : k == K_SLPC && !v ? "Auto" : 0;
         int n = 0;
-        if (!s) {
-            itoa_u((uint32_t)v + 1u, b);
-            if (k == K_SLPC && v < 9) {
-                b[2] = 0, b[1] = b[0], b[0] = '0';
+        if (k == K_SLGN && v) {                  /* "HOUSE 05" (the genre's name cut to fit) */
+            const char *g = en_genre_name((v - 1) / NPIECES);
+            char t[4];
+            while (g[n] && n < 6) {
+                b[n] = g[n];
+                n++;
             }
+            b[n++] = ' ';
+            itoa_u((uint32_t)(v - 1) % NPIECES + 1u, t);
+            if (!t[1])
+                b[n++] = '0';
+            b[n++] = t[0];
+            if (t[1])
+                b[n++] = t[1];
+            b[n] = 0;
+            return;
+        }
+        if (!s) {
+            itoa_u(k == K_SLPC ? SL_BARS[v % SL_NBARS] : (uint32_t)v + 1u, b);
             return;
         }
         while (s[n] && n < 11) {
@@ -1741,16 +1809,18 @@ static void knob_set(int k, int v)
         uint8_t *const e = &glob.sl[ui.slsl % SL_N];
         if (k == K_SLON) {
             glob.sl_on = (uint8_t)(v > 0);
+            glob.sl_end = (uint8_t)(v == 2);
             ui.sl_pos = (uint8_t)sl_find();      /* (on: it goes on from the piece playing, if it is in the list) */
             ui.sl_q = 0;
-        } else if (k == K_SLGN && v <= 0) {
+            sl_b0 = sl_bar_now();                /* (its bars count from here) */
+        } else if (k == K_SLPC) {
+            glob.sl_bars[ui.slsl % SL_N] = (uint8_t)SL_BARS[v < 0 ? 0 : v > SL_NBARS - 1 ? SL_NBARS - 1 : v];
+        } else if (v <= 0) {
             *e = 0;                              /* Empty */
         } else if (!*e) {
             *e = (uint8_t)(proj.genre * NPIECES + proj.piece + 1);   /* an empty slot turned: the piece playing goes in */
-        } else if (k == K_SLGN) {
-            *e = (uint8_t)((v > EN_NGENRE ? EN_NGENRE - 1 : v - 1) * NPIECES + (*e - 1) % NPIECES + 1);
         } else {
-            *e = (uint8_t)((*e - 1) / NPIECES * NPIECES + (v < 0 ? 0 : v > NPIECES - 1 ? NPIECES - 1 : v) + 1);
+            *e = (uint8_t)(v > EN_NGENRE * NPIECES ? EN_NGENRE * NPIECES : v);
         }
         project_globals();
         return;
@@ -2092,13 +2162,13 @@ static void dj_bar(void)                       /* a new bar (while playing) */
         ui.dj_tlast = (int16_t)t;
     }
     if (ph == 0 && sync) {                     /* with the chords: the engine fills the bar before a change and breaks on it; the next piece comes in as the fill begins */
-        if (en_drift_bars <= 2.0f && (ui.dj_piece || sl_play()) && last_round && !ui.piece_q && !ui.sl_q)
+        if (en_drift_bars <= 2.0f && (ui.dj_piece || sl_play()) && !sl_exact() && last_round && !ui.piece_q && !ui.sl_q)
             dj_next();
     } else if (ph == 0) {
         if (ui.dj_n == (uint16_t)(g - 1)) {    /* the fill is the LAST bar of the groove (asked a bar ahead: the engine starts it on the bar line); the break follows at once */
             if (ui.dj_fillon)
                 en_fill_next();
-            if ((ui.dj_piece || sl_play()) && last_round && !ui.piece_q && !ui.sl_q)
+            if ((ui.dj_piece || sl_play()) && !sl_exact() && last_round && !ui.piece_q && !ui.sl_q)
                 dj_next();
         }
         if (ui.dj_n >= (uint16_t)g && !en_sec_req)
@@ -2552,6 +2622,9 @@ static void sl_go(int s)                        /* the set list's slot s now: it
         genre_step(g - proj.genre);
     if (g == proj.genre && p != proj.piece)
         set_piece(p);
+    sl_b0 = en_playing ? sl_bar_now() + 1u : 0u;   /* (it comes in on the bar's last step: its first bar is the next) */
+    if (glob.sl_on)
+        sl_parts(s);
     for (i = 0; i < SL_N; i++)
         if (glob.sl[i]) {
             n++;
@@ -3110,6 +3183,10 @@ static void button(int b)
             uint8_t g[CODE_N];
             track_fresh(ui.view != V_CODE, 0);   /* a fresh track (the Code page: the one playing again, from the top) */
             af_fresh = 1;
+            sl_b0 = 0;                           /* (a place's bars from the top) */
+            sl_fresh = 1;
+            if (sl_play() && ui.sl_pos < SL_N)
+                sl_parts(ui.sl_pos);
             en_play(1);
             code_now(g);
             code_text(g, t);
@@ -4156,11 +4233,20 @@ static void input(void)
                     for (s = 0; s < 16; s++)
                         if (WHITE_KEY[s] == i)
                             ui.astp = (uint8_t)s;
-                } else if (ui.view == V_SETL) {   /* the Set list page: a white key chooses the slot */
+                } else if (ui.view == V_SETL) {   /* the Set list page: a white key chooses the slot; black 1-5 its parts in or out (0.17.13) */
                     int s;
                     for (s = 0; s < SL_N; s++)
                         if (WHITE_KEY[s] == i)
                             ui.slsl = (uint8_t)s;
+                    for (s = 0; s < SL_NPART; s++)
+                        if (BLACK_KEY[s] == i) {
+                            const int c = ui.slsl % SL_N;
+                            glob.sl_mute[c] ^= (uint8_t)(1u << s);
+                            project_globals();
+                            if (sl_play() && c == ui.sl_pos)
+                                sl_parts(c);     /* (the place playing: heard at once) */
+                            say(SL_PART[s], glob.sl_mute[c] >> s & 1u ? "OUT" : "IN");
+                        }
                 } else if (ui.view == V_PROG) {   /* the Progression page: the first eight white keys choose the slot, the first five black keys
                                                    * write a Circle fill (0.16.20) */
                     int s;
@@ -4308,6 +4394,16 @@ static void input(void)
             set_piece(proj.piece + (e > 0 ? 1 : -1));
         }
         ui.turn_t = plat_ms();
+    }
+    sl_tick();
+    if (sl_stop && (!en_playing || en_drum_pos == EN_NSTEP - 1)) {   /* Once, at the list's end: stopped, the first place ready */
+        const int f = sl_step(0xFF, 1);
+        sl_stop = 0;
+        if (en_playing)
+            en_play(0);
+        if (f >= 0)
+            sl_go(f);
+        say("SET LIST", "THE END");
     }
     if (ui.sl_q && !ui.store_wait && (!en_playing || en_drum_pos == EN_NSTEP - 1)) {   /* the bar's last step: the set list's slot */
         const int s = ui.sl_q - 1, t0 = proj.par[P_TEMPO], pl = en_playing;
@@ -6467,7 +6563,7 @@ static void draw_scope(int kind)
         for (s = 0; s < SL_N; s++)
             n += glob.sl[s] != 0;
         sc_title("SET LIST", K_ACC);
-        sc_sub(glob.sl_on ? "PLAYING THROUGH" : n ? "PLAY: OFF" : "EMPTY", glob.sl_on ? K_ACC : K_DIM);
+        sc_sub(glob.sl_on ? (glob.sl_end ? "PLAYING THROUGH, ONCE" : "PLAYING THROUGH, ROUND") : n ? "PLAY: OFF" : "EMPTY", glob.sl_on ? K_ACC : K_DIM);
         if (LOOK_CONSOLE) {                      /* (0.17.12) a strip a slot, two columns of eight: its genre's colour as a tab, its name, the piece as a chip; the one playing lit,
                                                   * the one chosen with a foot; an empty one a line */
             for (s = 0; s < SL_N; s++) {
@@ -6486,6 +6582,16 @@ static void draw_scope(int kind)
                         tx[2] = 0, tx[1] = tx[0], tx[0] = '0';
                     cv_rect(x0 + 96, y0 + 1, 18, 10, now ? K_ACC : mix(K_BG, K_PANEL, 8));
                     text_c(x0 + 105, y0 - 1, &FONT_XS, tx, now ? K_BG : K_TEXT);
+                    if (glob.sl_bars[s]) {       /* (0.17.13) its bars; playing, how far through them; a part left out: a red tick */
+                        itoa_u(glob.sl_bars[s], tx);
+                        cv_text(x0 + 93 - text_w(&FONT_XS, tx), y0 - 1, &FONT_XS, tx, now ? K_TEXT : K_DIM);
+                        if (now && en_playing) {
+                            const uint32_t done = sl_bar_now() >= sl_b0 ? sl_bar_now() - sl_b0 : 0u;
+                            cv_rect(x0 + 3, y0 + 10, (int32_t)((done >= glob.sl_bars[s] ? glob.sl_bars[s] : done) * 93u / glob.sl_bars[s]), 2, K_TEXT);
+                        }
+                    }
+                    if (glob.sl_mute[s])
+                        cv_rect(x0 + 1, y0 + 9, 2, 3, K_BASS);
                 } else {
                     cv_text(x0 + 6 + (s < 9 ? 5 : 0), y0 - 1, &FONT_XS, tx, K_LINE);
                     cv_rect(x0 + 22, y0 + 6, 92, 1, K_LINE);
@@ -6493,7 +6599,19 @@ static void draw_scope(int kind)
                 if (cur)
                     cv_rect(x0, y0 + 12, 116, 2, K_ACC);
             }
-            cv_text(4, 133, &FONT_XS, glob.sl_on ? "AUTO-DJ AND PRESETS: NEXT IN THE LIST" : "TURN GENRE: THE PIECE PLAYING GOES IN", K_DIM);
+            {   /* the chosen place's parts (black keys 1-5): in, lit; out, struck */
+                const int c = ui.slsl % SL_N;
+                int32_t x = 4;
+                int i;
+                x = cv_text(x, 133, &FONT_XS, "PARTS", K_DIM) + 6;
+                for (i = 0; i < SL_NPART; i++) {
+                    const int out = glob.sl_mute[c] >> i & 1u;
+                    const int32_t x1 = cv_text(x, 133, &FONT_XS, SL_PART[i], out ? K_LINE : K_TEXT);
+                    if (out)
+                        cv_rect(x, 139, x1 - x, 1, K_BASS);
+                    x = x1 + 6;
+                }
+            }
             return;
         }
         for (s = 0; s < SL_N; s++) {
@@ -7680,6 +7798,9 @@ static void draw_main(void)
             for (s = 0; s < SL_N; s++)
                 h = hash(h, glob.sl[s]);
             h = hash(h, (uint32_t)ui.slsl | (uint32_t)ui.sl_pos << 8 | (uint32_t)glob.sl_on << 16 | (uint32_t)proj.genre << 17 | (uint32_t)proj.piece << 24 | (uint32_t)ui.sl_q << 28);
+            for (s = 0; s < SL_N; s++)
+                h = hash(h, glob.sl_bars[s] | (uint32_t)glob.sl_mute[s] << 8);
+            h = hash(h, glob.sl_end | (en_playing ? sl_bar_now() - sl_b0 : 0u) << 1);
         }
         if (ui.view == V_PROG) {
             int s;
@@ -8485,7 +8606,7 @@ int ui_restore_valid(uint32_t obj, const uint8_t *b, uint32_t len)
         return obj == OBJ_PROJ && (rd32(b) == BANK_MAGIC || rd32(b) == OLD_KIT_MAGIC);
     }
     if (obj == OBJ_GLOB)
-        return (len == sizeof(glob_t) || len == GLOB_OLD) && rd32(b) == GLOB_MAGIC;
+        return (len == sizeof(glob_t) || len == GLOB_V1 || len == GLOB_OLD) && rd32(b) == GLOB_MAGIC;
     if (obj == OBJ_KINDS)                        /* the pieces' extras (0.16.28: PCX1), or the chord types alone (KND1, 0.16.6 .. 0.16.27); fewer genres too */
         return (len >= 4u && len <= 4u + EN_NGENRE * NPIECES * EN_PRK_LEN && (len - 4u) % (NPIECES * EN_PRK_LEN) == 0u && rd32(b) == KND_MAGIC) ||
                (len >= PX_HDR && len <= PX_SIZE && b[4] == PX_LEN && (len - PX_HDR) % (NPIECES * PX_LEN) == 0u && rd32(b) == PX_MAGIC);   /* (0.15.21: the set list after the old record) */

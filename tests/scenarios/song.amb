@@ -1,0 +1,70 @@
+# SONG MODE (0.17.13, stage 1): a set-list place has a length in bars and parts left out. With Play on, a place with bars plays exactly that
+# many from the bar it came in on, then the next; Once stops at the end (the first place ready); its parts as set. Kept.
+seed 0
+wait 3000
+tap GLO
+wait 100
+tap GLO
+wait 100
+expect view 33
+# place 1: the piece playing (HYPNO 01), 4 bars
+spin K2 1
+spin K3 1
+wait 100
+expect setsl0 1
+expect setbars0 4
+# place 2: HYPNO 03, 8 bars, the drums left out (black key 5)
+spin K1 1
+spin K2 1
+spin K2 2
+spin K3 2
+tapkey 10
+wait 100
+expect setsl1 3
+expect setbars1 8
+expect setmute1 16
+shot song_page.png
+# Play: Once
+spin K4 2
+wait 100
+expect seton 1
+expect setend 1
+# from the top: place 1 for four bars, then place 2 for eight, without its drums, then the end
+tap PLAY
+wait 300
+expect playing 0
+tap PLAY
+wait 200
+expect setpos 0
+expect trkmute 0
+waitfor setpos 1 12000
+expect sixteenths 64
+expect setbar -1
+wait 200
+expect setbar 0
+expect piece 2
+expect trkmute 15
+shot song_playing.png
+wait 1500
+expect setbar 0
+waitfor playing 0 20000
+expect sixteenths 192
+expect setpos 0
+expect piece 0
+# Loop: round again
+spin K4 -1
+wait 100
+expect setend 0
+tap PLAY
+wait 200
+waitfor setpos 1 12000
+waitfor setpos 0 20000
+expect playing 1
+expect trkmute 0
+tap PLAY
+# kept after a restart
+wait 8000
+reboot
+wait 3000
+expect setbars1 8
+expect setmute1 16
