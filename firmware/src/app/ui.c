@@ -5151,6 +5151,62 @@ static void draw_perf(void)
     }
     for (i = 0; i < 16; i++)                      /* the bar: its sixteen steps, the one playing lit */
         cv_rect(6 + i * 14, 24, 12, 8, en_playing && (int)en_drum_pos == i ? K_ACC : (i & 3) ? K_LINE : K_DIM);
+    if (LOOK_CONSOLE) {                           /* the Console layout: the eight tracks as channel strips, the scenes as keys, the mood a fader */
+        static const uint8_t LN[8] = {0, 3, 1, 5, 6, 6, 6, 6};
+        int k;
+        for (i = 0; i < 8; i++) {
+            const int32_t x = 2 + i * 30;
+            const int muted = (ui.trk_m >> i & 1u) || (i < 4 && (ui.fx_mask >> (FX_MUTE_KICK + i) & 1u));
+            const int soloed = ui.trk_s >> i & 1u, dim = muted || (ui.trk_s && !soloed);
+            const uint16_t tc = i == 0 ? LANE_COL(0) : i == 1 ? LANE_COL(3) : i == 2 ? LANE_COL(1) : i == 3 ? LANE_COL(5) :
+                                i == 4 ? K_BASS : i == 5 ? K_ACID : i == 7 ? KC_COLOR : K_PAD;
+            float lvl = i == EN_TR_DRONE ? en_bass_level : i == EN_TR_ACID ? en_acid_level : i == EN_TR_PAD ? en_pad_level :
+                        i == EN_TR_PLUCK ? en_cm_level : en_drum_glow[LN[i]];
+            const int n = dim ? 0 : (int)(fm_clampf(lvl, 0.0f, 1.0f) * 8.0f + 0.5f);
+            cv_rect(x, 42, 28, 64, K_PANEL);
+            cv_rect(x, 42, 28, 2, dim ? K_LINE : tc);
+            text_c(x + 14, 42, &FONT_XS, TN[i], dim ? K_DIM : K_TEXT);
+            for (k = 0; k < 8; k++)
+                cv_rect(x + 6, 90 - k * 5, 16, 3, k < n ? (k >= 7 ? K_BASS : k >= 5 ? K_ACC : tc) : K_LINE);
+            cv_rect(x + 3, 95, 22, 9, muted ? K_BASS : soloed ? K_ACC : K_BG);
+            text_c(x + 14, 91, &FONT_XS, muted ? "M" : soloed ? "S" : "", K_BG);
+        }
+        for (i = 0; i < 4; i++) {                 /* the scenes */
+            const int32_t x = 2 + i * 60;
+            const int set = ui.scene_set >> i & 1u, wait = ui.scene_q == i + 1;
+            char t[8] = "SCENE 1";
+            t[6] = (char)('1' + i);
+            cv_rect(x, 108, 56, 14, wait ? K_ACC : set ? K_PAD : K_PANEL);
+            text_c(x + 28, 107, &FONT_XS, wait ? "NEXT BAR" : t, wait || set ? K_BG : K_DIM);
+        }
+        {   /* what is on in FX, and the mood */
+            int32_t x = 26;
+            int bit, nfx = 0;
+            char t[8];
+            cv_text(2, 122, &FONT_XS, "FX", K_DIM);
+            for (bit = 0; bit < 63; bit++)
+                if (ui.fx_mask >> bit & 1u) {
+                    const char *s = FX_LABEL[bit];
+                    if (!s || !s[0])
+                        continue;
+                    if (x + text_w(&FONT_XS, s) > 120) {
+                        cv_text(x, 122, &FONT_XS, "+", K_DIM);
+                        break;
+                    }
+                    x = cv_text(x, 122, &FONT_XS, s, fx_color(bit)) + 6;
+                    nfx++;
+                }
+            if (!nfx)
+                cv_text(26, 122, &FONT_XS, "NONE", K_DIM);
+            cv_text(126, 122, &FONT_XS, "MOOD", K_DIM);
+            cv_rect(160, 131, 60, 2, K_LINE);
+            cv_rect(160, 131, ui.mood * 60 / 100, 2, ui.mood > 50 ? K_ACC : K_PAD);
+            cv_rect(160 + ui.mood * 60 / 100 - 2, 127, 5, 10, K_TEXT);
+            itoa_u(ui.mood, t);
+            cv_text(238 - text_w(&FONT_XS, t), 122, &FONT_XS, t, K_TEXT);
+        }
+        return;
+    }
     for (i = 0; i < 8; i++) {                     /* the tracks */
         static const uint8_t LN[8] = {0, 3, 1, 5, 6, 6, 6, 6};   /* the drum lane that shows its hits (6: not a lane) */
         const int32_t x = 4 + i * 29;
