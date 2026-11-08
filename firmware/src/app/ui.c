@@ -6300,6 +6300,39 @@ static void draw_scope(int kind)
         int l, s;
         sc_title("GROOVE", K_ACC);
         sc_sub("DENSITY, SOURCE: PER LANE", K_DIM);
+        if (LOOK_CONSOLE) {                      /* (0.17.12) a strip a lane: its name in its colour, the hits in beats of four (added: bright; taken out: a dash), the step
+                                                  * playing lit; where it plays from as a chip (= the piece's pattern, P2 its own), its density as a meter (the tick: 50) */
+            for (l = 0; l < EN_NLANE; l++) {
+                const int src = proj.par[P_LSRC + l] ? proj.par[P_LSRC + l] - 1 : en_pat_now, dens = proj.par[P_DENS + l];
+                const uint16_t wr = en_pats[src][l], pl = en_lane_mask(l, src, dens), lc = LANE_COL(l);
+                const int32_t y = 20 + l * 18, sel = l == (int)ui.lane, own = proj.par[P_LSRC + l] != 0;
+                char tx[4];
+                cv_rect(2, y, 236, 16, sel ? mix(K_PANEL, lc, 3) : K_PANEL);
+                cv_rect(2, y, 3, 16, lc);
+                cv_text(8, y + 1, &FONT_XS, LANE_SHORT[l], sel ? K_TEXT : lc);
+                for (s = 0; s < 16; s++) {
+                    const int32_t x = 46 + s * 9 + (s >> 2) * 2;
+                    const int on = pl >> s & 1, was = wr >> s & 1;
+                    if (en_playing && s == (int)en_lane_pos[l])
+                        cv_rect(x - 1, y + 1, 9, 14, mix(K_PANEL, K_TEXT, 4));
+                    if (on)
+                        cv_rect(x, y + 3, 7, 10, was ? lc : K_TEXT);
+                    else if (was)
+                        cv_rect(x, y + 7, 7, 2, K_LINE);
+                    else
+                        cv_rect(x + 3, y + 8, 1, 1, mix(K_PANEL, K_LINE, 8));
+                }
+                tx[0] = own ? 'P' : '=';
+                tx[1] = own ? (char)('0' + proj.par[P_LSRC + l]) : 0;
+                tx[2] = 0;
+                cv_rect(198, y + 3, 14, 10, own ? K_ACC : mix(K_BG, K_PANEL, 8));
+                text_c(205, y + 1, &FONT_XS, tx, own ? K_BG : K_DIM);
+                cv_rect(216, y + 6, 20, 4, K_LINE);
+                cv_rect(216, y + 6, dens * 20 / 100, 4, dens == 50 ? K_DIM : lc);
+                cv_rect(226, y + 4, 1, 8, K_TEXT);
+            }
+            return;
+        }
         for (l = 0; l < EN_NLANE; l++) {
             const int src = proj.par[P_LSRC + l] ? proj.par[P_LSRC + l] - 1 : en_pat_now, dens = proj.par[P_DENS + l];
             const uint16_t wr = en_pats[src][l], pl = en_lane_mask(l, src, dens);
@@ -6435,6 +6468,34 @@ static void draw_scope(int kind)
             n += glob.sl[s] != 0;
         sc_title("SET LIST", K_ACC);
         sc_sub(glob.sl_on ? "PLAYING THROUGH" : n ? "PLAY: OFF" : "EMPTY", glob.sl_on ? K_ACC : K_DIM);
+        if (LOOK_CONSOLE) {                      /* (0.17.12) a strip a slot, two columns of eight: its genre's colour as a tab, its name, the piece as a chip; the one playing lit,
+                                                  * the one chosen with a foot; an empty one a line */
+            for (s = 0; s < SL_N; s++) {
+                const int32_t x0 = 2 + (s >> 3) * 119, y0 = 20 + (s & 7) * 14;
+                const int e = glob.sl[s], cur = s == (int)(ui.slsl % SL_N), now = glob.sl_on && s == ui.sl_pos;
+                itoa_u((uint32_t)s + 1u, tx);
+                if (e) {
+                    const int g = (e - 1) / NPIECES;
+                    const uint16_t gc = LANE_COL(g % 6);
+                    cv_rect(x0, y0, 116, 12, now ? mix(K_PANEL, K_ACC, 5) : K_PANEL);
+                    cv_rect(x0, y0, 3, 12, gc);
+                    cv_text(x0 + 6 + (s < 9 ? 5 : 0), y0 - 1, &FONT_XS, tx, now ? K_TEXT : K_DIM);
+                    cv_text(x0 + 22, y0 - 1, &FONT_XS, en_genre_name(g), now ? K_TEXT : gc);
+                    itoa_u((uint32_t)(e - 1) % NPIECES + 1u, tx);
+                    if (tx[1] == 0)
+                        tx[2] = 0, tx[1] = tx[0], tx[0] = '0';
+                    cv_rect(x0 + 96, y0 + 1, 18, 10, now ? K_ACC : mix(K_BG, K_PANEL, 8));
+                    text_c(x0 + 105, y0 - 1, &FONT_XS, tx, now ? K_BG : K_TEXT);
+                } else {
+                    cv_text(x0 + 6 + (s < 9 ? 5 : 0), y0 - 1, &FONT_XS, tx, K_LINE);
+                    cv_rect(x0 + 22, y0 + 6, 92, 1, K_LINE);
+                }
+                if (cur)
+                    cv_rect(x0, y0 + 12, 116, 2, K_ACC);
+            }
+            cv_text(4, 133, &FONT_XS, glob.sl_on ? "AUTO-DJ AND PRESETS: NEXT IN THE LIST" : "TURN GENRE: THE PIECE PLAYING GOES IN", K_DIM);
+            return;
+        }
         for (s = 0; s < SL_N; s++) {
             const int32_t x0 = 4 + (s >> 3) * 117, y0 = 22 + (s & 7) * 11;
             const int e = glob.sl[s], cur = s == (int)(ui.slsl % SL_N), now = glob.sl_on && s == ui.sl_pos;
@@ -6467,6 +6528,44 @@ static void draw_scope(int kind)
                 last = s + 1;
         sc_title("PROGRESSION", K_PAD);
         sc_sub(loop ? "YOURS, IN TURN" : mine ? "WALK: THE GENRE'S" : "HEARD LAST", loop ? K_ACC : K_DIM);
+        if (LOOK_CONSOLE) {                      /* (0.17.12) the slots as tiles coloured by what the chord does: home (I, iii, vi: the pad's), away (ii, IV: the accent), the pull
+                                                  * home (V, vii: the bass's red); its numeral, its name, its bars as pips; the one playing lit, joined to the next; the one chosen
+                                                  * with a foot */
+            const int sc7 = pg_scale() == 7;
+            for (s = 0; s < EN_PRG_N; s++) {
+                const int32_t x0 = 2 + (s & 3) * 60, y0 = 20 + (s >> 2) * 46;
+                const int d = en_prg_get(b, 3 * s, 3), br = 1 << en_prg_get(b, 24 + 2 * s, 2);
+                const int cur = s == (int)(ui.pgsl & 7u), now = loop && s == en_prog_pos, used = d || s < last;
+                const uint16_t fc = !d ? K_LINE : !sc7 ? K_PAD : d == 2 || d == 4 ? K_ACC : d == 5 || d == 7 ? K_BASS : K_PAD;
+                int i;
+                cv_rect(x0, y0, 56, 42, now ? mix(K_PANEL, fc, 6) : d ? mix(K_PANEL, fc, loop ? 2 : 1) : K_PANEL);
+                cv_rect(x0, y0, 56, 2, used ? fc : K_LINE);
+                itoa_u((uint32_t)s + 1u, tx);
+                cv_text(x0 + 3, y0 + 1, &FONT_XS, tx, K_DIM);
+                if (d) {
+                    cv_text(x0 + 3, y0 + 10, &FONT_B, pg_roman(d, tx), now ? K_TEXT : loop ? fc : mix(fc, K_DIM, 8));
+                    cv_text(x0 + 3, y0 + 24, &FONT_XS, pg_name(d, mine ? pk_get(s) : 0, tx), now ? K_TEXT : K_DIM);
+                } else if (s < last) {
+                    cv_text(x0 + 3, y0 + 14, &FONT_XS, "HOLDS", K_DIM);
+                }
+                if (used)                        /* its bars */
+                    for (i = 0; i < br && i < 8; i++)
+                        cv_rect(x0 + 3 + i * 6, y0 + 36, 5, 3, now ? K_TEXT : d ? fc : K_LINE);
+                if ((s & 3) < 3 && s + 1 < last)  /* on to the next */
+                    cv_rect(x0 + 56, y0 + 20, 4, 2, now ? K_TEXT : K_LINE);
+                if (cur)
+                    cv_rect(x0, y0 + 42, 56, 2, K_ACC);
+            }
+            cv_text(4, 112, &FONT_XS, !mine ? "TURN A CHORD: THEY ARE YOURS" : loop ? "EDIT: NEXT SLOT  HOLD: HERE" : "PLAY: LOOP TO HEAR THEM", K_DIM);
+            if (sc7)
+                cv_text(4, 122, &FONT_XS, "BLACK KEYS: 1-5 CIRCLE, 6-11 CLASSICS", mix(K_DIM, K_PAD, 8));
+            {
+                const int pd = glob.sl_rsv[2] & 3;
+                cv_text(4, 132, &FONT_XS, pd & 1 ? "W9 BASS: PEDAL" : "W9 BASS: FOLLOWS", pd & 1 ? K_ACC : K_DIM);
+                cv_text(124, 132, &FONT_XS, pd & 2 ? "W10 PAD: PEDAL" : "W10 PAD: FOLLOWS", pd & 2 ? K_ACC : K_DIM);
+            }
+            return;
+        }
         for (s = 0; s < EN_PRG_N; s++) {
             const int32_t x0 = 4 + (s & 3) * 59, y0 = 22 + (s >> 2) * 44;
             const int d = en_prg_get(b, 3 * s, 3), br = 1 << en_prg_get(b, 24 + 2 * s, 2);
