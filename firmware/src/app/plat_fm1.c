@@ -192,7 +192,7 @@ void plat_smk_hw(smk_hw_t *h)
     for (i = 0; i < 4u; i++)
         h->fader[i] = fm1_in.fader[i];
     for (i = 0; i < 8u; i++)
-        h->enc[i] = fm1_in.enc_cnt[i];
+        h->enc[i] = smk_enc_total[i];
     h->wheel[0] = fm1_in.wheel[0];
     h->wheel[1] = fm1_in.wheel[1];
     h->pedal = fm1_in.pedal;

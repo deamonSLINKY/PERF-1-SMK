@@ -382,6 +382,7 @@ static void smk__buttons(void)
     }
 }
 
+static volatile int16_t smk_enc_total[FM1_NENC];  /* PERF-1 SMK: transitions since boot (the HW TEST, the inputs log) */
 static void smk__encoders(void)                    /* stock decoder: 3-state window, 4 counts a cycle */
 {
     uint32_t e;
@@ -400,10 +401,13 @@ static void smk__encoders(void)                    /* stock decoder: 3-state win
             continue;
         h = ((uint32_t)fm1_in.enc_hist[e] << 2 | cur) & 0x3Fu;
         fm1_in.enc_hist[e] = (uint8_t)h;
-        if (h == 0x07u || h == 0x1Eu || h == 0x21u || h == 0x38u)
+        if (h == 0x07u || h == 0x1Eu || h == 0x21u || h == 0x38u) {
             fm1_in.enc_cnt[e]--;                     /* A leads */
-        else if (h == 0x0Bu || h == 0x12u || h == 0x2Du || h == 0x34u)
+            smk_enc_total[e]--;
+        } else if (h == 0x0Bu || h == 0x12u || h == 0x2Du || h == 0x34u) {
             fm1_in.enc_cnt[e]++;                     /* B leads */
+            smk_enc_total[e]++;
+        }
         if (fm1_in.enc_cnt[e] >= SMK_ENC_DIV || fm1_in.enc_cnt[e] <= -SMK_ENC_DIV) {   /* one step a detent */
             int32_t s = fm1_in.enc_cnt[e] / SMK_ENC_DIV;
             fm1_in.enc_steps[e] = (int16_t)(fm1_in.enc_steps[e] + s);
