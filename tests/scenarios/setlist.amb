@@ -1,5 +1,5 @@
-# The set list (0.15.21): GLO pressed again from Global. Sixteen slots (K1 or a white key); turning Genre on an empty slot puts the piece playing in,
-# then Genre and Piece change it; Play on: PRESETS steps through the list (across genres), and the auto-DJ's next piece is the next slot. Kept
+# The set list (0.15.21): GLO pressed again from Global. Sixteen slots (K1 or a white key); turning Piece on an empty slot puts the piece playing in,
+# then Piece runs through every genre's pieces (0.17.13: one knob); Play on: PRESETS steps through the list (across genres), and the auto-DJ's next piece is the next slot. Kept
 # with the player's three (theme, Tune, MIDI out) and back after a restart; an older record of those reads with the list empty.
 seed 0
 wait 3000
@@ -18,15 +18,14 @@ expect setsl0 1
 # slot 2: HOUSE 05
 spin K1 1
 spin K2 1
-spin K2 2
-spin K3 4
+spin K2 24
 wait 100
 expect setsl1 25
 # slot 3 by its white key: HYPNO 03
 tapkey 4
 wait 50
 spin K2 1
-spin K3 2
+spin K2 2
 wait 100
 expect setsl2 3
 # Play on: it is at slot 1 (the piece playing)

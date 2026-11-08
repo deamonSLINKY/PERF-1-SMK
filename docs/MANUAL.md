@@ -463,7 +463,7 @@ columns are **KNOB1** to **KNOB4**.
 | Comp/Limit | **SELECT** | Ratio (off to 10:1) | Thresh (-30 to 0 dB) | Make-up (0 to +12 dB) | Ceiling (-12 to 0 dB) |
 | Mixer | **SELECT** | Track (pad, bass, acid, pluck, drums) | Level | Pan (L100, C, R100) | Send (0-100) |
 | Global | **GLO** | Root | Theme (6) | Tune (+-50 cents) | Genre (the bank, the same as **GLO** + **PRESETS**) |
-| Set list | **GLO** x2 | Slot (1-16; or a white key) | Genre (or Empty) | Piece (01-10) | Play (off, on) |
+| Set list | **GLO** x2 | Slot (1-16; or a white key) | Piece (every genre's, or Empty) | Bars (Auto, 4-128) | Play (off, loop, once) |
 | Code | **GLO** x3 | Place (1-9) | Letter | Roll (a new code) | |
 | Jam | **SELECT** | Voice (pluck, pad, acid, bass) | Keys (scale, chords, harp) | Octave (-2 to +2) | Sound (that voice's sound) |
 
@@ -1702,14 +1702,18 @@ A set list is the pieces you want to play, in your order, from any genres. Press
 | Knob | Setting | What it does |
 |---|---|---|
 | **KNOB1** | Slot | Which of the 16 slots you're editing. The first 16 white keys choose a slot too. |
-| **KNOB2** | Genre | The slot's genre. Turn it on an empty slot and the piece playing goes in. Turn it right down to *Empty* to clear the slot. |
-| **KNOB3** | Piece | The slot's piece, 01 to 10. |
-| **KNOB4** | Play | *On*: the set list takes over from the bank (below). |
+| **KNOB2** | Piece | The slot's piece: every genre's ten in turn (`HYPNO 01` ... `DARK F 10`). Turn it on an empty slot and the piece playing goes in. Turn it right down to *Empty* to clear the slot. |
+| **KNOB3** | Bars | How long the slot plays: *Auto* (the auto-DJ's rounds, as before) or exactly 4, 8, 12, 16, 24, 32, 48, 64, 96 or 128 bars. |
+| **KNOB4** | Play | *Loop* or *Once*: the set list takes over from the bank (below). *Once* stops after the last slot; *Loop* goes round again. |
+
+**Black keys 1-5** take a part out of the slot, or put it back: pad, bass, acid, pluck, drums. The parts line along the bottom shows the slot you're editing, with the parts left out struck through.
+
+**A song from the set list.** Give each slot bars and parts and the list plays as a song: each slot for exactly its bars, from the bar it comes in on, with only its parts, then the next. For example: slot 1 a piece for 8 bars with only the pad and the pluck (an intro), slot 2 the same piece for 32 bars with everything, slot 3 for 16 bars without the drums (a break), slot 4 for 32 bars, and Play on *Once*. Press **PLAY** and it plays through and stops, with the first slot ready again. The slot playing shows how far it is with a line along its bottom.
 
 With **Play** on:
 
 - **PRESETS** steps to the next or last slot in the list, across genres, instead of the next piece in the bank. With **SEL** held while the music plays, the slot waits for the next bar. The header says `SET 2/5` and the piece's title.
-- The **auto-DJ** brings in the next slot instead of the bank's next piece (you don't need DJ new pieces on). It changes on the fill's bar, after the piece's **Rounds**, so the breakdown and the drop belong to the new piece.
+- The **auto-DJ** brings in the next slot instead of the bank's next piece (you don't need DJ new pieces on). It changes on the fill's bar, after the piece's **Rounds**, so the breakdown and the drop belong to the new piece. A slot with **Bars** set changes when its bars are up instead; the DJ's breakdowns and builds still come in between.
 - Empty slots are skipped, and after the last slot it goes back to the first.
 
 The list on screen shows each slot's genre and piece. The slot playing is bright, and the slot you're editing has a bar behind it. The white keys light the slots in use, and the slot playing blinks.

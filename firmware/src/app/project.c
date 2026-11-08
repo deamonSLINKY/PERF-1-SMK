@@ -38,9 +38,13 @@ typedef struct {
     int16_t tune, midi, theme, rsv;          /* rsv (0.16.26, START): the low byte the last piece played (genre * NPIECES + piece + 1, 0 none), bit 8 Random */
     uint8_t sl[SL_N];                        /* a slot: genre * NPIECES + piece + 1; 0 empty */
     uint8_t sl_on, sl_rsv[3];                /* Play: the auto-DJ and PRESETS go through the list */
+    uint8_t sl_bars[SL_N];                   /* (0.17.13, song mode) a place's length in bars (0 Auto: the auto-DJ's rounds, as before) */
+    uint8_t sl_mute[SL_N];                   /* and the parts it leaves out: bit 0 pad, 1 bass, 2 acid, 3 pluck, 4 drums */
+    uint8_t sl_end, sl_x[3];                 /* at the list's end: 0 round again, 1 stop */
 } glob_t;
 #define GLOB_MAGIC 0x4C474D50u               /* "PMGL" */
 #define GLOB_OLD 12u                         /* the record before the set list (0.15.20 and older): read, the list empty */
+#define GLOB_V1 32u                          /* the record before song mode (0.15.21 .. 0.17.12): read, every place Auto, nothing left out */
 static glob_t glob;
 static int glob_from_old;                    /* the old bank's header had them */
 /* THE PIECES' EXTRAS (0.16.28; 0.16.6 had the chord types alone, "KND1"): one object (OBJ_KINDS) with every genre's pieces, as the banks have no
@@ -464,9 +468,9 @@ static void glob_load(void)                  /* the player's three: their object
 {
     glob_t g;
     const int n = plat_store_load(OBJ_GLOB, &g, sizeof g);
-    if ((n == (int)sizeof g || n == (int)GLOB_OLD) && g.magic == GLOB_MAGIC) {
-        if (n == (int)GLOB_OLD)
-            memset(g.sl, 0, sizeof g - GLOB_OLD);
+    if ((n == (int)sizeof g || n == (int)GLOB_V1 || n == (int)GLOB_OLD) && g.magic == GLOB_MAGIC) {
+        if (n < (int)sizeof g)
+            memset((uint8_t *)&g + n, 0, sizeof g - (uint32_t)n);
         glob = g;
     } else if (!glob_from_old) {
         glob.tune = en_param_info(P_TUNE)->def;
