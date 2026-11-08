@@ -1,4 +1,4 @@
-# SONG MODE (0.17.13, stage 1): a set-list place has a length in bars and parts left out. With Play on, a place with bars plays exactly that
+# SONG MODE (0.17.13; 0.17.14 a place's pattern and energy): a set-list place has a length in bars and parts left out. With Play on, a place with bars plays exactly that
 # many from the bar it came in on, then the next; Once stops at the end (the first place ready); its parts as set. Kept.
 seed 0
 wait 3000
@@ -23,6 +23,16 @@ wait 100
 expect setsl1 3
 expect setbars1 8
 expect setmute1 16
+# SEL held (0.17.14): KNOB2 the place's pattern (3), KNOB3 its energy (80)
+press SEL
+spin K2 3
+spin K3 17
+wait 100
+shot song_sel.png
+release SEL
+wait 100
+expect setpat1 3
+expect setmood1 81
 shot song_page.png
 # Play: Once
 spin K4 2
@@ -44,6 +54,8 @@ wait 200
 expect setbar 0
 expect piece 2
 expect trkmute 15
+expect par48 2
+expect mood 80
 shot song_playing.png
 wait 1500
 expect setbar 0

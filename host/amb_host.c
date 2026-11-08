@@ -748,6 +748,10 @@ static int expect(const char *what, const char *val)
         got = glob.sl_mute[atoi(what + 7) % SL_N];
     else if (!strcmp(what, "setend"))
         got = glob.sl_end;
+    else if (!strncmp(what, "setpat", 6))         /* (0.17.14) place N's pattern (0 the piece's), its energy (0 as is, else mood + 1) */
+        got = glob.sl_pat[atoi(what + 6) % SL_N];
+    else if (!strncmp(what, "setmood", 7))
+        got = glob.sl_mood[atoi(what + 7) % SL_N];
     else if (!strcmp(what, "setbar"))             /* the bar of the place playing (from 0) */
         got = en_playing ? (int)(sl_bar_now() - sl_b0) : -1;
     else if (!strcmp(what, "djon"))               /* the auto-DJ: on */

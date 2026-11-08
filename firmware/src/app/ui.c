@@ -46,7 +46,7 @@ static const char *const VIEW_NAME[NVIEWS] = {"Tempo", "Pad", "Pad env", "Pad LF
 enum { VZ_PLASMA, VZ_KALEIDO, VZ_BARS, VZ_FLUX, VZ_DISCO, VZ_LIFE, VZ_ORBIT, VZ_TRIP, VZ_THEORY, VZ_AUTO, VZ_N };   /* the visualizers (viz.c; TRIP and THEORY 0.16.10, THEORY not in AUTO's turn) */
 static const char *const VZ_NAME[VZ_N] = {"PLASMA", "KALEIDO", "BARS", "FLUX", "DISCO", "LIFE", "ORBIT", "TRIP", "THEORY", "AUTO"};
 /* the knobs of each page: a parameter, or one of these (the sequencer's: the lane's) */
-enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_JSND, K_PLRT, K_DLRT, K_CDPOS, K_CDCHR, K_CDROLL, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_JSND: the sound of the voice JAM plays (0.17.4); K_FX*: the FX menu's own knobs */
+enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_JSND, K_PLRT, K_DLRT, K_CDPOS, K_CDCHR, K_CDROLL, K_SLPT, K_SLEN, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_JSND: the sound of the voice JAM plays (0.17.4); K_FX*: the FX menu's own knobs */
 static const char *const FXK_LABEL[4] = {"Filter", "Crush", "Throw", "Wash"};
 
 /* the FX edit pages (SEL + FX walks them; FX alone is the performing menu, or closes): each effect's settings on
@@ -800,6 +800,7 @@ static int sl_bars_i(int b)
     return i;
 }
 static int sl_exact(void) { return sl_play() && ui.sl_pos < SL_N && glob.sl_bars[ui.sl_pos]; }
+static void mood_apply(void);
 static void sl_parts(int s)                     /* place s's parts: the ones it leaves out muted */
 {
     uint8_t m = 0;
@@ -810,6 +811,14 @@ static void sl_parts(int s)                     /* place s's parts: the ones it 
     ui.trk_m = m;
     ui.trk_s = 0;
     en_trk(m, 0);
+    if (glob.sl_pat[s % SL_N]) {                /* (0.17.14) its pattern (from the next bar) */
+        proj.par[P_PATTERN] = (int16_t)(glob.sl_pat[s % SL_N] - 1);
+        en_set(P_PATTERN, proj.par[P_PATTERN]);
+    }
+    if (glob.sl_mood[s % SL_N]) {               /* and its energy */
+        ui.mood = (uint8_t)(glob.sl_mood[s % SL_N] - 1);
+        mood_apply();
+    }
 }
 static void sl_tick(void)                       /* each frame while playing: the place's last bar asks for the next */
 {
@@ -1055,6 +1064,8 @@ static int view_knob(int i)
             return K_NONE;
         return ui.fx_page ? K_FXP + 4 * (ui.fx_page - 1) + i : K_FXF + i;
     }
+    if (ui.view == V_SETL && (ui.btn >> B_SEL & 1u) && (i == 1 || i == 2))
+        return i == 1 ? K_SLPT : K_SLEN;        /* (0.17.14) SEL held: the place's pattern and energy */
     return VIEW_KNOB[ui.view][i];
 }
 static const char *view_label(int i)
@@ -1063,6 +1074,8 @@ static const char *view_label(int i)
         return FXP[NFXP - 1].c[i].label;
     if (ui.fx_menu)
         return ui.fx_page ? FXP[ui.fx_page - 1].c[i].label : FXK_LABEL[i];
+    if (ui.view == V_SETL && (ui.btn >> B_SEL & 1u) && (i == 1 || i == 2))
+        return i == 1 ? "Pattern" : "Energy";
     return KNOB_LABEL[ui.view][i];
 }
 
@@ -1430,6 +1443,10 @@ static int knob_get(int k)
         return sl_bars_i(glob.sl_bars[ui.slsl % SL_N]);
     if (k == K_SLON)
         return glob.sl_on ? 1 + (glob.sl_end & 1u) : 0;
+    if (k == K_SLPT)
+        return glob.sl_pat[ui.slsl % SL_N];
+    if (k == K_SLEN)                             /* (0 as it is; then 0, 5 .. 100) */
+        return glob.sl_mood[ui.slsl % SL_N] ? (glob.sl_mood[ui.slsl % SL_N] - 1) / 5 + 1 : 0;
     if (k == K_PGTY)
         return pk_get(ui.pgsl & 7);
     if (k == K_PGCH || k == K_PGBR || k == K_PGPL) {
@@ -1503,6 +1520,11 @@ static void knob_range(int k, int *lo, int *hi)
     if (k == K_BSTY || k == K_BSNO || k == K_BSOC) {
         *lo = 0;
         *hi = k == K_BSTY ? 4 : k == K_BSNO ? 7 : 2;
+        return;
+    }
+    if (k == K_SLPT || k == K_SLEN) {
+        *lo = 0;
+        *hi = k == K_SLPT ? EN_NPAT : 21;
         return;
     }
     if (k == K_CDPOS || k == K_CDCHR || k == K_CDROLL) {
@@ -1579,6 +1601,21 @@ static void knob_text(int k, char *b)
     }
     if (k == K_GRA) {
         itoa_u((uint32_t)ui.gr_all, b);
+        return;
+    }
+    if (k == K_SLPT || k == K_SLEN) {            /* a place's pattern (the piece's, 1 .. 6) and energy (as it is, 0 .. 100) */
+        const int v = knob_get(k);
+        if (!v) {
+            const char *s = k == K_SLPT ? "Piece's" : "As is";
+            int n = 0;
+            while (s[n]) {
+                b[n] = s[n];
+                n++;
+            }
+            b[n] = 0;
+            return;
+        }
+        itoa_u(k == K_SLPT ? (uint32_t)v : (uint32_t)(v - 1) * 5u, b);
         return;
     }
     if (k == K_CDPOS || k == K_CDCHR || k == K_CDROLL) {   /* the code: the place (1 .. 9), the letter there, the roll */
@@ -1785,6 +1822,17 @@ static void knob_set(int k, int v)
     }
     if (k == K_CDPOS) {
         code_pos = (uint8_t)(v < 0 ? 0 : v > CODE_N - 1 ? CODE_N - 1 : v);
+        return;
+    }
+    if (k == K_SLPT || k == K_SLEN) {            /* a place's pattern and energy: kept with the list; the place playing hears it at once */
+        const int c = ui.slsl % SL_N;
+        if (k == K_SLPT)
+            glob.sl_pat[c] = (uint8_t)(v < 0 ? 0 : v > EN_NPAT ? EN_NPAT : v);
+        else
+            glob.sl_mood[c] = (uint8_t)(v <= 0 ? 0 : (v > 21 ? 20 : v - 1) * 5 + 1);
+        project_globals();
+        if (sl_play() && c == ui.sl_pos)
+            sl_parts(c);
         return;
     }
     if (k == K_CDCHR || k == K_CDROLL) {         /* a letter typed (the check letter follows the others), or a new roll: the track playing's, another seed */
@@ -4451,6 +4499,8 @@ static void input(void)
                 ui.act_t = ui.turn_t = plat_ms();
                 continue;
             }
+            if (ui.view == V_SETL && (i == 1 || i == 2) && (btn >> B_SEL & 1u))
+                ui.btn_used |= 1u << B_SEL;      /* (SEL + KNOB2, KNOB3: the place's pattern and energy, view_knob) */
             if (ui.view == V_TEMPO && i == 3 && (btn >> B_SEL & 1u)) {   /* SEL + Drift: the chord's time in bars (right) or in seconds (left), in any genre; the genre's own is kept as 0 */
                 const int def = en_genre_bars() ? 1 : 2, nw = e > 0 ? 1 : 2;
                 ui.btn_used |= 1u << B_SEL;
@@ -6599,7 +6649,17 @@ static void draw_scope(int kind)
                 if (cur)
                     cv_rect(x0, y0 + 12, 116, 2, K_ACC);
             }
-            {   /* the chosen place's parts (black keys 1-5): in, lit; out, struck */
+            if (ui.btn >> B_SEL & 1u) {   /* SEL held: the chosen place's pattern and energy (SEL + KNOB2, KNOB3) */
+                const int c = ui.slsl % SL_N;
+                int32_t x = cv_text(4, 133, &FONT_XS, "PATTERN", K_DIM) + 4;
+                if (glob.sl_pat[c])
+                    itoa_u(glob.sl_pat[c], tx);
+                x = cv_text(x, 133, &FONT_XS, glob.sl_pat[c] ? tx : "PIECE'S", K_TEXT) + 10;
+                x = cv_text(x, 133, &FONT_XS, "ENERGY", K_DIM) + 4;
+                if (glob.sl_mood[c])
+                    itoa_u((uint32_t)glob.sl_mood[c] - 1u, tx);
+                cv_text(x, 133, &FONT_XS, glob.sl_mood[c] ? tx : "AS IS", K_TEXT);
+            } else {   /* the chosen place's parts (black keys 1-5): in, lit; out, struck */
                 const int c = ui.slsl % SL_N;
                 int32_t x = 4;
                 int i;
@@ -7800,7 +7860,9 @@ static void draw_main(void)
             h = hash(h, (uint32_t)ui.slsl | (uint32_t)ui.sl_pos << 8 | (uint32_t)glob.sl_on << 16 | (uint32_t)proj.genre << 17 | (uint32_t)proj.piece << 24 | (uint32_t)ui.sl_q << 28);
             for (s = 0; s < SL_N; s++)
                 h = hash(h, glob.sl_bars[s] | (uint32_t)glob.sl_mute[s] << 8);
-            h = hash(h, glob.sl_end | (en_playing ? sl_bar_now() - sl_b0 : 0u) << 1);
+            h = hash(h, glob.sl_end | (en_playing ? sl_bar_now() - sl_b0 : 0u) << 1 | (ui.btn >> B_SEL & 1u) << 31);
+            for (s = 0; s < SL_N; s++)
+                h = hash(h, glob.sl_pat[s] | (uint32_t)glob.sl_mood[s] << 8);
         }
         if (ui.view == V_PROG) {
             int s;
@@ -8606,7 +8668,7 @@ int ui_restore_valid(uint32_t obj, const uint8_t *b, uint32_t len)
         return obj == OBJ_PROJ && (rd32(b) == BANK_MAGIC || rd32(b) == OLD_KIT_MAGIC);
     }
     if (obj == OBJ_GLOB)
-        return (len == sizeof(glob_t) || len == GLOB_V1 || len == GLOB_OLD) && rd32(b) == GLOB_MAGIC;
+        return (len == sizeof(glob_t) || len == GLOB_V2 || len == GLOB_V1 || len == GLOB_OLD) && rd32(b) == GLOB_MAGIC;
     if (obj == OBJ_KINDS)                        /* the pieces' extras (0.16.28: PCX1), or the chord types alone (KND1, 0.16.6 .. 0.16.27); fewer genres too */
         return (len >= 4u && len <= 4u + EN_NGENRE * NPIECES * EN_PRK_LEN && (len - 4u) % (NPIECES * EN_PRK_LEN) == 0u && rd32(b) == KND_MAGIC) ||
                (len >= PX_HDR && len <= PX_SIZE && b[4] == PX_LEN && (len - PX_HDR) % (NPIECES * PX_LEN) == 0u && rd32(b) == PX_MAGIC);   /* (0.15.21: the set list after the old record) */

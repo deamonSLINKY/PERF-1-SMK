@@ -41,10 +41,13 @@ typedef struct {
     uint8_t sl_bars[SL_N];                   /* (0.17.13, song mode) a place's length in bars (0 Auto: the auto-DJ's rounds, as before) */
     uint8_t sl_mute[SL_N];                   /* and the parts it leaves out: bit 0 pad, 1 bass, 2 acid, 3 pluck, 4 drums */
     uint8_t sl_end, sl_x[3];                 /* at the list's end: 0 round again, 1 stop */
+    uint8_t sl_pat[SL_N];                    /* (0.17.14) the pattern a place plays: 0 the piece's own, 1 .. 6 */
+    uint8_t sl_mood[SL_N];                   /* and its energy, the mood macro: 0 as it is, else mood + 1 (1 chill .. 101 peak) */
 } glob_t;
 #define GLOB_MAGIC 0x4C474D50u               /* "PMGL" */
 #define GLOB_OLD 12u                         /* the record before the set list (0.15.20 and older): read, the list empty */
 #define GLOB_V1 32u                          /* the record before song mode (0.15.21 .. 0.17.12): read, every place Auto, nothing left out */
+#define GLOB_V2 68u                          /* song mode's first (0.17.13): read, every place's pattern and energy as they are */
 static glob_t glob;
 static int glob_from_old;                    /* the old bank's header had them */
 /* THE PIECES' EXTRAS (0.16.28; 0.16.6 had the chord types alone, "KND1"): one object (OBJ_KINDS) with every genre's pieces, as the banks have no
@@ -468,7 +471,7 @@ static void glob_load(void)                  /* the player's three: their object
 {
     glob_t g;
     const int n = plat_store_load(OBJ_GLOB, &g, sizeof g);
-    if ((n == (int)sizeof g || n == (int)GLOB_V1 || n == (int)GLOB_OLD) && g.magic == GLOB_MAGIC) {
+    if ((n == (int)sizeof g || n == (int)GLOB_V2 || n == (int)GLOB_V1 || n == (int)GLOB_OLD) && g.magic == GLOB_MAGIC) {
         if (n < (int)sizeof g)
             memset((uint8_t *)&g + n, 0, sizeof g - (uint32_t)n);
         glob = g;

@@ -1708,7 +1708,9 @@ A set list is the pieces you want to play, in your order, from any genres. Press
 
 **Black keys 1-5** take a part out of the slot, or put it back: pad, bass, acid, pluck, drums. The parts line along the bottom shows the slot you're editing, with the parts left out struck through.
 
-**A song from the set list.** Give each slot bars and parts and the list plays as a song: each slot for exactly its bars, from the bar it comes in on, with only its parts, then the next. For example: slot 1 a piece for 8 bars with only the pad and the pluck (an intro), slot 2 the same piece for 32 bars with everything, slot 3 for 16 bars without the drums (a break), slot 4 for 32 bars, and Play on *Once*. Press **PLAY** and it plays through and stops, with the first slot ready again. The slot playing shows how far it is with a line along its bottom.
+**Hold SEL** for two more: **KNOB2** is the slot's **Pattern** (*Piece's*: whatever it plays, or drum pattern 1-6) and **KNOB3** its **Energy** (*As is*, or the mood from 0, chill, to 100, peak: the same macro as Perform's mood fader). They take effect when the slot comes in. While SEL is held, the line along the bottom shows them.
+
+**A song from the set list.** Give each slot bars and parts and the list plays as a song: each slot for exactly its bars, from the bar it comes in on, with only its parts, then the next. For example: slot 1 a piece for 8 bars with only the pad and the pluck at energy 30 (an intro), slot 2 the same piece for 32 bars with everything on pattern 1, slot 3 for 16 bars without the drums (a break), slot 4 for 32 bars on pattern 3 at energy 85 (the peak), and Play on *Once*. When the next slot is the same piece, it carries on without starting again: only the parts, the pattern and the energy change, on the bar line. Press **PLAY** and it plays through and stops, with the first slot ready again. The slot playing shows how far it is with a line along its bottom.
 
 With **Play** on:
 
