@@ -8832,6 +8832,10 @@ static void splash_tick(void)                    /* the HYP-1 card's steps, fill
     plat_leds(n ? 1u << B_PLAY : 0u, k);
 }
 
+#if BOARD_SMK37
+#include "smk_hwtest.c"                          /* PERF-1 SMK build 1: the unit boots into the hardware test */
+#endif
+
 void ui_init(void)
 {
     if (rm.on)
@@ -8873,6 +8877,12 @@ void ui_init(void)
     ui.theme = (uint8_t)proj.par[P_THEME];
     th = &THEMES[ui.theme < EN_NTHEME ? ui.theme : 0];
     ui.splash = ui_splash_ms > 0u;
+#if BOARD_SMK37
+    if (hwt.on) {                                /* the hardware test first, quiet; its end runs the splash's end (ui_frame) */
+        ui.splash = 1;
+        return;
+    }
+#endif
     if (ui.splash) {
         draw_splash();
     } else {
@@ -8887,6 +8897,14 @@ void ui_init(void)
 
 void ui_frame(void)
 {
+#if BOARD_SMK37
+    if (hwt.on) {
+        if (hwt_frame())
+            return;
+        ui.splash = 1;                           /* the test is over: the splash's end below starts PERF-1 */
+        ui.boot_t = plat_ms() - ui_splash_ms - 1u;
+    }
+#endif
     if (ui.splash) {
         uint32_t held = plat_buttons() | plat_keys();
         if (plat_ms() - ui.boot_t < ui_splash_ms && !held) {
@@ -9008,6 +9026,10 @@ void ui_frame(void)
 
 void ui_input_only(void)
 {
+#if BOARD_SMK37
+    if (hwt.on)
+        return;                                  /* (the hardware test reads its inputs itself) */
+#endif
     if (rm.on)
         rm_tick();
     else

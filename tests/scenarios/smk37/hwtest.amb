@@ -1,0 +1,20 @@
+# PERF-1 SMK: the hardware test screen (the device boots into it; the simulator with "hwtest")
+# host/build_host.sh smk37 && build/host/amb_host_smk37 < tests/scenarios/smk37/hwtest.amb
+hwtest
+expect hwtest 1
+expect playing 0
+kbkey 12
+fader 0 127
+fader 3 10
+wheel pitch 60
+wait 100
+shot build/smk_hwtest.png
+# KNOB BANK + FADER BANK for less than 1.5 s: still the test
+sbhold 3 800
+expect hwtest 1
+expect smkleds 0
+# held 2 s: PERF-1 takes over, and plays
+sbhold 3 2000
+expect hwtest 0
+wait 500
+expect playing 1

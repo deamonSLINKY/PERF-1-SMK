@@ -16,6 +16,7 @@
 #endif
 
 #include "fm1_flash_map.h"
+#include "fm1_flash_id.h"                  /* FL_JEDEC_OK (PERF-1 keeps the parts there) */
 #include "../firmware/src/app/plat.h"      /* OBJ_* */
 
 static uint8_t nor[0x100000];
@@ -82,16 +83,24 @@ int main(void)
           !LDR_RANGE_OK(0x3000u, 0x2000u) && FL_PROTECTED(0xBF000u, 0x2000u) && FL_PROTECTED(0x3F00u, 0x200u));
     check("wrapping ranges refused (off + n past 4 GiB)",
           !FL_GUARD(0xBB000u, 0xFFFFF000u) && !LDR_RANGE_OK(0x9D000u, 0xFFFFFF00u) && FL_PROTECTED(0xBB000u, 0xFFFFF000u));
-    check("app windows: FL_DATA 0x9D000-0xBAFFF, FL_OTA 0xBB000-0xBFFFF, nothing else (no sample slots)",
+    check("app windows: FL_DATA 0x9D000-0xBAFFF, FL_OTA 0xBB000-0xBFFFF, FL_DATA2 0xC2000-0xE9FFF, nothing else",
           FL_GUARD(0x9D000u, 0x1000u) && FL_GUARD(0xBA000u, 0x1000u) && FL_GUARD(0xBF000u, 0x1000u) &&
-          !FL_GUARD(0xC2000u, 0x1000u) && !FL_GUARD(0x9C000u, 0x1000u) &&
-          allowed == (0xC0000u - 0x9D000u) / 0x1000u);
+          FL_GUARD(0xC2000u, 0x1000u) && FL_GUARD(0xE9000u, 0x1000u) && !FL_GUARD(0xEA000u, 0x1000u) &&
+          !FL_GUARD(0x9C000u, 0x1000u) && !FL_GUARD(0xC1000u, 0x1000u) &&
+          allowed == (0xC0000u - 0x9D000u) / 0x1000u + (0xEA000u - 0xC2000u) / 0x1000u);
     check("loader: app area 0x4000-0x9CFFF, records 0x9D000-0xBFFFF only",
           LDR_RANGE_OK(0x4000u, 0x1000u) && LDR_RANGE_OK(0x9C000u, 0x1000u) && LDR_RANGE_OK(0xBF000u, 0x1000u) &&
           !LDR_RANGE_OK(0xC0000u, 0x1000u) && FL_REC_HI == 0xC0000u);
-    for (o = 0; o < OBJ_NOBJ; o++)
-        for (c = 0; c < 2u; c++)
-            in_store &= FL_STORE_OK(st_sector(o, c), 0x1000u) && st_sector(o, c) < ST_OWNER_OFF;
+    for (o = 0; o < OBJ_NOBJ; o++)          /* PERF-1: in one of the store's windows (ST_SMK_WIN), never the owner tag,
+                                             * the stock loader's 0xBA000 or the update staging */
+        for (c = 0; c < 2u; c++) {
+            const uint32_t a = st_sector(o, c);
+            uint32_t w, inw = 0;
+            for (w = 0; w < sizeof ST_SMK_WIN / sizeof ST_SMK_WIN[0]; w++)
+                inw |= a >= ST_SMK_WIN[w][0] && a < ST_SMK_WIN[w][1];
+            in_store &= FL_STORE_OK(a, 0x1000u) && inw && a != ST_OWNER_OFF && a != 0xBA000u &&
+                        !(a >= FL_OTA_LO && a < FL_OTA_HI);
+        }
     {   /* every object's two copies distinct */
         uint32_t o2, c2, distinct = 1;
         for (o = 0; o < OBJ_NOBJ; o++)
@@ -100,31 +109,40 @@ int main(void)
                     for (c2 = 0; c2 < 2u; c2++)
                         if ((o != o2 || c != c2) && st_sector(o, c) == st_sector(o2, c2))
                             distinct = 0;
-        check("storage.c: every object (A/B) in FL_DATA below the owner tag, no two share a sector", in_store && distinct);
+        check("storage.c: every object (A/B) in the store's windows, none on the tag, 0xBA000 or the staging, no two share a sector",
+              in_store && distinct);
     }
     check("storage.c: project 0x9D000/0x9E000, panel 0x9F000/0xA0000, owner tag 0xAF000",
           st_sector(OBJ_PROJ, 0) == 0x9D000u && st_sector(OBJ_PROJ, 1) == 0x9E000u &&
           st_sector(OBJ_PANEL, 0) == 0x9F000u && st_sector(OBJ_PANEL, 1) == 0xA0000u && ST_OWNER_OFF == 0xAF000u);
+    check("storage.c: KINDS and MMAP (FM-1 0xBF000, 0xC1000) moved off the staging and the calibration",
+          st_sector(OBJ_KINDS, 0) == 0xD4000u && st_sector(OBJ_MMAP, 0) == 0xD6000u && st_sector(OBJ_BSTEP, 1) == 0xD9000u);
     check("FL_PLAIN_LO = the VM start 0x9D000", FL_PLAIN_LO == 0x9D000u);
-    check("FL_JEDEC_OK: the SMK part 0xEB6014 and 0x856014 only", FL_JEDEC_OK(0xEB6014u) && FL_JEDEC_OK(0x856014u) &&
+    check("FL_JEDEC_OK: 0x856014 (the maker's SMK), 0xB36014, 0xEB6014 (the kit's) only",
+          FL_JEDEC_OK(0xEB6014u) && FL_JEDEC_OK(0x856014u) && FL_JEDEC_OK(0xB36014u) &&
           !FL_JEDEC_OK(0u) && !FL_JEDEC_OK(0xFFFFFFu) && !FL_JEDEC_OK(0xEB6015u));
 
-    /* the store owner (FELUCCA_DATA_FAMILY "AMB1", FELUCCA_DATA_UNTAGGED_OK 0) */
+    /* the store owner (FELUCCA_DATA_FAMILY "PERF1", FELUCCA_DATA_UNTAGGED_OK 0) */
     {
-        static const uint8_t TAG[16] = "SMK37DATAAMB1";
+        static const uint8_t TAG[16] = "SMK37DATAPERF1";
         char a[300], got[300];
         int n;
         memset(nor, 0xA5, sizeof nor);           /* everything outside the store: must stay */
         memset(nor + 0x9D000u, 0xFF, 0xBB000u - 0x9D000u);
+        memset(nor + 0xBA000u, 0x5A, 0x1000u);   /* M-VAVE's own loader, left from a stock update: stays */
+        memset(nor + 0xC2000u, 0x33, 0xEA000u - 0xC2000u);   /* the stock presets in USRFLASH: PERF's part cleared */
         memset(a, 'A', sizeof a);
-        check("FELUCCA_DATA_UNTAGGED_OK defaults to 0, the family to AMB1",
-              FELUCCA_DATA_UNTAGGED_OK == 0 && !strcmp(FELUCCA_DATA_FAMILY, "AMB1"));
+        check("FELUCCA_DATA_UNTAGGED_OK defaults to 0, the family to PERF1",
+              FELUCCA_DATA_UNTAGGED_OK == 0 && !strcmp(FELUCCA_DATA_FAMILY, "PERF1"));
         /* 1. untagged data (another firmware from before the tag, or stock VM data): cleared, tag written */
         memset(nor + 0x9D000u, 0x11, 0x1000u);
         memset(nor + 0xAE000u, 0x22, 0x1000u);
         st_owner_check();
-        check("untagged store: object area cleared, tag AMB1 written",
-              st_owner_cleared && all(0x9D000u, 0xAF000u, 0xFF) && !memcmp(nor + 0xAF000u, TAG, 16));
+        check("untagged store: PERF's windows cleared (0x9D000-0xAEFFF, 0xB0000-0xB9FFF, 0xC2000-0xD9FFF), tag PERF1 written",
+              st_owner_cleared && all(0x9D000u, 0xAF000u, 0xFF) && all(0xB0000u, 0xBA000u, 0xFF) &&
+              all(0xC2000u, 0xDA000u, 0xFF) && !memcmp(nor + 0xAF000u, TAG, 16));
+        check("... and the stock loader at 0xBA000 and USRFLASH past 0xDA000 left as they were",
+              all(0xBA000u, 0xBB000u, 0x5A) && all(0xDA000u, 0xEA000u, 0x33));
         /* 2. ours: kept */
         st_owner_cleared = 0;
         check("save a project", st_save(OBJ_PROJ, a, sizeof a) == 0);
@@ -136,12 +154,24 @@ int main(void)
         memset(nor + 0xAF000u, 0xFF, 0x1000u);
         memcpy(nor + 0xAF000u, "SMK37DATASLOOP", 15);
         st_owner_check();
-        check("another family (SLOOP): object area cleared, tag AMB1 written",
+        check("another family (SLOOP): object area cleared, tag PERF1 written",
               st_owner_cleared && st_load(OBJ_PROJ, got, sizeof got) < 0 && all(0x9D000u, 0xAF000u, 0xFF) &&
               !memcmp(nor + 0xAF000u, TAG, 16));
-        check("nothing outside 0x9D000..0xAFFFF touched, no write refused",
-              all(0, 0x9D000u, 0xA5) && all(0xB0000u, 0xBB000u, 0xFF) && all(0xBB000u, 0x100000u, 0xA5) &&
-              bad_write == 0);
+        {   /* every object saved and loaded back on the simulated part */
+            uint32_t ok = 1;
+            for (o = 0; o < OBJ_NOBJ; o++) {
+                memset(a, (int)('a' + o), sizeof a);
+                ok &= st_save(o, a, sizeof a) == 0 && st_load(o, got, sizeof got) == (int)sizeof a && !memcmp(got, a, sizeof a);
+            }
+            for (o = 0; o < OBJ_NOBJ; o++) {     /* (and none overwrote another) */
+                memset(a, (int)('a' + o), sizeof a);
+                ok &= st_load(o, got, sizeof got) == (int)sizeof a && !memcmp(got, a, sizeof a);
+            }
+            check("all 26 objects save and load back, none over another", ok);
+        }
+        check("nothing outside the store's windows touched (stock loader 0xBA000, staging, BTIF, USRTRIM, USR), no write refused",
+              all(0, 0x9D000u, 0xA5) && all(0xBA000u, 0xBB000u, 0x5A) && all(0xBB000u, 0xC2000u, 0xA5) &&
+              all(0xDA000u, 0xEA000u, 0x33) && all(0xEA000u, 0x100000u, 0xA5) && bad_write == 0);
     }
     printf("%s\n", bad ? "SMK FLASH TEST FAILED" : "smk flash test passed");
     return bad != 0;

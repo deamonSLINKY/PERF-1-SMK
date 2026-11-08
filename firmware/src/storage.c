@@ -47,16 +47,32 @@ static uint32_t st_crc32(const void *p, uint32_t n)   /* zlib CRC-32, 4 bits per
 }
 
 #if BOARD_SMK37
-/* SMK-37 Pro: the objects in FL_DATA 0x9D000..0xBAFFF (the stock VM), A/B
- * neighbours: the project 0x9D000 / 0x9E000, the panel calibration 0x9F000 / 0xA0000. Never near BTIF /
- * USRTRIM (0xC0000..0xC1FFF) or key_mac (0xFF000). */
+/* PERF-1 SMK (SMK-37 Pro): 26 objects, A/B neighbours, 52 sectors, placed by enum (never by address math) in
+ * three windows of the flash map (fm1_flash_map.h FL_DATA, FL_DATA2):
+ *   0x9D000..0xAEFFF  the object area every SMK port uses: PROJ PANEL SET VOICES GLOB G1..G4   (18 sectors)
+ *   0xAF000           the store's owner tag ("SMK37DATA" + "PERF1"), below
+ *   0xB0000..0xB9FFF  G5..G9                                                                    (10 sectors)
+ *   0xBA000           left alone: M-VAVE's own update parks its loader here (found in the maker's dump)
+ *   0xBB000..0xBFFFF  the update staging (ota.c), not the store
+ *   0xC2000..0xD9FFF  G10..G18, KINDS, MMAP, BSTEP: USRFLASH (the stock presets; back with the stock package)
+ *   0xDA000..0xE9FFF  free: 16 sectors, 8 objects
+ * Never BTIF / USRTRIM 0xC0000..0xC1FFF (pairing, the factory key / pad / wheel calibration), the stock
+ * resources 0xF4000..0xFDFFF or key_mac 0xFF000. tests/smk_flash_test.c walks every object against the map. */
 #define ST_SMK_BASE 0x9D000u
 #define ST_SMK_OBJ_HI 0xAF000u                 /* the object area every SMK port shares (0x9D000..0xAEFFF) */
-_Static_assert(ST_SMK_BASE + 2u * OBJ_NOBJ * ST_SECTOR <= ST_SMK_OBJ_HI, "SMK store: objects past 0xAF000");
+static const uint8_t ST_SMK_SEC[OBJ_NOBJ] = {  /* copy A's sector number (offset >> 12); copy B is the next */
+    [OBJ_PROJ] = 0x9D, [OBJ_PANEL] = 0x9F, [OBJ_SET] = 0xA1, [OBJ_VOICES] = 0xA3, [OBJ_GLOB] = 0xA5,
+    [OBJ_G1] = 0xA7, [OBJ_G2] = 0xA9, [OBJ_G3] = 0xAB, [OBJ_G4] = 0xAD,
+    [OBJ_G5] = 0xB0, [OBJ_G6] = 0xB2, [OBJ_G7] = 0xB4, [OBJ_G8] = 0xB6, [OBJ_G9] = 0xB8,
+    [OBJ_G10] = 0xC2, [OBJ_G11] = 0xC4, [OBJ_G12] = 0xC6, [OBJ_G13] = 0xC8, [OBJ_G14] = 0xCA, [OBJ_G15] = 0xCC,
+    [OBJ_G16] = 0xCE, [OBJ_G17] = 0xD0, [OBJ_G18] = 0xD2, [OBJ_KINDS] = 0xD4, [OBJ_MMAP] = 0xD6, [OBJ_BSTEP] = 0xD8};
+_Static_assert(OBJ_NOBJ == 26, "a new object needs its place in ST_SMK_SEC (and in tests/smk_flash_test.c)");
 static uint32_t st_sector(uint32_t obj, uint32_t copy)  /* flash offset of copy A (0) / B (1) */
 {
-    return ST_SMK_BASE + ((obj % OBJ_NOBJ) * 2u + (copy & 1u)) * ST_SECTOR;
+    return ((uint32_t)ST_SMK_SEC[obj % OBJ_NOBJ] + (copy & 1u)) * ST_SECTOR;
 }
+/* the windows the store owns: cleared when it takes the store over */
+static const uint32_t ST_SMK_WIN[][2] = {{0x9D000u, 0xAF000u}, {0xB0000u, 0xBA000u}, {0xC2000u, 0xDA000u}};
 
 /* The owner of the store. Several FM-1 firmwares are ported to the SMK-37 Pro with the same board layer and
  * this same store area, each with its own object formats: a firmware must never parse another's data. The
@@ -66,7 +82,7 @@ static uint32_t st_sector(uint32_t obj, uint32_t copy)  /* flash offset of copy 
  * AMB-1 never trusts untagged data). Calibration, BT pairing and key_mac are outside FL_DATA: never touched.
  * ST_IDLE() runs between the erases (the device: the watchdog). */
 #ifndef FELUCCA_DATA_FAMILY
-#define FELUCCA_DATA_FAMILY "AMB1"
+#define FELUCCA_DATA_FAMILY "PERF1"
 #endif
 #ifndef FELUCCA_DATA_UNTAGGED_OK
 #define FELUCCA_DATA_UNTAGGED_OK 0
@@ -93,11 +109,24 @@ static void st_owner_check(void)
     }
     if (ours)
         return;
-    if (!erased || !FELUCCA_DATA_UNTAGGED_OK) {     /* another firmware's store (or untagged): clear it */
-        for (s = ST_SMK_BASE; s < ST_SMK_OBJ_HI; s += ST_SECTOR) {
-            ST_IDLE();
-            st_erase(s);
-        }
+    if (!erased || !FELUCCA_DATA_UNTAGGED_OK) {     /* another firmware's store (or untagged): clear PERF's windows */
+        uint32_t w, k;
+        for (w = 0; w < sizeof ST_SMK_WIN / sizeof ST_SMK_WIN[0]; w++)
+            for (s = ST_SMK_WIN[w][0]; s < ST_SMK_WIN[w][1]; s += ST_SECTOR) {
+                uint32_t blank = 1;                  /* (an erased sector stays as it is: the first boot is quicker) */
+                for (k = 0; k < ST_SECTOR && blank; k += 64u) {
+                    uint32_t q[16], j;
+                    if (st_read(s + k, q, sizeof q)) {
+                        blank = 0;
+                        break;
+                    }
+                    for (j = 0; j < 16u; j++)
+                        blank &= q[j] == 0xFFFFFFFFu;
+                }
+                ST_IDLE();
+                if (!blank)
+                    st_erase(s);
+            }
         st_owner_cleared = 1;
     }
     ST_IDLE();

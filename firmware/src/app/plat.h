@@ -82,4 +82,19 @@ int plat_pad_vel(int pad);             /* velocity 1..127 of pad p's last press 
 int plat_fader(int i);                 /* fader 0..3: 0..127, -1 while the readings settle */
 int plat_wheels(int32_t *pitch, int32_t *modw);   /* 1 = new values: pitch -127..127 (0 at rest), mod 0..127 */
 void plat_pad_rgb(int pad, uint8_t r, uint8_t g, uint8_t b);   /* pad p's LED */
+/* the HW TEST screen (app/smk_hwtest.c): every input as the HAL sees it */
+typedef struct {
+    uint64_t keys;                     /* keybed keys held, bit k = key k (0 = C3) */
+    uint8_t key_vel[37];               /* each key's last velocity 1..127 */
+    uint8_t pad_press[16];             /* 0 = off, else the pressure 1..127 (pads as the hardware: 0..7 top row) */
+    uint16_t pad_raw[16];              /* the pad's ADC reading 0..1023 */
+    uint8_t fader[4];                  /* 0..127 */
+    int16_t enc[8];                    /* encoder transitions since boot, + = clockwise (B leads) */
+    uint16_t wheel[2], pedal, batt;    /* raw 0..1023: pitch, mod, pedal, battery */
+    uint32_t buttons;                  /* bit i = button id i (smk_input.h: 0 KNOB BANK .. 17 SEQ REC) */
+    uint32_t frames, adc_ok, adc_miss;
+    uint8_t trim_ok, flash_chip;       /* the factory curves taken; fm1_flash_id.h FL_CHIP */
+} smk_hw_t;
+void plat_smk_hw(smk_hw_t *h);
+void plat_smk_btn_leds(uint32_t ids);  /* button LEDs by hardware id (bit i = button id i), for the test screen */
 #endif

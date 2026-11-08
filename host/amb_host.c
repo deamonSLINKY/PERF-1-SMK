@@ -124,6 +124,20 @@ uint32_t plat_pad_hits(void)
 }
 int plat_pad_vel(int p) { return (uint32_t)p < SMK_NPADS && pad_vel_v[p] ? pad_vel_v[p] : 100; }
 int plat_fader(int i) { return (uint32_t)i < 4u ? fader_v[i] : -1; }
+void plat_smk_btn_leds(uint32_t ids) { smk_lit = ids & 15u; }
+void plat_smk_hw(smk_hw_t *h)                    /* the HW TEST screen's snapshot, from the script's state */
+{
+    int i;
+    memset(h, 0, sizeof *h);
+    h->keys = kb_held;
+    for (i = 0; i < 4; i++)
+        h->fader[i] = (uint8_t)fader_v[i];
+    h->wheel[0] = (uint16_t)(512 + wheel_p);
+    h->wheel[1] = (uint16_t)(512 + wheel_m);
+    h->buttons = smk_btn_held;                   /* (SB_* = button ids 0..3: KNOB BANK, FADER BANK, <, >) */
+    h->trim_ok = 1;
+    h->flash_chip = 1;
+}
 int plat_wheels(int32_t *pitch, int32_t *modw)
 {
     if (!wheel_new)
@@ -530,12 +544,8 @@ static int expect(const char *what, const char *val)
     if (!strcmp(what, "playing"))
         got = en_playing;
 #if BOARD_SMK37
-    else if (!strcmp(what, "fbank"))              /* the fader bank, 0 A .. 2 C */
-        got = smk.fbank;
-    else if (!strcmp(what, "picker"))             /* the picker is up */
-        got = smk_picker();
-    else if (!strcmp(what, "fcard"))              /* the fader card is up */
-        got = smk_fcard();
+    else if (!strcmp(what, "hwtest"))             /* the hardware test screen is up */
+        got = hwt.on;
     else if (!strcmp(what, "smkleds"))            /* KNOB BANK, FADER BANK, <, > lit: bits */
         got = (int)smk_lit;
     else if (!strncmp(what, "padg", 4))           /* padgN: pad N's green */
@@ -1004,6 +1014,11 @@ int main(int argc, char **argv)
             run_ms(40);
             smk_btn_held &= ~(1u << i);
             run_ms(40);
+        } else if (!strcmp(cmd, "sbhold")) {        /* sbhold MASK MS: hold SMK buttons (bits: 1 KNOB_BANK, 2 FADER_BANK, 4 <, 8 >) */
+            smk_btn_held = (uint32_t)atoi(a) & 15u;
+            run_ms(atoi(b));
+            smk_btn_held = 0;
+            run_ms(40);
         } else if (!strcmp(cmd, "pad")) {
             int pd = atoi(a) & 15;
             pad_vel_v[pd] = b[0] ? atoi(b) : 100;
@@ -1024,6 +1039,12 @@ int main(int argc, char **argv)
             for (i = 0; i < SMK_NPADS; i++)
                 printf("%s%3d,%3d,%3d%s", i % 8 ? " " : "  pads: ", pad_rgb[i][0], pad_rgb[i][1], pad_rgb[i][2],
                        i % 8 == 7 ? "\n" : "");
+        } else if (!strcmp(cmd, "hwtest")) {        /* hwtest [0]: the SMK's hardware test screen on (the device boots into it) */
+            hwt.on = (uint8_t)(a[0] ? atoi(a) != 0 : 1);
+            hwt.t0 = 0;
+            if (hwt.on)
+                en_play(0);                          /* (quiet, as the device boots into it) */
+            run_ms(40);
 #endif
         } else if (!strcmp(cmd, "strum")) {          /* strum A B [MS]: a finger across the white keys */
             int x = atoi(a), y = atoi(b), gap = c[0] ? atoi(c) : 25, s = y >= x ? 1 : -1;

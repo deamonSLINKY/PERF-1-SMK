@@ -176,6 +176,12 @@ static void (*volatile tm_uart_poll)(void) = uart_midi_poll;
 #define uart_midi_poll() tm_uart_poll()
 #endif
 #define usb_poll() tm_usb_poll()
+#if BOARD_SMK37
+/* the SMK's input tick (hal/smk_input.h: matrix, pads, ADC muxes) is not inlined into this RAM ISR: it runs from the
+ * flash through a pointer, as the polls above (its cache cost: measure with the status log, then move it to RAM) */
+static void (*volatile tm_input_tick)(void) = fm1_input_tick;
+#define fm1_input_tick() tm_input_tick()
+#endif
 __attribute__((section(".ram_hot.timer5"), noinline, used)) void fm1_timer5_irq(void)
 {
     static uint32_t sub;
@@ -225,6 +231,9 @@ __attribute__((section(".ram_hot.timer5"), noinline, used)) void fm1_timer5_irq(
 #undef usb_poll
 #undef uac_service
 #undef uart_midi_poll
+#if BOARD_SMK37
+#undef fm1_input_tick
+#endif
 extern void isr_timer5(void);
 
 /* ------------------------------------------------------------- boot --- */
@@ -649,7 +658,11 @@ static void tel_service(void)
         w[36] = en_prof_sm[9];
         w[37] = en_prof_sm[10];
         w[38] = (uint32_t)tap_n[0] | (uint32_t)tap_n[1] << 8 | (uint32_t)tap_n[2] << 16 | (uint32_t)tap_n[3] << 24;   /* the drums tapped from MIDI (0.16.6: */
+#if EN_TRS
         w[39] = (uint32_t)tap_n[4] | (uint32_t)tap_n[5] << 8 | (um.drops & 0xFFFFu) << 16;   /* kick .. perc, a byte each) and the TRS bytes lost */
+#else
+        w[39] = (uint32_t)tap_n[4] | (uint32_t)tap_n[5] << 8;   /* (no TRS MIDI IN on this board) */
+#endif
         for (i = 0; i < 40u; i++)
             b[4 * i] = (uint8_t)w[i], b[4 * i + 1] = (uint8_t)(w[i] >> 8), b[4 * i + 2] = (uint8_t)(w[i] >> 16), b[4 * i + 3] = (uint8_t)(w[i] >> 24);
         f[0] = 0xF0, f[1] = 0x7D, f[2] = 0x50, f[3] = 0x5A;

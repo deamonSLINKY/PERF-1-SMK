@@ -11,14 +11,8 @@
  * the 1 MiB part ignores the high address bits, so a wrapped range lands low. */
 #define FL_IN(off, n, lo, hi) ((uint32_t)(off) >= (lo) && (uint32_t)(off) <= (hi) && \
                                (uint32_t)(n) <= (hi) - (uint32_t)(off))
-/* The flash chip the app accepts (JEDEC id from 0x9F; main_fm1.c). */
-#if BOARD_SMK37
-/* SMK-37 Pro: 0xEB6014, 1 MiB, read from a unit over mask-ROM UBOOT. The driver uses only generic
- * SPI NOR commands (9F, 05/35, 06, 20, 02, 0B). */
-#define FL_JEDEC_OK(id) ((id) == 0xEB6014u || (id) == 0x856014u)
-#else
-#define FL_JEDEC_OK(id) ((id) == 0x856014u)
-#endif
+/* The flash chips the app accepts (JEDEC id from 0x9F; main_fm1.c): PERF-1 keeps them in fm1_flash_id.h
+ * (FL_JEDEC_OK, both boards), so the host test checks the same macro. */
 
 #if BOARD_SMK37
 /* ---- SMK-37 Pro flash map (hardware notes: https://github.com/genkigenki/fm1-to-smk37) ----
@@ -49,6 +43,8 @@
 #define FL_DATA_HI      0x000BB000u
 #define FL_OTA_LO       0x000BB000u                /* M-UPGRADE loader staging, ota.c */
 #define FL_OTA_HI       0x000C0000u
+#define FL_DATA2_LO     0x000C2000u                /* PERF-1's second window: USRFLASH (storage.c ST_SMK_SEC) */
+#define FL_DATA2_HI     0x000EA000u
 /* a window [lo, hi) is allowed: sector aligned, non-empty, and clear of every protected range */
 #define FL_WIN_SAFE(lo, hi) ((lo) % 0x1000u == 0u && (hi) % 0x1000u == 0u && (lo) < (hi) && \
                              (lo) >= FL_HEAD_HI && (hi) <= FL_KEYMAC_LO && \
@@ -56,6 +52,8 @@
                              ((hi) <= FL_USRRES_LO || (lo) >= FL_USRRES_HI))
 _Static_assert(FL_WIN_SAFE(FL_DATA_LO, FL_DATA_HI), "SMK: FL_DATA overlaps a protected range");
 _Static_assert(FL_WIN_SAFE(FL_OTA_LO, FL_OTA_HI), "SMK: FL_OTA overlaps a protected range");
+_Static_assert(FL_WIN_SAFE(FL_DATA2_LO, FL_DATA2_HI), "SMK: FL_DATA2 overlaps a protected range");
+_Static_assert(FL_DATA2_LO >= FL_CAL_HI && FL_DATA2_HI <= FL_USRRES_LO, "SMK: FL_DATA2 outside USRFLASH");
 _Static_assert(FL_WIN_SAFE(FL_APP_LO, FL_APP_HI), "SMK: FL_APP overlaps a protected range");
 _Static_assert(FL_WIN_SAFE(FL_REC_LO, FL_REC_HI), "SMK: FL_REC overlaps a protected range");
 _Static_assert(FL_REC_HI == FL_CAL_LO && FL_OTA_HI <= FL_REC_HI && FL_OTA_LO >= FL_REC_LO,
@@ -63,8 +61,8 @@ _Static_assert(FL_REC_HI == FL_CAL_LO && FL_OTA_HI <= FL_REC_HI && FL_OTA_LO >= 
 _Static_assert(FL_DATA_HI <= FL_OTA_LO && FL_APP_HI <= FL_DATA_LO, "SMK: windows overlap");
 /* the update loader (loader.c): the app area, and records only in the VM below BTIF */
 #define FL_LDR_RANGE_OK(off, n) (FL_IN(off, n, FL_APP_LO, FL_APP_HI) || FL_IN(off, n, FL_REC_LO, FL_REC_HI))
-/* AMB-1's own store: FL_DATA only */
-#define FL_STORE_OK(off, n) FL_IN(off, n, FL_DATA_LO, FL_DATA_HI)
+/* PERF-1's own store: FL_DATA and FL_DATA2 */
+#define FL_STORE_OK(off, n) (FL_IN(off, n, FL_DATA_LO, FL_DATA_HI) || FL_IN(off, n, FL_DATA2_LO, FL_DATA2_HI))
 #ifndef FL_RANGE_OK
 #define FL_RANGE_OK(off, n) (FL_STORE_OK(off, n) || FL_IN(off, n, FL_OTA_LO, FL_OTA_HI))
 #endif

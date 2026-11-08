@@ -55,6 +55,7 @@ int plat_usb_power(void) { return usb.config && !usb.suspended; }
 static void led_pos_init(void) {}
 void plat_glow(int on) { (void)on; }
 void plat_play_red(int red) { (void)red; }      /* SEQ PLAY has one LED */
+void plat_keys_dim(uint32_t keys) { (void)keys; }   /* (no key LEDs on the SMK) */
 static uint32_t smk_xled;
 void plat_smk_leds(uint32_t lit) { smk_xled = lit; }
 void plat_leds(uint32_t buttons, uint32_t keys)
@@ -162,10 +163,47 @@ int plat_wheels(int32_t *pitch, int32_t *modw)
 /* the factory velocity curves of the keys and pads: USRTRIM (flash 0xC1000, "trimdat" at +0x224), read only,
  * over the SPI read (no XIP window needed); smk_trim_load ignores a record that does not check out */
 static uint8_t smk_trim_buf[0x22Cu] __attribute__((aligned(4)));
+static uint8_t smk_trim_ok;                      /* the factory record was taken (the HW TEST screen says so) */
 static void smk_trim_init(void)
 {
     if (flash_ok && st_read(SMK_TRIM_FLASH, smk_trim_buf, sizeof smk_trim_buf) == 0)
-        smk_trim_load(smk_trim_buf);
+        smk_trim_ok = (uint8_t)smk_trim_load(smk_trim_buf);
+}
+
+/* the HW TEST screen: button LEDs by hardware id (bit i = button i's LED, smk_input.h), not through the FM-1 map */
+void plat_smk_btn_leds(uint32_t ids)
+{
+    uint32_t i;
+    for (i = 0; i < SMK_NLED; i++)
+        fm1_led[i] = (uint8_t)(i < FM1_NBTN && (ids >> i & 1u));
+}
+
+/* the HW TEST screen's snapshot: every input as the HAL sees it (raw where it helps to find a wrong row or index) */
+void plat_smk_hw(smk_hw_t *h)
+{
+    uint32_t k = fm1__lock(), i;
+    h->keys = fm1_in.keys;
+    for (i = 0; i < 37u; i++)
+        h->key_vel[i] = fm1_in.key_vel[i];
+    for (i = 0; i < 16u; i++) {
+        h->pad_press[i] = (fm1_in.pad_st[i] & 0x80u) ? (uint8_t)(fm1_in.pad_press[i] ? fm1_in.pad_press[i] : 1u) : 0u;
+        h->pad_raw[i] = fm1_in.pad_raw[i];
+    }
+    for (i = 0; i < 4u; i++)
+        h->fader[i] = fm1_in.fader[i];
+    for (i = 0; i < 8u; i++)
+        h->enc[i] = fm1_in.enc_cnt[i];
+    h->wheel[0] = fm1_in.wheel[0];
+    h->wheel[1] = fm1_in.wheel[1];
+    h->pedal = fm1_in.pedal;
+    h->batt = fm1_in.batt;
+    h->buttons = fm1_in.buttons;
+    h->frames = fm1_in.frames;
+    h->adc_ok = fm1_in.adc_ok;
+    h->adc_miss = fm1_in.adc_miss;
+    fm1__unlock(k);
+    h->trim_ok = smk_trim_ok;
+    h->flash_chip = flash_chip;
 }
 #else
 /* LEDs: the picture is built off-line and copied one byte per column (Felucca: clearing

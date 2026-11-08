@@ -13,9 +13,17 @@
 #define FL_ID_P25Q80   0x856014u
 #define FL_ID_UC25HQ80 0xB36014u
 
-#define FL_JEDEC_OK(id) ((id) == FL_ID_P25Q80 || (id) == FL_ID_UC25HQ80)
+#define FL_ID_SMK_EB   0xEB6014u           /* the SMK-37 Pro of genkigenki's port kit (the maker's SMK has the P25Q80) */
 
-/* for the status log: 0 no answer, 1 P25Q80, 2 UC25HQ80, 3 another part (flash off) */
+#if defined(BOARD_SMK37) && BOARD_SMK37
+/* SMKs carry different parts too (2026-11-08: the maker's unit 0x856014, the kit's 0xEB6014): all three */
+#define FL_JEDEC_OK(id) ((id) == FL_ID_P25Q80 || (id) == FL_ID_UC25HQ80 || (id) == FL_ID_SMK_EB)
+#else
+#define FL_JEDEC_OK(id) ((id) == FL_ID_P25Q80 || (id) == FL_ID_UC25HQ80)
+#endif
+
+/* for the status log (2 bits): 0 no answer, 1 P25Q80, 2 UC25HQ80, 3 another part (flash off; on the SMK build
+ * also the kit's 0xEB6014, flash on) */
 #define FL_CHIP(id) ((id) == FL_ID_P25Q80 ? 1u : (id) == FL_ID_UC25HQ80 ? 2u : (id) == 0u || (id) == 0xFFFFFFu ? 0u : 3u)
 
 #endif
