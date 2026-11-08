@@ -1,0 +1,15 @@
+{
+ "perfmap": 1,
+ "note": "A mock-up for the 0.17.0 video: a generic controller with eight knobs on CC 70-77 and an encoder on CC 78, channel 1 (the older MPK minis' knob CCs). Load it on the Editor page or the Install page's MIDI map.",
+ "maps": {
+  "c:0:70": { "t": "p24", "mode": "abs", "name": "Bass: Cutoff" },
+  "c:0:71": { "t": "p25", "mode": "abs", "name": "Bass: Reso" },
+  "c:0:72": { "t": "p34", "mode": "abs", "name": "Acid: Cutoff" },
+  "c:0:73": { "t": "p35", "mode": "abs", "name": "Acid: Reso" },
+  "c:0:74": { "t": "p9", "mode": "abs", "name": "Pad: Bright" },
+  "c:0:75": { "t": "p67", "mode": "abs", "name": "Space: Echo" },
+  "c:0:76": { "t": "p69", "mode": "abs", "name": "Space: Reverb" },
+  "c:0:77": { "t": "p47", "mode": "abs", "name": "Drums: Swing" },
+  "c:0:78": { "t": "p161", "mode": "rel64", "name": "Drums: Ghosts" }
+ }
+}

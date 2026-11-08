@@ -1,7 +1,7 @@
 // A scene made from a trace (driver/capture.mjs): the firmware's own screen and panel, its audio, and overlays that follow the cues
 // the scene's script left (events). Cues: text {label,title,body,chips}, ring {target,dur,chip}, cam {to}, readout {text,sub,dur}.
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AbsoluteFill, Audio, Easing, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig, delayRender, continueRender } from "remotion";
+import { AbsoluteFill, Audio, Easing, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig, delayRender, continueRender } from "remotion";
 import { loadFont } from "@remotion/google-fonts/BarlowSemiCondensed";
 import { Panel, LAYOUT, SCREEN } from "./Panel.jsx";
 
@@ -49,7 +49,7 @@ function camAt(events, t) {
   return { cx: prev[0] + (cur[0] - prev[0]) * k, cy: prev[1] + (cur[1] - prev[1]) * k, z: prev[2] + (cur[2] - prev[2]) * k };
 }
 
-function target(tg) {                                 // "btn:FX", "knob:SELECT", "key:20", "keys:20,22"
+export function target(tg) {                                 // "btn:FX", "knob:SELECT", "key:20", "keys:20,22"
   const [k, v] = tg.split(":");
   if (k === "btn") return [{ ...LAYOUT.buttons[v], r: 10 }];
   if (k === "knob") { const o = LAYOUT.knobs[v]; return [{ x: o.x - o.r - 10, y: o.y - o.r - 10, w: 2 * o.r + 20, h: 2 * o.r + 20, r: o.r + 10 }]; }
@@ -63,6 +63,7 @@ const CREDIT_LINES = [
   ["Based on", "HYP-1 by RedtailWorks, a fork of AMB-1 by Charles Vestal"],
   ["Platform", "Felucca by Leo Kuroshita (Hügelton Instruments), through X0X and FoMni"],
   ["FM engine, DX7 voices", "Melodee by Kerem Kilic (Ellic Studio), after Dexed (Pascal Gauthier) on MSFA (Raph Levien / Google)"],
+  ["USB MIDI host, boot stub", "Melodee by Kerem Kilic; the boot stub by ChoralRoot"],
   ["Plate reverb", "after Dattorro, through FoMni"],
   ["Ideas", "Tuna by delirioux, and Marbles by Émilie Gillet"],
   ["The hardware", "FM-1-RE; rescue protocol from FM-1-transporter and kagaimiq's jl-uboot-tool"],
@@ -70,12 +71,69 @@ const CREDIT_LINES = [
   ["Type", "Chakra Petch and Barlow Semi Condensed, SIL OFL"],
   ["", "M-VAVE and FM-1 are trademarks of their owners. PERF-1 is independent firmware, not affiliated with or endorsed by them."],
 ];
-const Chip = ({ children, on }) => (
+export const Chip = ({ children, on }) => (
   <span style={{ display: "inline-block", padding: "4px 18px", margin: "0 8px", borderRadius: 12, fontWeight: 700, fontSize: 34, letterSpacing: ".04em",
     color: on ? "#fff" : INK, background: on ? "#d8452d" : "#2a2c33", border: `2px solid ${on ? "#ff7a5c" : "#44474f"}` }}>{children}</span>
 );
 
-export function EmuScene({ dir }) {
+// a web page over the music (cue web {img, label, title, body, dur}): the page full frame, drifting in slowly, a card over its foot
+function WebStill({ w, t, dir, fade }) {
+  const lt = t - w.t, dur = w.dur ?? 10;
+  const o = interpolate(lt, [0, 0.5, dur - 0.5, dur], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const z = interpolate(lt, [0, dur], [1.0, 1.07], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return (
+    <AbsoluteFill style={{ background: BG, fontFamily, color: INK, opacity: fade }}>
+      <AbsoluteFill style={{ opacity: o }}>
+        <Img src={staticFile(w.img)} style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, objectFit: "cover", objectPosition: "50% 0%", transform: `scale(${z})`, transformOrigin: "50% 30%" }} />
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 560, background: "linear-gradient(transparent, #0d0d10f2 38%, #0d0d10fa)" }} />
+        <div style={{ position: "absolute", left: 80, bottom: 70, width: 1500 }}>
+          <div style={{ fontSize: 28, letterSpacing: ".16em", fontWeight: 600, color: ORANGE }}>{w.label}</div>
+          <div style={{ fontSize: 76, fontWeight: 700, lineHeight: 1.1, marginTop: 8 }}>{w.title}</div>
+          <div style={{ fontSize: 34, lineHeight: 1.35, color: "#cfcbd8", marginTop: 12 }}>{w.body}</div>
+        </div>
+        {w.badge && (
+          <div style={{ position: "absolute", right: 70, top: 120, transform: `scale(${1 + 0.07 * Math.sin(lt * 6.3)}) rotate(-6deg)`, padding: "10px 30px", borderRadius: 14,
+            background: "#e8343f", color: "#fff", fontSize: 54, fontWeight: 700, letterSpacing: ".14em",
+            boxShadow: `0 0 ${24 + 20 * (0.5 + 0.5 * Math.sin(lt * 6.3))}px #ff4a55aa, 0 8px 24px #0009`, border: "3px solid #ff8a8f" }}>{w.badge}</div>
+        )}
+        <Brand />
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+}
+
+// the thank-you, full frame over the music (cue thanks {title, body: [lines], foot, sign, dur}): the device's screen huge and dim behind
+function Thanks({ k, t, fade, children }) {
+  const lt = t - k.t, dur = k.dur ?? 10;
+  const o = interpolate(lt, [0, 0.7, dur - 0.7, dur], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const line = (i) => interpolate(lt, [0.6 + i * 1.1, 1.3 + i * 1.1], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const lines = k.body || [];
+  return (
+    <AbsoluteFill style={{ background: BG, fontFamily, color: INK, opacity: fade }}>
+      <AbsoluteFill style={{ opacity: 0.5 * o, filter: "blur(6px) saturate(1.3)" }}>{children}</AbsoluteFill>
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 50%, #1b1c21aa, #1b1c21f2 75%)", opacity: o }} />
+      <AbsoluteFill style={{ opacity: o, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+        <div style={{ fontSize: 30, letterSpacing: ".3em", color: ORANGE, fontWeight: 700 }}>THANK YOU</div>
+        <div style={{ fontSize: 150, fontWeight: 700, lineHeight: 1.05, margin: "18px 0 34px", transform: `scale(${0.96 + 0.04 * line(0)})`, opacity: line(0) }}>{k.title}</div>
+        {lines.map((l, i) => (
+          <div key={i} style={{ fontSize: 50, lineHeight: 1.4, color: i === lines.length - 1 ? ORANGE : "#e4e0ec", fontWeight: i === lines.length - 1 ? 700 : 500,
+            opacity: line(i + 1), transform: `translateY(${(1 - line(i + 1)) * 14}px)` }}>{l}</div>
+        ))}
+        <div style={{ width: 700 * line(lines.length + 1), height: 3, background: ORANGE, margin: "40px auto 26px" }} />
+        <div style={{ fontSize: 30, color: DIM, letterSpacing: ".04em", opacity: line(lines.length + 1) }}>{k.foot}</div>
+        <div style={{ fontSize: 34, color: "#8f8aa0", letterSpacing: ".16em", fontWeight: 600, marginTop: 30, opacity: line(lines.length + 2) }}>{k.sign ? "— " + k.sign : ""}</div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+}
+
+// the take's audio once, outside the branches (credits, web stills, the device), so it is one track from start to end
+export function EmuScene({ dir, mute = false }) {
+  const { durationInFrames } = useVideoConfig();
+  return (<>{!mute && <Audio src={staticFile(`${dir}/audio.wav`)} volume={(f) => interpolate(f, [0, 8, durationInFrames - 8, durationInFrames], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} />}<EmuBody dir={dir} /></>);
+}
+
+function EmuBody({ dir }) {
   const frame = useCurrentFrame(), { fps, durationInFrames } = useVideoConfig(), t = frame / fps;
   const fade = interpolate(frame, [0, 8, durationInFrames - 8, durationInFrames], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const d = useTrace(dir);
@@ -88,17 +146,16 @@ export function EmuScene({ dir }) {
   if (ct >= 0) {                                      // the credits, over the visualizer: two pages
     const page = ct < 11 ? 0 : 1, local = page ? ct - 11 : ct;
     const pageFade = page ? interpolate(local, [0, 0.8], [0, 1], { extrapolateRight: "clamp" }) : interpolate(ct, [0, 0.8, 10, 11], [0, 1, 1, 0], { extrapolateRight: "clamp" });
-    const shown = CREDIT_LINES.slice(page ? 5 : 0, page ? 10 : 5);
+    const shown = CREDIT_LINES.slice(page ? 5 : 0, page ? CREDIT_LINES.length : 5);
     return (
       <AbsoluteFill style={{ background: `radial-gradient(ellipse at 30% 20%, #25262d, ${BG} 70%)`, fontFamily, color: INK, opacity: fade }}>
-        <Audio src={staticFile(`${dir}/audio.wav`)} volume={fade} />
-        <div style={{ position: "absolute", right: 90, top: 150, width: 720, height: 720, borderRadius: 34, background: "#0b0b0d", border: "3px solid #3a3d42" }}>
+          <div style={{ position: "absolute", right: 90, top: 150, width: 720, height: 720, borderRadius: 34, background: "#0b0b0d", border: "3px solid #3a3d42" }}>
           <canvas ref={big} width={240} height={240} style={{ position: "absolute", left: 36, top: 36, width: 648, height: 648, imageRendering: "pixelated", borderRadius: 6 }} />
         </div>
         <div style={{ position: "absolute", left: 100, top: 80, fontSize: 40, letterSpacing: ".2em", color: ORANGE, fontWeight: 700 }}>CREDITS</div>
         <div style={{ position: "absolute", left: 100, top: 170, width: 1000, opacity: pageFade }}>
           {shown.map(([k, v], i) => (
-            <div key={i} style={{ marginBottom: 34 }}>
+            <div key={i} style={{ marginBottom: page ? 26 : 34 }}>
               {k && <div style={{ fontSize: 26, letterSpacing: ".16em", color: DIM, fontWeight: 600 }}>{k.toUpperCase()}</div>}
               <div style={{ fontSize: 36, color: v.startsWith("M-VAVE") ? DIM : "#e4e0ec", lineHeight: 1.25 }}>{v}</div>
             </div>
@@ -107,7 +164,16 @@ export function EmuScene({ dir }) {
         <Brand />
       </AbsoluteFill>
     );
-  }  const text = [...ev].reverse().find((e) => e.kind === "text" && e.t <= t) || { title: "", body: "", chips: [] };
+  }
+  const thanks = ev.find((e) => e.kind === "thanks" && t >= e.t && t < e.t + (e.dur ?? 10));
+  if (thanks) return (
+    <Thanks k={thanks} t={t} fade={fade}>
+      <canvas ref={big} width={240} height={240} style={{ position: "absolute", left: 0, top: -420, width: 1920, height: 1920, imageRendering: "pixelated" }} />
+    </Thanks>
+  );
+  const web = ev.find((e) => e.kind === "web" && t >= e.t && t < e.t + (e.dur ?? 10));
+  if (web) return <WebStill w={web} t={t} dir={dir} fade={fade} />;
+  const text = [...ev].reverse().find((e) => e.kind === "text" && e.t <= t) || { title: "", body: "", chips: [] };
   const textT = text.t ?? 0;
   const st = spring({ frame: frame - Math.round(textT * fps), fps, config: { damping: 18, stiffness: 120 } });
   const rings = ev.filter((e) => e.kind === "ring" && t >= e.t - 0.05 && t < e.t + (e.dur ?? 1));
@@ -117,7 +183,6 @@ export function EmuScene({ dir }) {
   const lit = new Set(rings.map((r) => r.chip).filter(Boolean));
   return (
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at 30% 20%, #25262d, ${BG} 70%)`, fontFamily, color: INK, opacity: fade }}>
-      <Audio src={staticFile(`${dir}/audio.wav`)} volume={fade} />
       <div style={{ position: "absolute", left: 80, top: 56, fontSize: 28, letterSpacing: ".16em", fontWeight: 600, color: DIM }}>
         <span style={{ color: ORANGE }}>{text.label || ""}</span>
       </div>

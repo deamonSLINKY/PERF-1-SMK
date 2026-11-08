@@ -12,7 +12,7 @@ const Slinky = ({ size = 64, color = "#8f8aa0" }) => (          // a small coil:
   </svg>
 );
 
-export function Title() {
+export function Title({ edition = "THE 0.17.0 UPDATE" }) {
   const frame = useCurrentFrame(), { fps, durationInFrames } = useVideoConfig(), t = frame / fps;
   const a = spring({ frame: frame - 8, fps, config: { damping: 20, stiffness: 90 } });
   const fade = interpolate(frame, [0, 10, durationInFrames - 10, durationInFrames], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -24,7 +24,7 @@ export function Title() {
         <div style={{ width: 900 * line, height: 4, background: ORANGE, margin: "26px auto" }} />
         <div style={{ fontSize: 48, letterSpacing: ".08em", color: "#cfcbd8" }}>custom firmware for the M-VAVE FM-1</div>
         <div style={{ fontSize: 34, letterSpacing: ".12em", color: DIM, marginTop: 14 }}>a live-performance, generative instrument</div>
-        <div style={{ fontSize: 40, letterSpacing: ".18em", color: ORANGE, marginTop: 30, fontWeight: 700 }}>THE 0.15.0 UPDATE</div>
+        <div style={{ fontSize: 40, letterSpacing: ".18em", color: ORANGE, marginTop: 30, fontWeight: 700 }}>{edition}</div>
       </div>
       <div style={{ position: "absolute", bottom: 70, display: "flex", alignItems: "center", gap: 18, opacity: interpolate(t, [2, 3], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) }}>
         <Slinky size={56} />
