@@ -1983,7 +1983,7 @@ The **Pieces** page on the PERF-1 website shares one piece at a time: you send a
 The **Global** page (**GLO**) has four knobs:
 
 - **Root**: the key the music is in.
-- **Theme**: the colours. Choose Imp, Synth, Acid, Ice, Ember or Phosphor.
+- **Theme**: the colours. Choose Imp, Synth, Acid, Ice, Ember or Phosphor, or one of two whole new layouts on test (0.17.2): **Console** shows the five voices as channel strips with faders and the drums as a tracker; **Ritual** turns the screen into one circle with the page's four knobs in its corners. Tell us which you like.
 - **Tune**: fine tuning, +-50 cents (a cent is a hundredth of a semitone).
 - **Genre**: the bank of pieces, the same as **GLO** + **PRESETS**.
 

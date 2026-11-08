@@ -1,0 +1,83 @@
+# THE LOOKS (0.17.2, a test): the Console and Ritual themes, the last two on Global > Theme. Console: five channel strips on the
+# pages that showed the sigil, faders, the sequencer a tracker. Ritual: the whole screen one circle (no header, no knob strip), the
+# page's knobs in its corners; the pages with a picture of their own keep the bands. Then back to Imp: the header and knobs again.
+seed 0
+wait 3000
+press GLO
+wait 100
+turn PRESET 10
+wait 200
+release GLO
+wait 300
+expect genre 10
+expect playing 1
+tap GLO
+wait 100
+spin K2 6
+wait 200
+expect theme 6
+tap HOME
+wait 4000
+expect view 0
+shot looks_console_home.png
+tap ENV
+wait 1500
+expect view 1
+shot looks_console_pad.png
+press GLO
+wait 100
+tapkey 12
+wait 100
+release GLO
+wait 1500
+expect trkmute 32
+shot looks_console_mute.png
+press GLO
+wait 100
+tapkey 12
+wait 100
+release GLO
+wait 100
+expect trkmute 0
+press SEQ
+wait 500
+release SEQ
+wait 1200
+expect view 35
+shot looks_console_seq.png
+tap HOME
+wait 300
+tap GLO
+wait 100
+spin K2 1
+wait 200
+expect theme 7
+tap HOME
+wait 4000
+expect view 0
+shot looks_ritual_home.png
+turn K1 3
+wait 300
+shot looks_ritual_touch.png
+tap ENV
+wait 1500
+expect view 1
+shot looks_ritual_pad.png
+press SEQ
+wait 500
+release SEQ
+wait 1200
+expect view 35
+shot looks_ritual_seq.png
+tap ENV
+tap ENV
+wait 1500
+shot looks_ritual_padenv.png
+tap GLO
+wait 100
+spin K2 -7
+wait 200
+expect theme 0
+tap HOME
+wait 1500
+shot looks_imp_back.png

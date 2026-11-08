@@ -30,7 +30,7 @@
 #define EN_NPAT 6                      /* drum patterns */
 #define EN_NSTEP 16
 #define EN_NPAD 4                      /* pad voices */
-#define EN_NTHEME 6                    /* the screen's colour themes (the UI's; kept with the settings) */
+#define EN_NTHEME 8                    /* the screen's colour themes (the UI's; kept with the settings); 6 Console and 7 Ritual are looks of their own (0.17.2, a test) */
 #define EN_NSTYLE 5                    /* the old styles (before 1.0.27): a stored piece's is turned into sounds
                                         * and a kit (en_style_sounds); they were kits 0..4 */
 #define EN_NSOUND 24                   /* the sounds each of pad and drone can play */
@@ -372,6 +372,7 @@ void en_bass_steps_set(const uint8_t *b16);     /* a piece's sixteen */
 void en_bass_steps_get(uint8_t *b16);           /* as they are */
 extern volatile uint8_t en_bs[16];
 extern volatile int8_t en_bs_pos;               /* the step playing while the bass plays its steps (-1 otherwise) */
+extern volatile uint8_t en_bs_hist[16];         /* the bar the bass line played, as heard (EN_BS_MAKE bytes, 0 a rest), any mode (the screen) */
 extern volatile int8_t en_walk_next;           /* THE CIRCLE MOVES (0.16.27): the walk's next degree, chosen a chord ahead (-1 not known: a progression set by hand, a new scale) */
 extern volatile uint8_t en_walk_next_root;      /* its root (pitch class; borrowed: the parallel minor's) */
 extern volatile uint8_t en_chord_alt;           /* the chord playing: 0 as the scale has it, 1 a secondary dominant (V of the next), 2 borrowed from the parallel minor */

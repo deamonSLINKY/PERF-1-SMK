@@ -26,6 +26,7 @@ The unit reports its version as `FM-1_7XXYYZZ` (0.13.0 is `FM-1_7001300`); the i
 
 ## Next (development builds from 0.17.1)
 
+- **Two new looks to try (0.17.2, a test):** Global > Theme now ends with **Console** and **Ritual**, layouts of their own rather than colours. **Console**: the five voices as channel strips (the bar's coming notes falling to a playhead, a meter, MUTE when out, the page's voice lit), the chord and where it goes above them, faders for the knobs, the drums as a tracker (steps down, lanes across; accents, ghosts and ratchets in the cells). **Ritual**: the whole screen one circle: the bar's 16 steps on the rim, each voice an orbit with its notes as beads, the chord's star and the eye in the middle, the page's four knobs in the corners as arcs; the drums as six rings. Pages with a picture of their own (envelopes, the FX menu, settings) keep their layout in the look's colours.
 - **THEORY spells chords in thirds.** A note outside the key is named from the chord's root, so F7 in G Dorian reads F A C **Eb** (it read D#), and a borrowed root is lowered: **Bb** in C major, not A#, with its numeral counted from B.
 
 ## 0.17.0 (the builds 0.16.17 .. 0.16.29 are its steps)

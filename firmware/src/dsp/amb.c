@@ -574,7 +574,7 @@ static const char *const PAD_DEST_NAME[8] = {"Filter", "Level", "Pan", "Pitch", 
 static const char *const DRONE_DEST_NAME[8] = {"Cutoff", "Pitch", "Level", "Drive", "Reso", "Acid cut", "Acid reso", "Echo time"};
 static const char *const NOISE_NAME[8] = {"Mint", "Clean", "Light", "Used", "Worn", "Scratched", "Dusty", "Trashed"};   /* the vinyl's wear */
 static const char *const TRIG_NAME[6] = {"Chord", "1 bar", "2 bars", "4 bars", "8 bars", "Off"};
-static const char *const THEME_NAME[EN_NTHEME] = {"Imp", "Synth", "Acid", "Ice", "Ember", "Phosphor"};
+static const char *const THEME_NAME[EN_NTHEME] = {"Imp", "Synth", "Acid", "Ice", "Ember", "Phosphor", "Console", "Ritual"};
 /* the voice bank: what each voice can play (the sounds themselves: PAD_SOUND, DRONE_SOUND, ACID_SOUND, and
  * the kits: the old styles' drums) */
 const char *const EN_PAD_SOUND[EN_NSOUND] = {"Rhodes", "Voices", "Strings", "Glass", "Organ", "Warm", "Stabs", "Dark",
@@ -3335,7 +3335,9 @@ static const bl_fig_t BL_FIG[EN_NBLFIG] = {      /* the figures by name (the bas
  * attack), or both; its note a number of the scale's steps above the chord's root (so the line follows the chords as the acid's steps do) and
  * an octave. The line the other modes play is kept as it is heard (bs_hist), and the first time Steps plays with no step set it starts from that
  * bar. The steps are the piece's (project.c, OBJ_BSTEP). */
-static uint8_t bs[16], bs_hist[16], bs_set;
+static uint8_t bs[16], bs_set;
+volatile uint8_t en_bs_hist[16];                 /* (the screen reads it: the Console look's bass strip) */
+#define bs_hist en_bs_hist
 volatile uint8_t en_bs[16];
 volatile int8_t en_bs_pos = -1;
 static void bs_publish(void)
