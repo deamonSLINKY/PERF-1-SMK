@@ -649,7 +649,10 @@ $("loom").addEventListener("click", (e) => {
 const ED = { pat: 0, brush: "hit", slot: 0 };
 const RAT = ["off", "x2", "x3", "x4", "x6", "flam", "swell x3", "swell x4"], LVN = ["normal", "ghost", "soft", "accent"];
 let edGrid = null;                                           // what a click lands on: {x0, y0, cw, rh, rows, kind}
-function tools(html) { $("edtools").innerHTML = html; }
+function tools(html) {                                       // (only when it changes: the editor redraws while it plays, and a button made anew under the
+  const el = $("edtools");                                    //  pointer never gets its click; hover flickered)
+  if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; }
+}
 function drawEditor() {
   const cv = $("ed"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth;
   const L = LANES.find((l) => l.id === sel), st = laneState(sel);
@@ -747,7 +750,11 @@ function clickDrums(s, r, right) {
     else if (ED.brush === "ratchet") modSet(r, s, (md & 0xF8) | (((md & 7) + 1) % 8));
     else modSet(r, s, (md & 0xC7) | ((((md >> 3) & 7) + 1) % 8) << 3);
   }
-  if ((patGet(ED.pat, r) >> s) & 1) hearStep("drums", { lane: r, vel: [100, 45, 75, 127][(modGet(r, s) >> 6) & 3] });
+  if ((patGet(ED.pat, r) >> s) & 1) {
+    const md2 = modGet(r, s);
+    hearStep("drums", { lane: r, vel: [100, 45, 75, 127][(md2 >> 6) & 3] });
+    say(D.lanes[r] + ", step " + (s + 1) + " (P" + (ED.pat + 1) + "): " + LVN[(md2 >> 6) & 3] + ", ratchet " + RAT[md2 & 7] + ", push " + ((md2 >> 3) & 7) + "/12" + ((md2 >> 3) & 7 ? " of a step" : ""));
+  } else say(D.lanes[r] + ", step " + (s + 1) + " (P" + (ED.pat + 1) + "): no hit.");
   changed();
 }
 // ---- bass: eight scale steps above the chord's root, three octaves
@@ -903,24 +910,44 @@ $("edtools").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b || !io) return;
   const d = b.dataset;
-  if (d.pat !== undefined) { ED.pat = +d.pat; refresh(); return; }
-  if (d.brush) { ED.brush = d.brush; refresh(); return; }
+  if (d.pat !== undefined) { ED.pat = +d.pat; say("Editing pattern P" + (ED.pat + 1) + (ED.pat === par("P_PATTERN") ? " (the one the piece plays)." : ": Play P" + (ED.pat + 1) + " makes the piece play it.")); refresh(); return; }
+  if (d.brush) { ED.brush = d.brush; say({ hit: "Brush HIT: a click puts a hit in or takes it out.", level: "Brush LEVEL: a click on a hit goes normal, ghost, soft, accent.", ratchet: "Brush RATCHET: a click on a hit goes off, x2, x3, x4, x6, flam, swell x3, swell x4.", push: "Brush PUSH: a click on a hit moves it later, a twelfth of a step at a time (back to 0 after 7)." }[d.brush]); refresh(); return; }
   if (d.deg !== undefined) { bitPut(prg(), 3 * ED.slot, 3, +d.deg); if (+d.deg && !progPlay() && !timeline()) bitPut(prg(), 40, 1, 1); changed(); return; }
   if (d.bars !== undefined) { bitPut(prg(), 24 + 2 * ED.slot, 2, +d.bars); changed(); return; }
+  // the line the engine played last that has notes: now, else the latest bar heard with some (a lane that plays its own steps has no engine line now)
+  const heardLine = (key, any) => {
+    if (live && any(live)) return live;
+    const bars = Object.keys(hist).map(Number).sort((a, b) => b - a);
+    for (const b of bars) { const ln = hist[b].line; if (ln && any(ln)) return ln; }
+    return null;
+  };
   const A = {
-    playpat: () => setPar("P_PATTERN", ED.pat),
-    bcap: () => { if (!live) return say("Switch on and play first.", true); io.set(live.bsHist, IO_BS); setPar("P_BL_MODE", BL_STEPS); },
-    bclear: () => io.fill(0, IO_BS, IO_BS + 16),
-    bsteps: () => setPar("P_BL_MODE", BL_STEPS),
-    acap: () => { if (!live) return say("Switch on and play first.", true); acidSet(live.acOff.map((o, s) => ({ off: o, oct: live.acOct[s], gate: (live.acGate >> s) & 1, acc: (live.acAcc >> s) & 1, slide: (live.acSlide >> s) & 1 }))); setPar("P_AC_LOCK", 1); },
-    aclear: () => { acidSet(acidGet().map(() => ({ off: 0, oct: 1, gate: 0, acc: 0, slide: 0 }))); setPar("P_AC_LOCK", 1); },
-    alock: () => setPar("P_AC_LOCK", par("P_AC_LOCK") ? 0 : 1),
-    pcap: () => { if (!live) return say("Switch on and play first.", true); pluckSet(live.cmRung.map((r, s) => ({ rung: r, lvl: live.cmLvl[s] }))); freezePluck(); },
-    pclear: () => { pluckSet(pluckGet().map(() => ({ rung: 0, lvl: 0 }))); freezePluck(); },
-    plock: () => (par("P_CM_LOCK") ? setPar("P_CM_LOCK", 0) : freezePluck()),
-    pplay: () => bitPut(prg(), 40, 1, progPlay() ? 0 : 1),
+    playpat: () => { setPar("P_PATTERN", ED.pat); say("The piece plays P" + (ED.pat + 1) + " now."); },
+    bcap: () => {
+      const ln = heardLine("bs", (x) => (x.bsHist || x.bs).some((v) => (v & 7) >= 1 && (v & 7) <= 4));
+      if (!ln) return say("Nothing to capture: no bass line of the engine's has been heard (this bass plays its own steps). Set Mode on the SOUND tab to another, or use New take, then capture.", true), false;
+      io.set(ln.bsHist || ln.bs, IO_BS); setPar("P_BL_MODE", BL_STEPS);
+      say("Captured the bar the bass played: " + Array.from(io.subarray(IO_BS, IO_BS + 16)).filter((v) => (v & 7) >= 1 && (v & 7) <= 4).length + " notes, now its steps.");
+    },
+    bclear: () => { io.fill(0, IO_BS, IO_BS + 16); say("The bass steps are cleared (all rests). Undo brings them back."); },
+    bsteps: () => { setPar("P_BL_MODE", BL_STEPS); say("The bass plays its steps."); },
+    acap: () => {
+      if (!live) return say("Switch on and play first.", true), false;
+      acidSet(live.acOff.map((o, s) => ({ off: o, oct: live.acOct[s], gate: (live.acGate >> s) & 1, acc: (live.acAcc >> s) & 1, slide: (live.acSlide >> s) & 1 }))); setPar("P_AC_LOCK", 1);
+      say("Captured the acid line it plays: " + acidGet().filter((x) => x.gate).length + " notes, frozen.");
+    },
+    aclear: () => { acidSet(acidGet().map(() => ({ off: 0, oct: 1, gate: 0, acc: 0, slide: 0 }))); setPar("P_AC_LOCK", 1); say("The acid line is cleared (frozen, all rests). Undo brings it back."); },
+    alock: () => { setPar("P_AC_LOCK", par("P_AC_LOCK") ? 0 : 1); say(par("P_AC_LOCK") ? "The acid line is frozen: kept with the piece." : "The acid line is free: it grows and mutates by itself."); },
+    pcap: () => {
+      if (!live) return say("Switch on and play first.", true), false;
+      pluckSet(live.cmRung.map((r, s) => ({ rung: r, lvl: live.cmLvl[s] }))); freezePluck();
+      say("Captured the pluck's loop: " + pluckGet().filter((x) => x.lvl).length + " notes, frozen.");
+    },
+    pclear: () => { pluckSet(pluckGet().map(() => ({ rung: 0, lvl: 0 }))); freezePluck(); say("The pluck line is cleared (frozen, all rests). Undo brings it back."); },
+    plock: () => { if (par("P_CM_LOCK")) setPar("P_CM_LOCK", 0); else freezePluck(); say(par("P_CM_LOCK") ? "The pluck line is frozen: kept with the piece." : "The pluck is free: deja vu's loop comes and goes."); },
+    pplay: () => { bitPut(prg(), 40, 1, progPlay() ? 0 : 1); say(progPlay() ? "The chords play the slots in turn." : "The chords follow the genre's walk."); },
   }[d.act];
-  if (A) { A(); changed(); }
+  if (A && A() !== false) changed();
 });
 $("edtools").addEventListener("change", (e) => {
   const t = e.target;
@@ -942,9 +969,10 @@ function drawScreen(fb) {
 function drawFacts() {
   if (!io) { $("facts").innerHTML = ""; return; }
   const row = (k, v) => "<div><span>" + k + "</span><b>" + v + "</b></div>";
-  $("facts").innerHTML = row("Piece", S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece)) + row("Tempo", par("P_TEMPO") + " BPM") +
+  const fh = row("Piece", S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece)) + row("Tempo", par("P_TEMPO") + " BPM") +
     row("Key", NOTE[par("P_ROOT")] + " " + parText("P_MODE").toLowerCase()) + row("Bass line", parText("P_BL_MODE")) + row("Chords", parText("P_CHORD")) +
     row("Levels", ["P_PAD", "P_BASS", "P_ACID", "P_CM_LVL", "P_PULSE"].map((k) => par(k)).join(" · ")) + '<div><span></span><span class="muted">pad · bass · acid · pluck · drums</span></div>';
+  if ($("facts").dataset.h !== fh) { $("facts").innerHTML = fh; $("facts").dataset.h = fh; }
 }
 let raf = 0;
 function refresh() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (view === "loom") drawLoom(); drawEditor(); drawFacts(); syncCtls(); syncQuick(); }); }
