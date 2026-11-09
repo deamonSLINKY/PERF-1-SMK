@@ -9062,6 +9062,9 @@ void ui_init(void)
     mm_load();                                   /* and their MIDI map (0.16.11) */
     en_pedal(glob.sl_rsv[2] & 3);                /* and the pedal (0.16.21: the global record's last spare byte) */
     ui_fx_apply();                               /* the piece's FILTERS and SCREAM over the settings' (0.16.28) */
+#ifdef EN_FOLLOW
+    ui_fol_apply();                              /* and its FOLLOWERS */
+#endif
     ui.start_rand = (uint8_t)project_start_random();
     ui.form = (uint8_t)(glob.sl_rsv[2] >> 2 & 1u);   /* and Form (0.16.26: bit 2; 0, the records before it, is Song) */
     en_song = (uint8_t)!ui.form;

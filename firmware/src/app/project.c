@@ -58,10 +58,17 @@ static int glob_from_old;                    /* the old bank's header had them *
 #define PX_FLAGS 3
 #define PX_FXAT 4
 #define PX_SIZE (PX_HDR + EN_NGENRE * NPIECES * PX_LEN)
+#ifdef EN_FOLLOW
+#define PX_FOLAT 11                         /* (PERF-1 SMK) the FOLLOWERS' five, in the spare bytes; the last's bit 7 says they are there */
+typedef char pxf_fits[PX_FXAT + PX_NFX <= PX_FOLAT && PX_FOLAT + PX_NFOL <= PX_LEN ? 1 : -1];
+#define PXL_N (1 + PX_NFX + PX_NFOL)
+#else
+#define PXL_N (1 + PX_NFX)
+#endif
 typedef char px_fits[PX_SIZE <= PLAT_STORE_MAX ? 1 : -1];
 const uint8_t PX_FXS[PX_NFX] = {EN_FXS_FT_PAD, EN_FXS_FT_BASS, EN_FXS_FT_ACID, EN_FXS_SQ_DRIVE, EN_FXS_SQ_AMT, EN_FXS_SQ_WOW, EN_FXS_SQ_TGT};
 static uint8_t px[NPIECES][PX_LEN];          /* the playing genre's pieces' extras, as saved */
-static uint8_t pxl[NPIECES][1 + PX_NFX];     /* and their FILTERS and SCREAM as left this time in the genre ([0] 1: set), as keep() does for the rest */
+static uint8_t pxl[NPIECES][PXL_N];     /* and their FILTERS and SCREAM as left this time in the genre ([0] 1: set), as keep() does for the rest */
 static uint8_t pending_px;
 /* THE PIECES' BASS STEPS (0.16.29, GitHub issue #6): their own object (OBJ_BSTEP), "BSQ1": magic, BS_LEN, the genres, 2 spare; then BS_LEN bytes a
  * piece, every genre's ten. A piece's are its slot's bs while the power is on; SAVE marks it, and the next write puts the marked pieces' in (the
@@ -138,6 +145,9 @@ static void keep(void)                       /* the piece playing, into its slot
     slot_t *s = &proj.slot[proj.piece];
     int p, l;
     ui_fx_snapshot(pxl[proj.piece] + 1);     /* (its FILTERS and SCREAM, 0.16.28) */
+#ifdef EN_FOLLOW
+    ui_fol_snapshot(pxl[proj.piece] + 1 + PX_NFX);   /* (and its FOLLOWERS) */
+#endif
     pxl[proj.piece][0] = 1;
     for (p = 0; p < P_NPARAMS; p++)
         s->par[p] = proj.par[p];
@@ -464,6 +474,22 @@ void project_fx_get(uint8_t *v)
             v[k] = (uint8_t)EN_FXS_DEF[PX_FXS[k]];
 }
 
+#ifdef EN_FOLLOW
+int project_fol_get(uint8_t *v)
+{
+    const int i = proj.piece;
+    if (pxl[i][0]) {
+        memcpy(v, pxl[i] + 1 + PX_NFX, PX_NFOL);
+        return 1;
+    }
+    if (px[i][PX_FOLAT + PX_NFOL - 1] & 0x80u) {
+        memcpy(v, px[i] + PX_FOLAT, PX_NFOL);
+        return 1;
+    }
+    return 0;
+}
+#endif
+
 static void glob_load(void)                  /* the player's three: their object, else the old bank's header, else the defaults */
 {
     glob_t g;
@@ -565,6 +591,9 @@ void project_apply(void)
     en_bass_steps_set(proj.bs);
     en_trim(proj.genre, proj.piece);
     ui_fx_apply();                           /* its FILTERS and SCREAM (0.16.28) */
+#ifdef EN_FOLLOW
+    ui_fol_apply();                          /* and its FOLLOWERS */
+#endif
 }
 
 void project_piece(int i)
@@ -604,6 +633,14 @@ void project_piece_save(void)
             px[proj.piece][PX_FLAGS] |= 1u;
             pending_px = 1;
         }
+#ifdef EN_FOLLOW
+        for (k = 0, same = 1; k < PX_NFOL; k++)   /* and its FOLLOWERS */
+            same &= px[proj.piece][PX_FOLAT + k] == pxl[proj.piece][1 + PX_NFX + k];
+        if (!same) {
+            memcpy(px[proj.piece] + PX_FOLAT, pxl[proj.piece] + 1 + PX_NFX, PX_NFOL);
+            pending_px = 1;
+        }
+#endif
     }
     saved |= (uint16_t)(1u << proj.piece);
     bs_dirty |= (uint16_t)(1u << proj.piece);   /* (its bass steps: with the next write, if they changed) */

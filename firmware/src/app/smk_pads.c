@@ -14,6 +14,10 @@
  *           new pieces (the FM-1's mix map keys)
  *   CHORDS  top row: the chord on the scale's degrees I-VII, at once (bank E)
  *   NOTES   the pluck in key, low at the bottom left (bank B); > the bass, the acid; < back
+ *   FOLLOW  the FOLLOWERS (amb.h EN_FOL_*): top row F1 root, F2 third, F3 fifth, F4 colour (each on or off; the first turns them on),
+ *           FOLLOWERS on / off, Style (Swell, Pulse, Drift), Colour (octave, 7th, 9th, 6th, sus4), Evolve (off, slow, faster).
+ *           Bottom row: the Progression page's fills 1-8 (the circle's five, Steven's first three); > fills 9-11, then Move of
+ *           F2-F4 (Common, Follow, Hold), F1 (Hold the key's root, Follow), Register, Glide, Rate. Kept with the piece (SAVE).
  * The pads light in the layout's colour, white while held; MIX shows the mutes (red) and solos (white).
  *
  * FADERS. FADER BANK: A levels (drums, bass, acid, pad), B the four FX knobs (filter, crush, throw, wash), C shape (motion,
@@ -23,8 +27,9 @@
  * way here. Pads and notes: velocity 30 at the softest (the factory pad curve starts high: soft hits came out near 1). */
 #define SMK_KEY_OFS 5                            /* keybed key 5 = F3, the FM-1's key 0 */
 static int jam_notes(int i, uint8_t *out);       /* (below, with the JAM page) */
-enum { SP_KEYS, SP_STEPS, SP_ROWS, SP_PERFORM, SP_MIX, SP_CHORDS, SP_NOTES };
-static const char *const SP_NAME[] = {"KEYS", "STEPS", "SLOTS/FILLS", "PERFORM", "MIX", "CHORDS", "NOTES"};
+enum { SP_KEYS, SP_STEPS, SP_ROWS, SP_PERFORM, SP_MIX, SP_CHORDS, SP_NOTES, SP_FOLLOW };
+static const char *const SP_NAME[] = {"KEYS", "STEPS", "SLOTS/FILLS", "PERFORM", "MIX", "CHORDS", "NOTES", "FOLLOW"};
+#define SP_LAST SP_FOLLOW
 static const uint8_t SP_MUTE_K[8] = {0, 2, 4, 7, 9, 12, 14, 18}, SP_SOLO_K[8] = {1, 3, 5, 8, 10, 13, 15, 25};
 static const int8_t SP_MIX2_K[16] = {19, 20, 21, 22, 23, 6, 11, 16, 17, 24, 26, 27, -1, -1, -1, -1};
 static struct {
@@ -88,10 +93,162 @@ static void sp_notes_off(void)                    /* NOTES: the pads held let go
         }
 }
 
+/* ---- FOLLOW: the followers' settings (a piece's: project.c keeps them) ------------------------------------------------ */
+/* [0] bits 0-3 the voices on, 4-5 Style, 6 the followers on; [1] Move (2 bits a voice); [2] Colour (bits 0-2), Evolve (3-4),
+ * Register (5-6); [3] Glide 0..100; [4] Rate (bits 0-1), bit 7: set */
+static uint8_t sfol[PX_NFOL];
+static const uint8_t SFOL_DEF[PX_NFOL] = {0x07, EN_FM_HOLD | EN_FM_COMMON << 2 | EN_FM_COMMON << 4 | EN_FM_COMMON << 6,
+                                          1 | 1 << 3 | 1 << 5, 40, 1 | 0x80};
+static void sfol_send(void)
+{
+    en_follow(EN_FOL_MOVE, sfol[1]);
+    en_follow(EN_FOL_COLOUR, sfol[2] & 7);
+    en_follow(EN_FOL_EVOLVE, sfol[2] >> 3 & 3);
+    en_follow(EN_FOL_REG, sfol[2] >> 5 & 3);
+    en_follow(EN_FOL_GLIDE, sfol[3]);
+    en_follow(EN_FOL_STYLE, sfol[0] >> 4 & 3);
+    en_follow(EN_FOL_RATE, sfol[4] & 3);
+    en_follow(EN_FOL_ON, (sfol[0] & 0x0F) | (sfol[0] & 0x40 ? 0x80 : 0));
+}
+void ui_fol_snapshot(uint8_t *v)
+{
+    int k;
+    for (k = 0; k < PX_NFOL; k++)
+        v[k] = sfol[k];
+    v[PX_NFOL - 1] |= 0x80;
+}
+void ui_fol_apply(void)
+{
+    uint8_t v[PX_NFOL];
+    int k;
+    if (!project_fol_get(v))
+        for (k = 0; k < PX_NFOL; k++)
+            v[k] = SFOL_DEF[k];
+    for (k = 0; k < PX_NFOL; k++)
+        sfol[k] = v[k];
+    sfol_send();
+}
+static int sfol_cycle(int v, int n) { return (v + 1) % n; }
+static void sfol_pad(uint32_t p)                  /* a FOLLOW pad pressed */
+{
+    static const char *const VN[4] = {"F1 ROOT", "F2 THIRD", "F3 FIFTH", "F4 COLOUR"}, *const ST[3] = {"SWELL", "PULSE", "DRIFT"},
+                             *const CO[EN_FOL_NCOL] = {"OCTAVE", "7TH", "9TH", "6TH", "SUS4"}, *const EV[3] = {"OFF", "SLOW", "FASTER"},
+                             *const MV[EN_NFM] = {"FOLLOW", "COMMON", "HOLD"}, *const RG[3] = {"LOW", "MID", "HIGH"},
+                             *const RT[EN_FOL_NRATE] = {"1/4", "1/8", "1/8 DOTTED", "1/16"};
+    static const uint8_t GL[5] = {0, 20, 40, 70, 100};
+    static char b[16];
+    int v, k;
+    if (p < 4u) {                                 /* a voice: on or off; while the followers are off, on and the followers with it */
+        if (!(sfol[0] & 0x40))
+            sfol[0] |= (uint8_t)(0x40 | 1u << p);
+        else
+            sfol[0] ^= (uint8_t)(1u << p);
+        en_follow(EN_FOL_ON, (sfol[0] & 0x0F) | (sfol[0] & 0x40 ? 0x80 : 0));
+        say(VN[p], sfol[0] >> p & 1u ? "ON" : "OFF");
+        return;
+    }
+    switch (p) {
+    case 4:
+        sfol[0] ^= 0x40;
+        en_follow(EN_FOL_ON, (sfol[0] & 0x0F) | (sfol[0] & 0x40 ? 0x80 : 0));
+        say("FOLLOWERS", sfol[0] & 0x40 ? "ON" : "OFF: THE PAD");
+        return;
+    case 5:
+        v = sfol_cycle(sfol[0] >> 4 & 3, 3);
+        sfol[0] = (uint8_t)((sfol[0] & ~0x30) | v << 4);
+        en_follow(EN_FOL_STYLE, v);
+        say("STYLE", ST[v]);
+        return;
+    case 6:
+        v = sfol_cycle(sfol[2] & 7, EN_FOL_NCOL);
+        sfol[2] = (uint8_t)((sfol[2] & ~7) | v);
+        en_follow(EN_FOL_COLOUR, v);
+        say("COLOUR", CO[v]);
+        return;
+    case 7:
+        v = sfol_cycle(sfol[2] >> 3 & 3, 3);
+        sfol[2] = (uint8_t)((sfol[2] & ~0x18) | v << 3);
+        en_follow(EN_FOL_EVOLVE, v);
+        say("EVOLVE", EV[v]);
+        return;
+    }
+    if (!sp.page) {                               /* the bottom row: fills 1-8 */
+        pg_fill((int)p - 8);
+        return;
+    }
+    if (p < 11u) {                                /* fills 9-11 */
+        pg_fill((int)p - 8 + 8);
+        return;
+    }
+    switch (p) {
+    case 11:                                      /* F2-F4's Move, together */
+        v = sfol_cycle(sfol[1] >> 2 & 3, EN_NFM);
+        sfol[1] = (uint8_t)((sfol[1] & 3) | v << 2 | v << 4 | v << 6);
+        en_follow(EN_FOL_MOVE, sfol[1]);
+        say("F2-F4 MOVE", MV[v]);
+        break;
+    case 12:                                      /* F1: hold the key's root, or follow the chords' */
+        v = (sfol[1] & 3) == EN_FM_HOLD ? EN_FM_FOLLOW : EN_FM_HOLD;
+        sfol[1] = (uint8_t)((sfol[1] & ~3) | v);
+        en_follow(EN_FOL_MOVE, sfol[1]);
+        say("F1 ROOT", v == EN_FM_HOLD ? "HOLDS THE KEY" : "FOLLOWS");
+        break;
+    case 13:
+        v = sfol_cycle(sfol[2] >> 5 & 3, 3);
+        sfol[2] = (uint8_t)((sfol[2] & ~0x60) | v << 5);
+        en_follow(EN_FOL_REG, v);
+        say("REGISTER", RG[v]);
+        break;
+    case 14:
+        for (k = 0, v = 0; k < 5; k++)
+            if (GL[k] <= sfol[3])
+                v = k;
+        v = GL[(v + 1) % 5];
+        sfol[3] = (uint8_t)v;
+        en_follow(EN_FOL_GLIDE, v);
+        b[0] = (char)('0' + v / 50), b[1] = '.', b[2] = (char)('0' + v / 5 % 10), b[3] = ' ', b[4] = 'S', b[5] = 0;
+        say("GLIDE", b);
+        break;
+    case 15:
+        v = sfol_cycle(sfol[4] & 3, EN_FOL_NRATE);
+        sfol[4] = (uint8_t)((sfol[4] & ~3) | v | 0x80);
+        en_follow(EN_FOL_RATE, v);
+        say("PULSE RATE", RT[v]);
+        break;
+    }
+}
+static void sfol_led(uint32_t p, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    static const uint8_t VC[4][3] = {{110, 40, 0}, {0, 80, 60}, {0, 50, 110}, {90, 0, 100}};   /* F1-F4 */
+    static const uint8_t VAL[5][3] = {{30, 30, 30}, {0, 80, 40}, {0, 40, 110}, {100, 60, 0}, {100, 0, 60}};   /* a setting's value 0-4 */
+    const int act = sfol[0] & 0x40;
+    int v = 0;
+    if (p < 4u) {
+        const int on = sfol[0] >> p & 1u;
+        *r = (uint8_t)(on ? VC[p][0] * (act ? 2 : 1) / 2 + (act ? 30 : 0) : VC[p][0] / 8);
+        *g = (uint8_t)(on ? VC[p][1] * (act ? 2 : 1) / 2 : VC[p][1] / 8);
+        *b = (uint8_t)(on ? VC[p][2] * (act ? 2 : 1) / 2 : VC[p][2] / 8);
+        return;
+    }
+    if (p == 4u) {
+        *r = act ? 0 : 40, *g = act ? 140 : 0, *b = 0;
+        return;
+    }
+    if (p >= 8u && (!sp.page || p < 11u)) {       /* the fills */
+        *r = 70, *g = 30, *b = 0;
+        return;
+    }
+    v = p == 5u ? sfol[0] >> 4 & 3 : p == 6u ? (sfol[2] & 7) : p == 7u ? sfol[2] >> 3 & 3 : p == 11u ? sfol[1] >> 2 & 3 :
+        p == 12u ? ((sfol[1] & 3) == EN_FM_HOLD) : p == 13u ? sfol[2] >> 5 & 3 : p == 14u ? sfol[3] / 25 : sfol[4] & 3;
+    v = v > 4 ? 4 : v;
+    *r = VAL[v][0], *g = VAL[v][1], *b = VAL[v][2];
+}
+
 static void sp_leds(int lay, uint32_t held)
 {
     uint32_t p;
-    const uint8_t sec = (uint8_t)(en_sec | en_frozen << 2 | ui.dj_on << 3);
+    const uint8_t sec = (uint8_t)(en_sec | en_frozen << 2 | ui.dj_on << 3) ^
+                        (uint8_t)(lay == SP_FOLLOW ? sfol[0] * 3u + sfol[1] * 5u + sfol[2] * 7u + sfol[3] + sfol[4] * 11u : 0u);
     if (held == sp.led_held && lay == sp.led_lay && sp.page == sp.led_page && ui.trk_m == sp.led_m && ui.trk_s == sp.led_s &&
         sec == sp.led_sec)
         return;                                  /* (only on a change: padled_flush sends nothing then either) */
@@ -140,6 +297,8 @@ static void sp_leds(int lay, uint32_t held)
         } else if (lay == SP_NOTES) {
             static const uint8_t VC[3][3] = {{0, 60, 70}, {70, 30, 0}, {40, 70, 0}};   /* pluck, bass, acid */
             r = VC[sp.voice][0], g = VC[sp.voice][1], b = VC[sp.voice][2];
+        } else if (lay == SP_FOLLOW) {
+            sfol_led(p, &r, &g, &b);
         }
         plat_pad_rgb((int)p, r, g, b);
     }
@@ -156,7 +315,7 @@ static uint32_t smk_bkeys(void)
     if (sbn >> SB_KNOB_BANK & 1u) {               /* KNOB BANK: the next pad mode */
         if (sp.mode == SP_NOTES)
             sp_notes_off();
-        sp.mode = (uint8_t)(sp.mode == SP_NOTES ? SP_PERFORM : sp.mode + 1);
+        sp.mode = (uint8_t)(sp.mode == SP_LAST ? SP_PERFORM : sp.mode + 1);
         sp.page = 0;
         say("PADS", SP_NAME[sp.mode]);
     }
@@ -173,6 +332,9 @@ static uint32_t smk_bkeys(void)
         if (lay == SP_KEYS || lay == SP_MIX) {
             sp.page = (uint8_t)right;
             say("PADS", lay == SP_MIX ? (right ? "SCENES, DJ" : "MUTES, SOLOS") : right ? "KEYS 17-27" : "KEYS 1-16");
+        } else if (lay == SP_FOLLOW) {
+            sp.page = (uint8_t)right;
+            say("PADS: FOLLOW", right ? "FILLS 9-11, MOVE .." : "FILLS 1-8");
         } else if (lay == SP_NOTES) {
             static const char *const VN[3] = {"PLUCK", "BASS", "ACID"};
             sp_notes_off();
@@ -180,7 +342,11 @@ static uint32_t smk_bkeys(void)
             say("PADS: NOTES", VN[sp.voice]);
         }
     }
-    if (sp_is_keys(lay)) {
+    if (lay == SP_FOLLOW) {
+        for (p = 0; p < 16u; p++)
+            if (hits >> p & 1u)
+                sfol_pad(p);
+    } else if (sp_is_keys(lay)) {
         for (p = 0; p < 16u; p++)
             if (held >> p & 1u) {
                 const int k = sp_key(lay, p);
@@ -216,7 +382,7 @@ static struct {
     uint8_t ext_n[10], ext_vc[10], ext_note[10][3];
     int16_t pb;                                  /* the wheels as last read: pitch -127..127, mod 0..127, and the voice they act on */
     uint8_t mw, wvc;
-} sf = {0, {0, 0, 0, 0}, {-1, -1, -1, -1}, {0}, {0}, {{0}}};
+} sf = {0, {0, 0, 0, 0}, {-1, -1, -1, -1}, {0}, {0}, {{0}}, 0, 0, 0};
 
 static int sf_ext_ix(int k) { return k < 5 ? k : k - 27; }   /* the outer keys 0-4, 32-36 -> 0..9 */
 

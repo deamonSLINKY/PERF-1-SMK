@@ -232,6 +232,27 @@ extern const char *const EN_FX_NAME[EN_NFX];   /* short names, for the screen */
 void en_fx(uint64_t mask);
 void en_trk(uint32_t mute, uint32_t solo);     /* the tracks' mutes and solos, a bit a track (EN_TR_*), latched */
 void en_pedal(int bits);                        /* PEDAL (0.16.21): bit 0 the bass, bit 1 the pad hold the key's root / chord under the harmony */
+#if defined(BOARD_SMK37) && BOARD_SMK37 && !defined(EN_FOLLOW)   /* (fm1_cc.h defines it 0 on the FM-1) */
+#define EN_FOLLOW 1                             /* FOLLOWERS: the SMK's first (Steven's issue #3); the FM-1 later */
+#endif
+#ifdef EN_FOLLOW
+/* FOLLOWERS: the pad's four voices as drones on the chord: F1 the root, F2 the third, F3 the fifth, F4 a colour. Each on or off; each moves
+ * by its Move: Follow (to its tone of each chord), Common (stays while the chord has its note), Hold (its tone of the key's own chord: F1 on
+ * the key's root, the cadence). Colour: the octave, 7th, 9th, 6th or sus4; Evolve changes it every few chords, in the scale. Style: Swell
+ * (sustained, breathing slowly), Pulse (the notes again at Rate, an e-bow's slow attack), Drift (eight bars of each). Register: an octave
+ * down, as is, up (F1 from C2); Glide: 0 .. 2 s between notes. The pad stops comping while they are on. */
+enum { EN_FOL_ON, EN_FOL_MOVE, EN_FOL_COLOUR, EN_FOL_EVOLVE, EN_FOL_REG, EN_FOL_GLIDE, EN_FOL_STYLE, EN_FOL_RATE, EN_NFOL };
+enum { EN_FM_FOLLOW, EN_FM_COMMON, EN_FM_HOLD, EN_NFM };   /* a voice's Move (2 bits a voice in EN_FOL_MOVE) */
+#define EN_FOL_NCOL 5                           /* the colours: octave, 7th, 9th, 6th, sus4 */
+#define EN_FOL_NSTYLE 3                         /* Swell, Pulse, Drift */
+#define EN_FOL_NRATE 4                          /* the pulse: 1/4, 1/8, dotted 1/8, 1/16 */
+void en_follow(int what, int v);                /* EN_FOL_ON: bit 7 the followers on, bits 0-3 which voices; the others their value */
+extern volatile uint8_t en_fol_col;             /* the colour sounding now (Evolve moves it) */
+#ifdef EN_HOST
+int en_fol_level(int i);
+int en_fol_on(void);
+#endif
+#endif
 uint32_t en_trk_heard(void);
 int en_bass_held(void);
 int en_pad_held(int i);                    /* the mutes the engine has taken (en_trk, after the next block) */

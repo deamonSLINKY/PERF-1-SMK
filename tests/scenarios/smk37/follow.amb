@@ -1,0 +1,104 @@
+# PERF-1 SMK: FOLLOWERS (Steven's issue #3) on the FOLLOW pads. The pad's four voices as drones on the chord: F1 holds the
+# key's root (the cadence), F2 and F3 the third and fifth, Common (a note the next chord has stays; otherwise its own tone of
+# the chord), F4 a colour. Piece as pedal.amb: A minor, the whole circle (Am Dm G C F Bdim Em Am), its fill playing at once, a bar a chord.
+seed 0
+wait 3000
+# KNOB BANK four times: PERFORM, MIX, CHORDS, NOTES, FOLLOW
+sbtn KNOB_BANK
+sbtn KNOB_BANK
+sbtn KNOB_BANK
+sbtn KNOB_BANK
+expect folon 7
+# pad 4: the followers on, with F1-F3 (the defaults)
+pad 4
+wait 200
+expect folon 135
+# Evolve off for the test (slow, faster, off), so the colour stays the 7th
+pad 7
+pad 7
+# the whole circle: the Progression page's pads (the fills on the bottom row)
+press EDIT
+wait 600
+release EDIT
+wait 100
+expect view 5
+turn K3 -2
+pad 12
+wait 200
+expect prgslot1 4
+waitfor chordroot 9 8000
+wait 100
+# Am: F1 A (A2, in C2 .. B2), F2 C, F3 E
+expect padheld0 9
+expect padmidi0 45
+expect padheld1 0
+expect padheld2 4
+expect follvl0 >10
+waitfor chordroot 2 8000
+wait 100
+# Dm: F1 holds A; C and E aren't in D F A: F2 to F, F3 to A
+expect padheld0 9
+expect padheld1 5
+expect padheld2 9
+waitfor chordroot 7 8000
+wait 100
+# G: F1 still A; F and A aren't in G B D: B and D
+expect padheld0 9
+expect padheld1 11
+expect padheld2 2
+shot follow_prog.png
+waitfor chordroot 0 8000
+wait 100
+# C: B and D aren't in C E G: E and G
+expect padheld1 4
+expect padheld2 7
+# back to Perform: the FOLLOW pads again. F4 on, colour 7th: over F, E
+tap HOME
+wait 200
+expect view 0
+pad 3
+wait 200
+expect folon 143
+expect folcol 1
+waitfor chordroot 5 8000
+wait 100
+expect padheld3 4
+expect padheld0 9
+# F1 follows the chords' roots instead (pad 12 on the second page): F; and back to the key's A
+sbtn RIGHT
+pad 12
+wait 200
+expect padheld0 5
+pad 12
+wait 200
+expect padheld0 9
+# off: the pad breathes again on the chord, in its own register
+sbtn LEFT
+pad 4
+wait 200
+expect folon 15
+expect padmidi0 >47
+# a piece's own: on again, another piece has the defaults (off), back here they are as left
+pad 4
+wait 200
+expect folon 143
+turn PRESET 1
+wait 1500
+expect piece 1
+expect folon 7
+turn PRESET -1
+wait 1500
+expect piece 0
+expect folon 143
+# saved with the piece (GLO, SAVE): there after a power-on
+tap GLO
+tap SAVE
+wait 500
+expect saved 1
+tap PLAY
+wait 5000
+reboot
+wait 3000
+expect piece 0
+expect folon 143
+expect padheld0 9

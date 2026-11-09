@@ -736,6 +736,16 @@ static int expect(const char *what, const char *val)
         got = (int)(ui.fx_mask >> (atoi(what + 5) & 63) & 1u);
     else if (!strcmp(what, "bassheld"))           /* the bass's held note, its pitch class (0.16.21: PEDAL) */
         got = en_bass_held() % 12;
+#ifdef EN_FOLLOW
+    else if (!strncmp(what, "follvl", 6))         /* follvlN: follower N's level, 0..100 */
+        got = en_fol_level(atoi(what + 6));
+    else if (!strcmp(what, "folon"))              /* the followers' switch as the engine has it: bit 7 on, bits 0-3 the voices */
+        got = en_fol_on();
+    else if (!strcmp(what, "folcol"))             /* the colour sounding */
+        got = en_fol_col;
+#endif
+    else if (!strncmp(what, "padmidi", 7))        /* padmidiN: pad voice N's note (MIDI) */
+        got = en_pad_held(atoi(what + 7));
     else if (!strncmp(what, "padheld", 7))        /* padheldN: pad voice N's note, its pitch class */
         got = en_pad_held(atoi(what + 7)) % 12;
     else if (!strcmp(what, "entrkmute"))          /* the mutes the engine has (0.16.12: a MIDI pad changed the screen only) */

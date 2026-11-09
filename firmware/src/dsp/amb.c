@@ -967,7 +967,11 @@ out:
 }
 
 /* ------------------------------------------------------------ commands --- */
-enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_SECTION, C_FX, C_MUTE, C_NOTE, C_HUSH, C_FXK, C_TRK, C_GATEPAT, C_FXS, C_FILLQ, C_DJSYNC, C_FLXH, C_SHED, C_USERVOICE, C_USERCLEAR, C_ACSTEP, C_ACCAP, C_CMCAP, C_INTRO, C_CMSTEP, C_PROG, C_PROG2, C_PROGK, C_MAP, C_DTAP, C_DEG, C_BEND, C_PEDAL, C_BSSTEP };
+enum { C_SET, C_POOL, C_PLAY, C_NEXT, C_FREEZE, C_SEED, C_PANIC, C_CLOCK, C_REGROW, C_SECTION, C_FX, C_MUTE, C_NOTE, C_HUSH, C_FXK, C_TRK, C_GATEPAT, C_FXS, C_FILLQ, C_DJSYNC, C_FLXH, C_SHED, C_USERVOICE, C_USERCLEAR, C_ACSTEP, C_ACCAP, C_CMCAP, C_INTRO, C_CMSTEP, C_PROG, C_PROG2, C_PROGK, C_MAP, C_DTAP, C_DEG, C_BEND, C_PEDAL, C_BSSTEP
+#ifdef EN_FOLLOW
+     , C_FOLLOW
+#endif
+};
 static uint8_t muted;                            /* remote: no sound, no MIDI (C_MUTE, after what's queued) */
 static uint8_t hush;                             /* a store while playing: fade out, hold, fade back in (C_HUSH) */
 static float hush_g = 1.0f;                      /* its gain, 0..1 */
@@ -1008,6 +1012,9 @@ void en_fx(uint64_t mask)                       /* in four quarters: the queue c
 void en_fxk(int k, int v) { post(C_FXK, k, v); }
 void en_trk(uint32_t mute, uint32_t solo) { post(C_TRK, 0, (int)((mute & 0xFFu) | (solo & 0xFFu) << 8)); }
 void en_pedal(int bits) { post(C_PEDAL, bits & 3, 0); }
+#ifdef EN_FOLLOW
+void en_follow(int what, int v) { post(C_FOLLOW, what, v); }
+#endif
 void en_gate_pat(uint32_t steps) { post(C_GATEPAT, 0, (int)(steps & 0xFFFFu)); }
 void en_fxs(int i, int v) { post(C_FXS, i, v); }
 void en_fill_next(void) { post(C_FILLQ, 0, 0); }
@@ -1401,9 +1408,24 @@ static const acid_snd_t ACID_SOUND[EN_NACID] = {
 };
 
 static int pad_snd(void) { return (unsigned)par[P_PADTONE] < EN_NSOUND ? par[P_PADTONE] : 0; }
+#ifdef EN_FOLLOW
+static struct {
+    uint8_t on, move, colour, evolve, reg, glide, style, rate;   /* as en_follow sets them (amb.h EN_FOL_*) */
+    uint8_t col, nchg;                          /* the colour now (Evolve's), chords since it changed */
+    float ph;                                   /* the pulse's place (stopped: its own) */
+    uint32_t rng;
+} fol = {0, EN_FM_HOLD | EN_FM_COMMON << 2 | EN_FM_COMMON << 4 | EN_FM_COMMON << 6, 1, 1, 1, 40, 0, 1, 1, 0, 0.0f, 0x9E3779B9u};
+static float fol_out[EN_NPAD], fol_g[EN_NPAD];   /* a voice's level now; its on / off, smoothed */
+volatile uint8_t en_fol_col = 1;
+#define FOL_ON (fol.on & 0x80u)
+#endif
 static int pad_stabs(void)                      /* Comp: Hold never stabs, a rhythm always does, Auto as the sound is */
 {
     const int c = par[P_PAD_COMP];
+#ifdef EN_FOLLOW
+    if (FOL_ON)
+        return 0;                               /* (the followers have their own rhythm) */
+#endif
     return c == 1 ? 0 : c >= 2 ? 1 : PAD_SOUND[pad_snd()].stabs;
 }
 static int pad_osc(void) { return PAD_SOUND[pad_snd()].osc; }
@@ -1623,6 +1645,10 @@ static void pad_handoff(void)
         pad_t *v = &pad[i];
         if (v->play)                            /* played from the keys: left alone */
             continue;
+#ifdef EN_FOLLOW
+        if (FOL_ON)                             /* (the followers glide) */
+            continue;
+#endif
         if (v->amp > 0.002f && ((float)v->midi_note != v->target || v->voices != pad_osc()))
             v->hand = 1;
         else if (!v->hand)
@@ -1640,6 +1666,10 @@ static void pad_leave(void)
         int pc = v->midi_note % 12, shared = 0;
         if (v->play)
             continue;
+#ifdef EN_FOLLOW
+        if (FOL_ON)
+            continue;
+#endif
         for (k = 0; k < chord_nt; k++)
             shared |= chord_pcs[k] == pc;
         if (v->amp > 0.002f && !shared && !v->hand)
@@ -1649,6 +1679,9 @@ static void pad_leave(void)
     }
 }
 
+#ifdef EN_FOLLOW
+static void fol_coefs(pad_t *v, int i);
+#endif
 static void pad_coefs(pad_t *v, int i)          /* every 32 samples: the breath, pitch, the vowel */
 {
     float f, vw, f1, f2;
@@ -1683,6 +1716,10 @@ static void pad_coefs(pad_t *v, int i)          /* every 32 samples: the breath,
             if (!par[P_PAD_MAN])
                 pad_breathe(v, i);
         }
+#ifdef EN_FOLLOW
+    } else if (FOL_ON) {
+        fol_coefs(v, i);
+#endif
     } else if (!pad_stabs() && !par[P_PAD_MAN]) {   /* stabs: the tick plays them; off the algorithm: none */
         v->t += v->rate;
         if (v->t >= 1.0f) {
@@ -1797,6 +1834,67 @@ static drum_t drum[EN_NDRUM];
 static float pulse_vol, swing, drive_k = 1.0f, lane_g[EN_NDRUM], lane_tune[EN_NDRUM], lane_dec[EN_NDRUM];
 static float kick_age = 1e9f;                  /* samples since the last kick (the pump can follow it) */
 static float step_len, pulse_left;               /* a sixteenth, in samples; to the next MIDI clock pulse */
+#ifdef EN_FOLLOW
+/* a follower every 32 samples: its gate (on or off: the Pad env's attack and release, at least 0.3 s and 0.5 s), its note gliding, its level
+ * by the Style: Swell a slow breath (0.8 .. 1, 8-13 s cycles), Pulse a swell at each Rate (a third of it rising), Drift eight bars of each */
+static void fol_coefs(pad_t *v, int i)
+{
+    static const uint8_t PL[EN_FOL_NRATE] = {4, 2, 3, 1};   /* the pulse in sixteenths */
+    const float k = 32.0f / EN_SR, L = (float)PL[fol.rate % EN_FOL_NRATE];
+    const int on = fol.on >> i & 1, st = fol.style == 2 ? (int)(sixteenth / 128u & 1u) : fol.style;
+    const int tn = (int)(v->target + 0.5f);
+    float g = fol_g[i], lv;
+    v->hand = 0;
+    v->hf = 1.0f;
+    if (on) {
+        const float atk = fm_clampf(pe_atk_s(par[P_PE_ATK]), 0.3f, 8.0f);
+        if (g < 0.001f) {                        /* from silence: its sound, its note at once */
+            v->voices = (uint8_t)pad_osc();
+            v->note = v->target;
+        }
+        g = fm_minf(g + k / atk, 1.0f);
+    } else {
+        g = fm_maxf(g - k / fm_clampf(pe_rel_s(par[P_PE_REL]), 0.5f, 8.0f), 0.0f);
+    }
+    fol_g[i] = g;
+    if (fol.glide)                               /* the glide: most of the way in the time set */
+        v->note += (v->target - v->note) * fm_minf(k / (0.007f * (float)fol.glide), 1.0f);
+    else
+        v->note = v->target;
+    if (on && g > 0.0f && v->midi_note != (uint8_t)tn) {   /* the MIDI out: a note a move */
+        if (en_playing && v->midi_note)
+            pad_midi(0x80, v->midi_note, 0);
+        v->midi_note = (uint8_t)tn;
+        if (en_playing && !par[P_PAD_MAN])
+            pad_midi(0x90, v->midi_note, 80);
+    } else if (!on && v->midi_note && g <= 0.0f) {
+        if (en_playing)
+            pad_midi(0x80, v->midi_note, 0);
+        v->midi_note = 0;
+    }
+    v->t += k / (8.0f * BREATH[i]);
+    if (v->t >= 1.0f)
+        v->t -= 1.0f;
+    if (st == 1) {                               /* the pulse: the song's place, or its own when stopped */
+        float p;
+        if (en_playing && sixteenth > 0u && step_len > 1.0f)
+            p = (float)((sixteenth - 1u) % (uint32_t)L) + fm_minf((float)step_t / step_len, 1.0f);
+        else {
+            if (i == 0)
+                fol.ph += 32.0f / fm_maxf(step_len, 1000.0f);
+            if (fol.ph >= 12.0f)
+                fol.ph -= 12.0f;              /* (12: every rate's length divides it) */
+            p = fol.ph;
+        }
+        p = p / L;
+        p -= (float)(int)p;
+        lv = p < 0.33f ? 0.5f - 0.5f * fm_cosf(FM_PI * p / 0.33f) : 0.15f + 0.85f * (0.5f + 0.5f * fm_cosf(FM_PI * (p - 0.33f) / 0.67f));
+    } else {
+        lv = 0.8f + 0.2f * fm_sinf(FM_TWO_PI * v->t);
+    }
+    fol_out[i] = g * lv;
+}
+#endif
 static uint32_t noise = 22222u;
 static const uint8_t DRUM_GM[EN_NDRUM] = {36, 38, 39, 42, 46, 37};   /* kick, snare, clap, hats, side stick */
 /* the hats' metal: four square waves at the 808's inharmonic ratios (Hz / EN_SR); the style's pitch */
@@ -1922,6 +2020,52 @@ int en_acid_preview(int st, int v)
  * the global record). */
 static uint8_t pedal;
 static int bass_pc(void) { return pedal & 1u ? par[P_ROOT] % 12 : chord_pcs[0]; }
+#ifdef EN_FOLLOW
+/* the four followers' tones on degree d of scale sc (the scale as it sounds, or the key's own for Hold): root, third, fifth, the colour;
+ * a scale of other than seven notes: the chord's (en_chord_kind, 7ths), the colour its fourth note */
+static void fol_roles(int d, const int *sc, int *r)
+{
+    static const uint8_t COL[EN_FOL_NCOL] = {0, 6, 1, 5, 3};   /* octave, 7th, 9th, 6th, sus4: scale steps above the degree */
+    const int R = par[P_ROOT];
+    if (nsteps == 7) {
+        d = (d % 7 + 7) % 7;
+        r[0] = (R + sc[d]) % 12;
+        r[1] = (R + sc[(d + 2) % 7]) % 12;
+        r[2] = (R + sc[(d + 4) % 7]) % 12;
+        r[3] = (R + sc[(d + COL[fol.col % EN_FOL_NCOL]) % 7]) % 12;
+    } else {
+        int cp[4], n = en_chord_kind(pool, R, d, EN_CH_7TH, cp);
+        r[0] = cp[0];
+        r[1] = n > 1 ? cp[1] : cp[0];
+        r[2] = n > 2 ? cp[2] : r[1];
+        r[3] = fol.col && n > 3 ? cp[3] : cp[0];
+    }
+}
+static void fol_targets(int *to)                /* the followers' notes: F1 in C2 .. B2 (by Register and the song's octave), the others C3 .. B4 */
+{
+    int r[4], h[4], i, lo = 36 + 12 * ((int)fol.reg - 1 + par[P_OCT]);
+    while (lo < 24)
+        lo += 12;
+    while (lo > 60)
+        lo -= 12;
+    fol_roles(deg, steps, r);
+    fol_roles(0, steps_nat, h);
+    for (i = 0; i < EN_NPAD; i++) {
+        const int mv = fol.move >> (2 * i) & 3, from = (int)(pad[i].target + 0.5f);
+        int pc = mv == EN_FM_HOLD ? h[i] : r[i];
+        if (mv == EN_FM_COMMON && fol_g[i] > 0.0f) {   /* a note the new chord has stays */
+            int k;
+            for (k = 0; k < 4; k++)
+                if (r[k] == from % 12 && (k < 3 || fol.on >> 3 & 1u))   /* (the colour counts while F4 sounds it) */
+                    pc = r[k];
+        }
+        if (i == 0)
+            to[i] = lo + ((pc - lo) % 12 + 12) % 12;
+        else
+            to[i] = nearest(from >= lo + 12 && from <= lo + 35 ? from : lo + 12 + 4 * i, pc, lo + 12, lo + 35);
+    }
+}
+#endif
 static void pad_retarget(void)                  /* the chord's tones to the four voices */
 {
     int from[4], to[4], i;
@@ -1970,6 +2114,10 @@ static void pad_retarget(void)                  /* the chord's tones to the four
             from2[i] = (int)(pad[i].target + 0.5f);
         en_voice_lead(from2, pcs, n, to, lo, hi);
     }
+#ifdef EN_FOLLOW
+    if (FOL_ON)
+        fol_targets(to);
+#endif
     for (i = 0; i < EN_NPAD; i++)               /* each voice takes its note at its next breath */
         pad[i].target = (float)to[i];
     en_chord_root = (uint8_t)chord_pcs[0];
@@ -2316,6 +2464,19 @@ static void chord_to(int i)                     /* the chord moves to degree i *
             hist[k] = hist[k + 1];
     hist[hist_n < 8 ? hist_n++ : 7] = (uint8_t)i;
     dom_apply();
+#ifdef EN_FOLLOW
+    if (FOL_ON && fol.evolve && ++fol.nchg >= (fol.evolve == 1 ? 4u : 2u)) {   /* Evolve: a new colour every four (slow) or two chords */
+        static const uint8_t NEXT[EN_FOL_NCOL][3] = {{1, 2, 3}, {2, 3, 0}, {1, 3, 4}, {1, 2, 0}, {1, 2, 0}};   /* where each goes: 7ths and 9ths most */
+        fol.rng ^= fol.rng << 13;
+        fol.rng ^= fol.rng >> 17;
+        fol.rng ^= fol.rng << 5;
+        fol.col = NEXT[fol.col % EN_FOL_NCOL][fol.rng % 3u];
+        if ((fol.rng >> 8) % 4u == 0u)
+            fol.col = fol.colour;                /* and back to the colour set, now and then */
+        en_fol_col = fol.col;
+        fol.nchg = 0;
+    }
+#endif
     pad_retarget();
     pad_leave();
     bass_to(bass_pc());
@@ -4890,6 +5051,10 @@ static float tg_inv = 1.0f / 256.0f;             /* 1 / the chunk: the tracks' g
 #define TR_CM EN_TR_PLUCK                        /* the counter-melody */
 static uint8_t trk_mute, trk_solo;               /* latched (en_trk), a bit a track */
 uint32_t en_trk_heard(void) { return trk_mute; }
+#if defined(EN_FOLLOW) && defined(EN_HOST)
+int en_fol_level(int i) { return (int)(fol_out[i % EN_NPAD] * 100.0f); }   /* the tests: a follower's level now, 0..100 */
+int en_fol_on(void) { return fol.on; }
+#endif
 int en_bass_held(void) { return (int)(bass.gtarget + 0.5f); }         /* the bass's held note, and a pad voice's: for the tests (0.16.21) */
 int en_pad_held(int i) { return (int)(pad[i % EN_NPAD].target + 0.5f); }        /* the mutes the engine has (a test reads it: 0.16.12) */
 static uint16_t gx_pat = 0x5249;                 /* the pattern gate: steps 0 3 6 9 12 14 open (3+3+3+3+2+2) */
@@ -6392,6 +6557,40 @@ static void drain(void)
             if (a < EN_NFXK)
                 fxk_v[a] = (int16_t)b;
             break;
+#ifdef EN_FOLLOW
+        case C_FOLLOW:                           /* a follower setting: at once */
+            switch (a) {
+            case EN_FOL_ON: {
+                const int was = FOL_ON;
+                fol.on = (uint8_t)b;
+                if (was && !FOL_ON) {            /* off: the pad breathes again, overlapping, on the chord */
+                    int k;
+                    for (k = 0; k < EN_NPAD; k++) {
+                        if (pad[k].midi_note && en_playing)
+                            pad_midi(0x80, pad[k].midi_note, 0);
+                        pad[k].midi_note = 0;
+                        pad[k].t = START_T[k];
+                        fol_g[k] = 0.0f;
+                        pad_breathe(&pad[k], k);
+                    }
+                } else if (!was && FOL_ON) {
+                    int k;
+                    for (k = 0; k < EN_NPAD; k++)
+                        fol_g[k] = pad[k].amp > 0.002f && !pad[k].play ? 0.3f : 0.0f;   /* (a voice singing goes on from where it is) */
+                }
+                break;
+            }
+            case EN_FOL_MOVE: fol.move = (uint8_t)b; break;
+            case EN_FOL_COLOUR: fol.colour = fol.col = (uint8_t)(b % EN_FOL_NCOL); en_fol_col = fol.col; fol.nchg = 0; break;
+            case EN_FOL_EVOLVE: fol.evolve = (uint8_t)(b % 3); fol.nchg = 0; break;
+            case EN_FOL_REG: fol.reg = (uint8_t)(b % 3); break;
+            case EN_FOL_GLIDE: fol.glide = (uint8_t)(b > 100 ? 100 : b); break;
+            case EN_FOL_STYLE: fol.style = (uint8_t)(b % EN_FOL_NSTYLE); break;
+            case EN_FOL_RATE: fol.rate = (uint8_t)(b % EN_FOL_NRATE); break;
+            }
+            pad_retarget();
+            break;
+#endif
         case C_PEDAL:                            /* follow or hold: at once (the pad's voices and the bass's note retargeted) */
             if (pedal != (uint8_t)(a & 3)) {
                 pedal = (uint8_t)(a & 3);
@@ -6612,6 +6811,12 @@ static void render_pad(uint32_t n)
                 if (v->play) {                   /* played from the keys */
                     br = v->pamp;
                     tgt = br * 0.8f;
+#ifdef EN_FOLLOW
+                } else if (FOL_ON) {             /* a follower: its own level */
+                    br = fol_out[i];
+                    tgt = br * 0.8f * pad_gain;
+                    ar = 0.02f;
+#endif
                 } else if (par[P_PAD_MAN]) {     /* off the algorithm: quiet (fading, not cut) */
                     br = 0.0f;
                     tgt = 0.0f;

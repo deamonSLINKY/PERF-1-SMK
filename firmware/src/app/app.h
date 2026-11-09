@@ -56,6 +56,12 @@ extern const uint8_t PX_FXS[PX_NFX];     /* (0.16.28) the effect settings a piec
 void project_fx_get(uint8_t *v);        /* the playing piece's (as left this time, as saved with it, or the defaults) */
 void ui_fx_snapshot(uint8_t *v);        /* the UI's: as they are now */
 void ui_fx_apply(void);                  /* the playing piece's into the UI and the engine */
+#ifdef EN_FOLLOW
+#define PX_NFOL 5                        /* the FOLLOWERS' settings a piece keeps (smk_pads.c sfol; project.c PX_FOLAT) */
+int project_fol_get(uint8_t *v);         /* the playing piece's: as left this time, or as saved with it (1); 0: none (the defaults) */
+void ui_fol_snapshot(uint8_t *v);
+void ui_fol_apply(void);
+#endif
 int project_place(void);                 /* START (0.16.26): the piece the next power-on comes back to (genre * NPIECES + piece + 1; 0 none) */
 void project_place_set(int pl);
 int project_start_random(void);          /* the Settings page's Start: 1 Random (a piece at random, as before 0.16.26), 0 Last */

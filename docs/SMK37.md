@@ -15,7 +15,7 @@ wheels added. SMK-37 board layer by genkigenki (fm1-to-smk37, fm1-amb's smk37 br
 | SCALE | SEL (shift) |
 | OCTAVE- / OCTAVE+ | OCT- / OCT+ |
 | All 37 keys | notes, with velocity, on every page: Jam, a voice by hand, the page's voice; on Global, the scale |
-| KNOB BANK | the pads' mode: PERFORM, MIX, CHORDS, NOTES (lit when not PERFORM) |
+| KNOB BANK | the pads' mode: PERFORM, MIX, CHORDS, NOTES, FOLLOW (lit when not PERFORM) |
 | FADER BANK | the faders' bank: A, B, C (lit when not A) |
 | < / > | the pads' page (keys 17-27, MIX's scenes) or, in NOTES, the voice |
 | Faders 1-4 | the bank's four (a fader takes over once it moves) |
@@ -41,9 +41,29 @@ Everywhere else, the mode KNOB BANK picks:
 | MIX, `>` | scenes 1-4 (tap recalls, hold stores), reset all, undo, tap tempo, all drums | all drums solo, auto-DJ, its length, new pieces |
 | CHORDS | the chord on degrees I-VII | |
 | NOTES | the pluck in key (`>` the bass, the acid), the eight higher tones | the eight lowest tones |
+| FOLLOW | F1 root, F2 third, F3 fifth, F4 colour (each on / off), FOLLOWERS on / off, Style, Colour, Evolve | the fills: ii V I, vi ii V I, iii vi ii V I, I vi ii V, the whole circle, I IV V V, I I IV vi, I IV I V |
+| FOLLOW, `>` | (the same) | fills I iii IV vi, I vi IV, IV V IV I; Move of F2-F4, F1 hold / follow, Register, Glide, Pulse rate |
 
 The pads light in the mode's colour, white while held; MIX shows the mutes red and the solos white. Velocity 30 at the
 softest (the SMK's factory pad curve starts high).
+
+## FOLLOWERS (FOLLOW pads)
+
+Drones on the chord, for playing over (Steven's idea, issue #3): the pad's four voices become four followers, low and
+sustained. The pad stops playing its own chords while they are on; FOLLOWERS off gives it back.
+
+| | |
+|---|---|
+| F1 root | C2 .. B2. **Hold** (the default): the key's root the whole time, the chords moving above it; or Follow each chord's root |
+| F2 third, F3 fifth | C3 .. B4, the chord's third and fifth. **Common** (the default): a note the next chord also has stays, otherwise the nearest of its own; Follow: always its own; Hold: the key's own chord |
+| F4 colour | the chord's 7th (the default), 9th, 6th, sus4 or octave |
+| Evolve | off, slow (every 4 chords), faster (every 2): the colour changes by itself, in the scale, mostly 7ths and 9ths |
+| Style | Swell (sustained, breathing slowly), Pulse (the notes again at the rate, 1/4, 1/8, dotted 1/8 or 1/16, a slow attack), Drift (8 bars of each) |
+| Register | low, mid, high (an octave each) |
+| Glide | 0, 0.4, 0.8, 1.4, 2 s between notes |
+
+The pad's level (fader A4), its sound (PADTONE), attack and release (Pad env) and every effect act on them. The bottom row's
+fills write the progression and it plays at once. Kept with the piece: SAVE stores them, another piece has its own.
 
 ## The faders
 
