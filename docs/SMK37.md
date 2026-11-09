@@ -19,8 +19,8 @@ wheels added. SMK-37 board layer by genkigenki (fm1-to-smk37, fm1-amb's smk37 br
 | FADER BANK | the faders' bank: A, B, C (lit when not A) |
 | < / > | the pads' page (keys 17-27, MIX's scenes) or, in NOTES, the voice |
 | Faders 1-4 | the bank's four (a fader takes over once it moves) |
-| Pitch wheel | bend, two semitones, on the voices you play |
-| Mod wheel | opens the acid's filter (the piece's own when it rests) |
+| Pitch wheel | bend, two semitones, on the voice the keys play (not the pad) |
+| Mod wheel | vibrato on the voice the keys play, up to half a semitone |
 
 ## The pads
 

@@ -18,7 +18,7 @@
  *
  * FADERS. FADER BANK: A levels (drums, bass, acid, pad), B the four FX knobs (filter, crush, throw, wash), C shape (motion,
  * evolve, acid density, drift). A fader takes over once it moves (after a bank change too). Its LED: lit off A.
- * WHEELS. Pitch: bend (two semitones) on the voices played by hand. Mod: the acid's cutoff opens (the piece's own at rest).
+ * WHEELS. On the voice the keys play: pitch bends it (two semitones), mod gives it a vibrato (up to half a semitone).
  * KEYS. All 37 play, with velocity: the middle 27 as the FM-1's keys (jam_down_v), the outer ten (C3-E3, G#5-C6) the same
  * way here. Pads and notes: velocity 30 at the softest (the factory pad curve starts high: soft hits came out near 1). */
 #define SMK_KEY_OFS 5                            /* keybed key 5 = F3, the FM-1's key 0 */
@@ -214,6 +214,8 @@ static struct {
     uint8_t bank, live[4];
     int16_t ref[4];
     uint8_t ext_n[10], ext_vc[10], ext_note[10][3];
+    int16_t pb;                                  /* the wheels as last read: pitch -127..127, mod 0..127, and the voice they act on */
+    uint8_t mw, wvc;
 } sf = {0, {0, 0, 0, 0}, {-1, -1, -1, -1}, {0}, {0}, {{0}}};
 
 static int sf_ext_ix(int k) { return k < 5 ? k : k - 27; }   /* the outer keys 0-4, 32-36 -> 0..9 */
@@ -251,13 +253,19 @@ static void smk_controls(void)
             sf.ref[i] = (int16_t)v;
         }
     }
-    if (plat_wheels(&pb, &mw)) {
-        const en_param_t *pi = en_param_info(P_AC_CUT);
-        const int base = mood_val(P_AC_CUT, proj.par[P_AC_CUT]);
-        en_bend(EN_V_PLUCK, pb * 64);            /* -127..127 -> two semitones each way */
-        en_bend(EN_V_DRONE, pb * 64);
-        en_bend(EN_V_ACID, pb * 64);
-        en_set(P_AC_CUT, base + (pi->hi - base) * mw / 127);   /* the mod wheel opens the acid; at rest, the piece's own */
+    {   /* the wheels on the voice the keys play (the engine bends one voice: a new one takes both, the old one straightens) */
+        static const uint8_t WV[4] = {EN_V_PLUCK, EN_V_PAD, EN_V_ACID, EN_V_DRONE};
+        const uint8_t vc = WV[key_voice() & 3];
+        const int nw = plat_wheels(&pb, &mw);
+        if (nw) {
+            sf.pb = (int16_t)pb;
+            sf.mw = (uint8_t)mw;
+        }
+        if (nw || vc != sf.wvc) {
+            sf.wvc = vc;
+            en_bend(vc, sf.pb * 64);             /* -127..127 -> two semitones each way */
+            en_modw(vc, sf.mw);                  /* the mod wheel: a vibrato, up to half a semitone each way */
+        }
     }
     while ((ev = plat_smk_extkey()) >= 0) {      /* the outer keys: C3-E3 and G#5-C6, the voice the page plays */
         static const uint8_t VC[4] = {EN_V_PLUCK, EN_V_PAD, EN_V_ACID, EN_V_DRONE};
