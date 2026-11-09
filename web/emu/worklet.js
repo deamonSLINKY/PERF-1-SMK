@@ -77,6 +77,15 @@ class Amb extends AudioWorkletProcessor {
       else ok = this.ex.web_st_code_now();
       const s = String.fromCharCode(...txt.slice(0, txt.indexOf(0) < 0 ? 15 : txt.indexOf(0)));
       this.port.postMessage({ type: "st", id: m.id, ok, code: s, io: new Uint8Array(this.mem.buffer, this.ex.web_st_io(), this.ex.web_st_io_len()).slice() });
+    } else if (this.studio && m.type === "st_vox" && this.ex.web_st_vox) {
+      // the DX7 voice editor: a slot read ("get"), a voice put in a slot ("put"), a built-in DX sound read ("dx"); the answer: the result, how many
+      // slots are loaded, the bytes
+      const vb = () => new Uint8Array(this.mem.buffer, this.ex.web_st_vox(), 160);
+      let ok = 0;
+      if (m.op === "get") ok = this.ex.web_st_vox_get(m.slot | 0);
+      else if (m.op === "dx") ok = this.ex.web_st_vox_dx(m.idx | 0);
+      else if (m.op === "put") { vb().set(new Uint8Array(m.vox).subarray(0, 128)); ok = this.ex.web_st_vox_put(m.slot | 0, m.keep ? 1 : 0); }
+      this.port.postMessage({ type: "st", id: m.id, ok, n: this.ex.web_st_vox_n(), vox: vb().slice() });
     } else if (this.studio && m.type === "st_trk") {
       this.port.postMessage({ type: "st", id: m.id, ok: this.ex.web_st_trk ? this.ex.web_st_trk(m.mute | 0, m.solo | 0) : 0 });
     } else if (this.studio && (m.type === "st_open" || m.type === "st_go" || m.type === "st_put" || m.type === "st_read")) {

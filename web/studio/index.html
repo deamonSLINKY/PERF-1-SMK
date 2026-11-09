@@ -141,6 +141,19 @@
   .partkey i { font: 700 .72rem "Chakra Petch", sans-serif; letter-spacing: .06em; font-style: normal; color: var(--c); display: flex; align-items: center; gap: 4px; }
   .partkey i::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
   @media (max-width: 700px) { .partkey { display: none; } }
+  .dx7 .dxgrid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 14px; margin-bottom: 8px; }
+  @media (max-width: 900px) { .dx7 .dxgrid { grid-template-columns: minmax(0, 1fr); } }
+  .dx7 canvas { width: 100%; display: block; border-radius: 6px; background: #121318; border: 1px solid var(--line); touch-action: none; }
+  .dxr { display: grid; grid-template-columns: 7.6em minmax(0, 1fr) 3em; align-items: center; gap: 6px; font-size: .8rem; color: var(--dim); margin: 2px 0; }
+  .dxr input[type=range] { width: 100%; accent-color: var(--pluck); }
+  .dxr b { color: var(--ink); text-align: right; font: 600 .8rem "Chakra Petch", sans-serif; }
+  .dxr select { font-size: .8rem; }
+  .dxops { display: flex; gap: 4px; margin: 0 0 6px; flex-wrap: wrap; }
+  .dxops button { position: relative; overflow: hidden; min-width: 3.6em; }
+  .dxops button i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--pluck); }
+  .dxops button.car { border-bottom: 2px solid var(--pluck); }
+  .dx7 details summary { cursor: pointer; color: var(--dim); font: 600 .8rem "Chakra Petch", sans-serif; margin: 8px 0 4px; }
+  .dx7 .dxtwo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 14px; }
   .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
   .chip { border-left: 3px solid var(--c, var(--line)) !important; cursor: grab; }
   .chip:active { cursor: grabbing; }
@@ -414,6 +427,7 @@ async function openPiece(g, i, place) {                     // (place: the set l
   if (!r.ok) { say("The emulator is busy writing; try again.", true); return; }
   cur = { genre: g, piece: i };
   io = new Uint8Array(r.io);
+  dxv = null;                                                 // (the DX7 editor reads the new piece's pluck voice when it is next shown)
   resetHistory();
   $("genre").value = g; fillPieces(); $("piece").value = i;
   ["save", "code"].forEach((id) => { $(id).disabled = false; });
@@ -1352,9 +1366,304 @@ function soundRender() {
   }
   const fx = { pad: [-1], chords: [-1], bass: [-2, -4, -5, -6, -7], acid: [-3, -4, -5, -6, -7] }[sel];
   if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3><div class="ctls">' + fx.map((p) => ctlHTML(p, null, col)).join("") + "</div></div>";
+  if (sel === "pluck") h += dxHTML();
   $("sound").innerHTML = h + '<p class="muted">Drag a control (Shift: finer), turn the mouse wheel over it, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
   syncCtls(); drawPics();
+  if (sel === "pluck") dxMount();
 }
+/* ======================================================================== the DX7 voice: the pluck's six-operator FM sound, edited as it plays
+ * (the Editor page's voice editor, moved in). The built-in DX sounds are the start; an edit goes into one of the player's 16 voice slots (as the FM-1
+ * takes a voice over SysEx), the pluck set to play it, kept in the emulator's flash (this browser) and sent with the piece's voice. */
+const FP = { R1: 0, L1: 4, BP: 8, LD: 9, RD: 10, LC: 11, RC: 12, RS: 13, AMS: 14, KVS: 15, OL: 16, MODE: 17, FC: 18, FF: 19, DET: 20, OP: 21,
+  PR1: 126, PL1: 130, ALG: 134, FB: 135, OKS: 136, LFS: 137, LFD: 138, LPMD: 139, LAMD: 140, LKS: 141, LFW: 142, LPMS: 143, TRNSP: 144, NAME: 145, SIZE: 155 };
+const OPMAX = [99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 3, 3, 7, 3, 7, 99, 1, 31, 99, 14];
+const VMAX = [99, 99, 99, 99, 99, 99, 99, 99, 31, 7, 1, 99, 99, 99, 99, 1, 5, 7, 48];
+const vmax = (i) => (i < 126 ? OPMAX[i % 21] : i < FP.NAME ? VMAX[i - 126] : 126);
+function vSanitize(v) { for (let i = 0; i < FP.SIZE; i++) { if (i >= FP.NAME) v[i] = v[i] < 32 || v[i] > 126 ? 32 : v[i]; else if (v[i] > vmax(i)) v[i] = vmax(i); } return v; }
+function vUnpack(b) {
+  const v = new Uint8Array(FP.SIZE);
+  for (let k = 0; k < 6; k++) {
+    const o = b.subarray(k * 17, k * 17 + 17), d = k * FP.OP;
+    for (let i = 0; i < 11; i++) v[d + i] = o[i] & 127;
+    v[d + FP.LC] = o[11] & 3; v[d + FP.RC] = (o[11] >> 2) & 3; v[d + FP.RS] = o[12] & 7; v[d + FP.DET] = (o[12] >> 3) & 15;
+    v[d + FP.AMS] = o[13] & 3; v[d + FP.KVS] = (o[13] >> 2) & 7; v[d + FP.OL] = o[14] & 127; v[d + FP.MODE] = o[15] & 1; v[d + FP.FC] = (o[15] >> 1) & 31; v[d + FP.FF] = o[16] & 127;
+  }
+  for (let i = 0; i < 9; i++) v[FP.PR1 + i] = b[102 + i] & 127;
+  v[FP.ALG] &= 31; v[FP.FB] = b[111] & 7; v[FP.OKS] = (b[111] >> 3) & 1;
+  for (let i = 0; i < 4; i++) v[FP.LFS + i] = b[112 + i] & 127;
+  v[FP.LKS] = b[116] & 1; v[FP.LFW] = (b[116] >> 1) & 7; v[FP.LPMS] = (b[116] >> 4) & 7; v[FP.TRNSP] = b[117] & 127;
+  for (let i = 0; i < 10; i++) v[FP.NAME + i] = b[118 + i] & 127;
+  return vSanitize(v);
+}
+function vPack(v) {
+  const b = new Uint8Array(128);
+  for (let k = 0; k < 6; k++) {
+    const o = k * 17, d = k * FP.OP;
+    for (let i = 0; i < 11; i++) b[o + i] = v[d + i] & 127;
+    b[o + 11] = (v[d + FP.LC] & 3) | ((v[d + FP.RC] & 3) << 2); b[o + 12] = (v[d + FP.RS] & 7) | ((v[d + FP.DET] & 15) << 3);
+    b[o + 13] = (v[d + FP.AMS] & 3) | ((v[d + FP.KVS] & 7) << 2); b[o + 14] = v[d + FP.OL] & 127; b[o + 15] = (v[d + FP.MODE] & 1) | ((v[d + FP.FC] & 31) << 1); b[o + 16] = v[d + FP.FF] & 127;
+  }
+  for (let i = 0; i < 9; i++) b[102 + i] = v[FP.PR1 + i] & 127;
+  b[111] = (v[FP.FB] & 7) | ((v[FP.OKS] & 1) << 3);
+  for (let i = 0; i < 4; i++) b[112 + i] = v[FP.LFS + i] & 127;
+  b[116] = (v[FP.LKS] & 1) | ((v[FP.LFW] & 7) << 1) | ((v[FP.LPMS] & 7) << 4); b[117] = v[FP.TRNSP] & 127;
+  for (let i = 0; i < 10; i++) b[118 + i] = v[FP.NAME + i] & 127;
+  return b;
+}
+function vInit() {                                            // the DX7's init voice: OP1 alone, a plain sine
+  const v = new Uint8Array(FP.SIZE);
+  for (let k = 0; k < 6; k++) { const d = k * FP.OP; for (let i = 0; i < 7; i++) v[d + i] = 99; v[d + FP.BP] = 39; v[d + FP.FC] = 1; v[d + FP.DET] = 7; v[d + FP.OL] = k === 5 ? 99 : 0; }
+  for (let i = 0; i < 4; i++) { v[FP.PR1 + i] = 99; v[FP.PL1 + i] = 50; }
+  v[FP.LFS] = 35; v[FP.TRNSP] = 24;
+  "INIT VOICE".split("").forEach((c, i) => { v[FP.NAME + i] = c.charCodeAt(0); });
+  return v;
+}
+const vName = (v) => String.fromCharCode(...Array.from(v.subarray(FP.NAME, FP.NAME + 10)).map((c) => (c < 32 || c > 126 ? 32 : c))).trimEnd();
+const vSum = (a) => { let t = 0; for (const b of a) t += b; return (128 - (t & 127)) & 127; };
+function vGraph(a) {                                          // the firmware's routing (D.alg, FM6_ALG): who modulates whom, the carriers, feedback
+  const row = D.alg[a], bus = [[], [], []], edges = [], carrier = [], fb = [];
+  for (let k = 0; k < 6; k++) {
+    const f = row[k], out = f & 3, inn = (f >> 4) & 3, add = f & 4, n = 6 - k;
+    if (inn) for (const q of bus[inn]) edges.push([q, n]);
+    carrier[n] = out === 0; fb[n] = (f & 0xC0) !== 0;
+    if (out) { if (!add) bus[out] = []; bus[out].push(n); }
+  }
+  return { edges, carrier, fb };
+}
+let dxv = null, dxSlot = -1, dxDx = -1, dxOp = 1, dxN = 0, dxNames = [], dxFile = [], dxBusy = false, dxAgain = false, dxKeepT = 0, dxPutT = 0, dxEnvDrag = null, dxAlgHit = [];
+const DXB = () => N.nplain + N.nfmfact;                        // (the pluck's Sound: the plain sounds, the built-in DX ones, then the player's)
+const dxSndNames = () => P[PE.P_CM_SND].t;
+const CURVE = ["-LIN", "-EXP", "+EXP", "+LIN"], LFOW = ["Triangle", "Saw down", "Saw up", "Square", "Sine", "S & H"];
+function dxFmt(i, v) {
+  if (i < 126 && i % 21 === FP.DET) return (v - 7 > 0 ? "+" : "") + (v - 7);
+  if (i === FP.TRNSP) return NOTE[v % 12] + (Math.floor(v / 12) + 1);
+  return String(v);
+}
+function dxRow(label, i, opts) {
+  const v = dxv[i];
+  if (opts) return '<label class="dxr"><span>' + label + '</span><select data-dx="' + i + '">' + opts.map((t, k) => '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + t + "</option>").join("") + "</select><b></b></label>";
+  return '<label class="dxr"><span>' + label + '</span><input type="range" min="0" max="' + vmax(i) + '" value="' + v + '" data-dx="' + i + '"><b>' + dxFmt(i, v) + "</b></label>";
+}
+function dxRatio(d) {
+  return dxv[d + FP.MODE] ? "fixed " + (Math.pow(10, dxv[d + FP.FC] & 3) * (1 + dxv[d + FP.FF] / 100 * 8.772)).toFixed(1) + " Hz" : "× " + ((dxv[d + FP.FC] || 0.5) * (1 + dxv[d + FP.FF] / 100)).toFixed(2);
+}
+function dxHTML() {                                           // (the rows are filled by dxMount once the voice is read)
+  const nm = dxSndNames(), b = DXB();
+  return '<div class="sec dx7"><h3>DX7 VOICE <span class="muted" id="dxWhat" style="font-weight:500;letter-spacing:0"></span></h3>' +
+    '<div class="bar" style="margin-bottom:8px"><span class="lbl">EDIT</span><select id="dxFrom" aria-label="The DX voice to edit">' +
+    '<optgroup label="The built-in DX sounds">' + Array.from({ length: N.nfmfact }, (_, k) => '<option value="d' + k + '">' + nm[N.nplain + k] + "</option>").join("") + "</optgroup>" +
+    '<optgroup label="Your voices (the 16 slots)">' + Array.from({ length: 16 }, (_, k) => '<option value="u' + k + '"' + (k > dxN ? " disabled" : "") + ">" + (k + 1) + " · " + (k < dxN ? dxNames[k] || nm[b + k] : k === dxN ? "(the next free)" : "(empty)") + "</option>").join("") + "</optgroup>" +
+    (dxFile.length ? '<optgroup label="From the .syx file">' + dxFile.map((v, k) => '<option value="f' + k + '">' + (vName(v) || "(no name)") + "</option>").join("") + "</optgroup>" : "") +
+    '<option value="i">Init voice (a plain sine)</option></select>' +
+    '<button class="small" id="dxLoad" title="DX7 banks (32 voices) or single voices, from any librarian">Open .syx…</button><input type="file" id="dxFileIn" accept=".syx,.SYX" hidden>' +
+    '<button class="small" id="dxSave">Save .syx</button></div>' +
+    '<div class="dxgrid"><div><canvas id="dxAlg" height="200" aria-label="The algorithm: click an operator"></canvas>' +
+    '<div class="bar" style="margin:6px 0"><button class="small" id="dxAlgP" aria-label="Algorithm before">◀</button><b id="dxAlgN" style="min-width:4.5em;text-align:center"></b><button class="small" id="dxAlgX" aria-label="Algorithm after">▶</button>' +
+    '<span class="lbl">&nbsp;NAME</span><input id="dxName" maxlength="10" size="11" aria-label="The voice name"></div><div id="dxGlob"></div></div>' +
+    '<div><div class="dxops" id="dxOps"></div><canvas id="dxEnv" height="150" aria-label="The operator envelope: drag a point (up: its level; sideways: its rate)"></canvas></div></div><div id="dxOpRows"></div>' +
+    '<details><summary>PITCH ENVELOPE AND LFO</summary><div class="dxtwo" id="dxMore"></div></details></div>';
+}
+async function dxMount() {
+  if (!$("dxFrom")) return;
+  if (!dxv) await dxReadPlaying();
+  dxFill();
+}
+async function dxSlots() {                                    // the player's voices: how many, their names
+  const r = await ask({ type: "st_vox", op: "get", slot: 0 });
+  dxN = r.n || 0; dxNames = [];
+  for (let k = 0; k < dxN; k++) { const q = k ? await ask({ type: "st_vox", op: "get", slot: k }) : r; dxNames[k] = q.ok ? "DX " + vName(vUnpack(q.vox.subarray(0, 128))) : ""; }
+  const t = dxSndNames(); for (let k = 0; k < 16; k++) t[DXB() + k] = k < dxN ? dxNames[k] : "(empty)";
+}
+async function dxReadPlaying() {                              // the voice the pluck plays now, into the editor
+  await dxSlots();
+  const s = parV(PE.P_CM_SND);
+  if (s >= DXB() && s - DXB() < dxN) return dxPick("u" + (s - DXB()), true);
+  if (s >= N.nplain && s < DXB()) return dxPick("d" + (s - N.nplain), true);
+  return dxPick("d0", true);
+}
+async function dxPick(key, quiet) {                           // a voice into the editor: a built-in (heard as it is), a slot, a file's, the init voice
+  const k = key[0], i = +key.slice(1);
+  if (k === "d") { const r = await ask({ type: "st_vox", op: "dx", idx: i }); if (!r.ok) return; dxv = r.ok === 2 ? vSanitize(r.vox.slice(0, FP.SIZE)) : vUnpack(r.vox.subarray(0, 128)); dxSlot = -1; dxDx = i; if (!quiet) dxPlay(N.nplain + i); }
+  else if (k === "u") { const r = await ask({ type: "st_vox", op: "get", slot: i }); if (!r.ok) return; dxv = vUnpack(r.vox.subarray(0, 128)); dxSlot = i; dxDx = -1; if (!quiet) dxPlay(DXB() + i); }
+  else { dxv = k === "f" ? Uint8Array.from(dxFile[i]) : vInit(); dxSlot = -1; dxDx = -1; await dxPut(true); }
+  dxOp = 1;
+  if (!quiet) { dxFill(); say(k === "d" ? "The pluck plays " + dxSndNames()[N.nplain + i] + ". Edit it: your changes go into a voice slot of your own, the built-in stays." :
+    k === "u" ? "The pluck plays your voice " + (i + 1) + ". Edits go straight into it." : "In a voice slot of your own, and the pluck plays it."); }
+}
+function dxPlay(snd) { if (parV(PE.P_CM_SND) !== snd) { parSetV(PE.P_CM_SND, snd); changed(); } }
+function dxWhat() {
+  const el = $("dxWhat");
+  if (el) el.textContent = dxSlot >= 0 ? "· your voice " + (dxSlot + 1) + " · the pluck plays it" : dxDx >= 0 ? "· built-in: the first edit makes it a voice of your own" : "";
+  const f = $("dxFrom"), nm = dxSndNames();
+  if (f) {                                                    // (the slots' names as they are now, here and in every Sound list)
+    for (let k = 0; k < 16; k++) { const o = f.querySelector('option[value="u' + k + '"]'); if (o) { o.textContent = (k + 1) + " · " + (k < dxN ? dxNames[k] || nm[DXB() + k] : k === dxN ? "(the next free)" : "(empty)"); o.disabled = k > dxN; } }
+    f.value = dxSlot >= 0 ? "u" + dxSlot : dxDx >= 0 ? "d" + dxDx : f.value;
+  }
+  document.querySelectorAll('select[data-p="' + PE.P_CM_SND + '"]').forEach((sl) => { for (let k = 0; k < 16; k++) { const o = sl.options[DXB() + k]; if (o) o.textContent = nm[DXB() + k]; } });
+}
+function dxFill() {                                           // the editor drawn from dxv
+  if (!dxv || !$("dxGlob")) return;
+  $("dxName").value = vName(dxv);
+  $("dxAlgN").textContent = "ALG " + (dxv[FP.ALG] + 1);
+  $("dxGlob").innerHTML = dxRow("Feedback", FP.FB) + dxRow("Transpose", FP.TRNSP) + dxRow("Oscillator sync", FP.OKS, ["Off", "On"]);
+  $("dxMore").innerHTML = "<div>" + [1, 2, 3, 4].map((n) => dxRow("Pitch rate " + n, FP.PR1 + n - 1)).join("") + [1, 2, 3, 4].map((n) => dxRow("Pitch level " + n, FP.PL1 + n - 1)).join("") + "</div><div>" +
+    dxRow("LFO wave", FP.LFW, LFOW) + dxRow("LFO speed", FP.LFS) + dxRow("LFO delay", FP.LFD) + dxRow("LFO pitch depth", FP.LPMD) + dxRow("LFO amp depth", FP.LAMD) + dxRow("LFO pitch sens", FP.LPMS) + dxRow("LFO key sync", FP.LKS, ["Off", "On"]) + "</div>";
+  dxOpFill(); dxWhat(); dxDraw();
+}
+function dxOpFill() {
+  const d = (6 - dxOp) * FP.OP, g = vGraph(dxv[FP.ALG]);
+  $("dxOps").innerHTML = [1, 2, 3, 4, 5, 6].map((n) => '<button class="small' + (g.carrier[n] ? " car" : "") + '" data-dxop="' + n + '" aria-pressed="' + (n === dxOp) + '" title="' + (g.carrier[n] ? "A carrier: heard" : "A modulator: colours the ones below it") + '">OP' + n +
+    '<i style="width:' + Math.round(dxv[(6 - n) * FP.OP + FP.OL] / 99 * 100) + '%"></i></button>').join("") + '<span class="muted" style="align-self:center">&nbsp;' + (g.carrier[dxOp] ? "carrier" : "modulator") + " · " + dxRatio(d) + "</span>";
+  $("dxOpRows").innerHTML = '<div class="dxtwo"><div>' + dxRow("Level", d + FP.OL) + dxRow("Frequency", d + FP.MODE, ["Ratio", "Fixed"]) + dxRow("Coarse", d + FP.FC) + dxRow("Fine", d + FP.FF) + dxRow("Detune", d + FP.DET) +
+    dxRow("Velocity sens", d + FP.KVS) + dxRow("Amp mod sens", d + FP.AMS) + "</div><div>" + [1, 2, 3, 4].map((n) => dxRow("Rate " + n, d + n - 1)).join("") + [1, 2, 3, 4].map((n) => dxRow("Level " + n, d + 3 + n)).join("") + "</div></div>" +
+    "<details><summary>KEY SCALING</summary><div class=\"dxtwo\"><div>" + dxRow("Break point", d + FP.BP) + dxRow("Left depth", d + FP.LD) + dxRow("Left curve", d + FP.LC, CURVE) + "</div><div>" + dxRow("Rate scaling", d + FP.RS) + dxRow("Right depth", d + FP.RD) + dxRow("Right curve", d + FP.RC, CURVE) + "</div></div></details>";
+}
+function dxDraw() { dxDrawAlg(); dxDrawEnv(); }
+function dxCanvas(id, H) {
+  const cv = $(id); if (!cv) return null;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth;
+  if (!W) return null;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
+  return { g, W, H };
+}
+function dxDrawAlg() {                                        // the operators as boxes in their stacks (a level a row), lines to what they modulate,
+  const c = dxCanvas("dxAlg", 200); if (!c || !dxv) return;     //  a carrier's base in the pluck's colour, its level as a fill, a curl for feedback
+  const { g, W, H } = c, gr = vGraph(dxv[FP.ALG]), level = {}, tg = (n) => gr.edges.filter((e) => e[0] === n).map((e) => e[1]);
+  const lv = (n) => { if (level[n] !== undefined) return level[n]; const t = tg(n); level[n] = t.length ? 1 + Math.max(...t.map(lv)) : 0; return level[n]; };
+  for (let n = 1; n <= 6; n++) lv(n);
+  const by = {}; for (let n = 1; n <= 6; n++) (by[level[n]] = by[level[n]] || []).push(n);
+  const maxl = Math.max(...Object.values(level)), rowH = Math.min(42, (H - 40) / Math.max(1, maxl)), pos = {};
+  for (const l of Object.keys(by)) by[l].forEach((n, i) => { pos[n] = { x: W / 2 + (i - (by[l].length - 1) / 2) * Math.min(70, W / 6.5), y: H - 26 - l * rowH }; });
+  g.strokeStyle = "#8b8e98"; g.lineWidth = 2;
+  for (const [a, b] of gr.edges) { g.beginPath(); g.moveTo(pos[a].x, pos[a].y + 12); g.lineTo(pos[b].x, pos[b].y - 12); g.stroke(); }
+  g.fillStyle = COL.pluck; g.fillRect(W / 2 - 90, H - 8, 180, 3);   // the out
+  dxAlgHit = [];
+  for (let n = 1; n <= 6; n++) {
+    const p = pos[n], sel = n === dxOp, ol = dxv[(6 - n) * FP.OP + FP.OL] / 99;
+    if (gr.carrier[n]) { g.strokeStyle = hexA(COL.pluck, 0.5); g.lineWidth = 1; g.beginPath(); g.moveTo(p.x, p.y + 12); g.lineTo(p.x, H - 8); g.stroke(); }
+    g.fillStyle = sel ? "#3a2c10" : "#22252c"; g.fillRect(p.x - 19, p.y - 12, 38, 24);
+    g.fillStyle = hexA(gr.carrier[n] ? COL.pluck : COL.ink, 0.35); g.fillRect(p.x - 19, p.y + 12 - 24 * ol, 38, 24 * ol);
+    g.strokeStyle = sel ? COL.acc : gr.carrier[n] ? COL.pluck : "#555a66"; g.lineWidth = 2; g.strokeRect(p.x - 19, p.y - 12, 38, 24);
+    g.fillStyle = COL.ink; g.font = FONT(700, 12); g.textAlign = "center"; g.fillText(String(n), p.x, p.y + 4); g.textAlign = "left";
+    if (gr.fb[n]) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.beginPath(); g.moveTo(p.x + 19, p.y - 4); g.quadraticCurveTo(p.x + 34, p.y - 8, p.x + 30, p.y - 18); g.quadraticCurveTo(p.x + 24, p.y - 24, p.x + 12, p.y - 12); g.stroke(); }
+    dxAlgHit.push([p.x - 22, p.y - 15, 44, 30, n]);
+  }
+  g.fillStyle = COL.dim; g.font = FONT(600, 10); g.fillText("FEEDBACK " + dxv[FP.FB], 8, 14);
+}
+let dxEnvG = null;
+function dxDrawEnv() {                                        // the operator's envelope: levels up, each segment as wide as its rate is slow; the points drag
+  const c = dxCanvas("dxEnv", 150); if (!c || !dxv) return;
+  const { g, W, H } = c, d = (6 - dxOp) * FP.OP, pad = 10, R = [0, 1, 2, 3].map((k) => dxv[d + k]), L = [0, 1, 2, 3].map((k) => dxv[d + 4 + k]);
+  const seg = R.map((r) => 8 + Math.pow((99 - r) / 99, 1.6) * 80), hold = 30;
+  const sx = dxEnvDrag ? dxEnvDrag.sx : (W - 2 * pad) / (seg[0] + seg[1] + seg[2] + hold + seg[3]), y = (l) => H - pad - (l / 99) * (H - 2 * pad - 6);
+  const xs = [pad]; xs.push(xs[0] + seg[0] * sx, 0, 0, 0, 0); xs[2] = xs[1] + seg[1] * sx; xs[3] = xs[2] + seg[2] * sx; xs[4] = xs[3] + hold * sx; xs[5] = xs[4] + seg[3] * sx;
+  const pts = [[xs[0], y(L[3])], [xs[1], y(L[0])], [xs[2], y(L[1])], [xs[3], y(L[2])], [xs[4], y(L[2])], [xs[5], y(L[3])]];
+  g.strokeStyle = "#262932"; g.lineWidth = 1; for (let q = 1; q < 4; q++) { g.beginPath(); g.moveTo(pad, y(q * 33)); g.lineTo(W - pad, y(q * 33)); g.stroke(); }
+  g.fillStyle = COL.dim; g.font = FONT(600, 9); g.fillText("KEY ON", xs[0] + 2, 11); g.fillText("KEY OFF", xs[4] + 2, 11);
+  g.strokeStyle = "#3a3e4a"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(xs[4], 14); g.lineTo(xs[4], H - pad); g.stroke(); g.setLineDash([]);
+  g.beginPath(); g.moveTo(pts[0][0], H - pad); pts.forEach(([px, py]) => g.lineTo(px, py)); g.lineTo(pts[5][0], H - pad); g.closePath(); g.fillStyle = hexA(COL.pluck, 0.18); g.fill();
+  g.beginPath(); pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py))); g.strokeStyle = COL.pluck; g.lineWidth = 2; g.stroke();
+  const hp = [[1, 0], [2, 1], [3, 2], [5, 3]];               // the handles: the end of segment k (its level k, its rate k)
+  dxEnvG = { hp: hp.map(([pi, k]) => ({ x: pts[pi][0], y: pts[pi][1], k, x0: pi === 5 ? xs[4] : xs[pi - 1] })), sx, pad, H, y };
+  for (const h of dxEnvG.hp) { g.fillStyle = dxEnvDrag && dxEnvDrag.k === h.k ? COL.acc : COL.ink; g.beginPath(); g.arc(h.x, h.y, 5, 0, 7); g.fill(); g.fillStyle = COL.dim; g.font = FONT(600, 9); g.fillText(String(h.k + 1), h.x + 7, h.y - 6); }
+}
+function dxSet(i, v, quiet) {                                 // a byte of the voice changed: drawn, heard
+  v = Math.max(0, Math.min(vmax(i), Math.round(v)));
+  if (dxv[i] === v) return;
+  dxv[i] = v;
+  const el = document.querySelector('#sound [data-dx="' + i + '"]');
+  if (el && !quiet) { el.value = v; const b = el.parentElement.querySelector("b"); if (b && el.type === "range") b.textContent = dxFmt(i, v); }
+  dxEdit();
+}
+function dxEdit() {                                           // into the emulator (the newest, one at a time); kept a moment after the last change
+  clearTimeout(dxPutT); dxPutT = setTimeout(() => dxPut(false), 40);
+  clearTimeout(dxKeepT); dxKeepT = setTimeout(() => dxPut(true), 900);
+  dxDraw();
+  if (document.querySelector("#dxOps")) { const g = vGraph(dxv[FP.ALG]); document.querySelectorAll("#dxOps button[data-dxop]").forEach((b) => { const n = +b.dataset.dxop; b.querySelector("i").style.width = Math.round(dxv[(6 - n) * FP.OP + FP.OL] / 99 * 100) + "%"; b.classList.toggle("car", !!g.carrier[n]); }); }
+}
+async function dxPut(keep) {
+  if (!node || !dxv) return;
+  if (dxBusy) { dxAgain = true; return; }
+  dxBusy = true;
+  let tries = 0;
+  for (;;) {
+    dxAgain = false;
+    const first = dxSlot < 0;
+    if (first && dxN >= 16) say("All 16 voice slots are in use: this edit replaces voice 16.", true);
+    const r = await ask({ type: "st_vox", op: "put", slot: first ? dxN : dxSlot, keep, vox: vPack(dxv) });
+    if (r.ok < 0 && ++tries < 30) { await new Promise((res) => setTimeout(res, 30)); continue; }
+    if (r.ok >= 0) {
+      dxSlot = r.ok; dxDx = -1; dxN = Math.max(dxN, r.ok + 1);
+      dxNames[dxSlot] = "DX " + vName(dxv); dxSndNames()[DXB() + dxSlot] = dxNames[dxSlot];
+      if (first) { dxPlay(DXB() + dxSlot); dxWhat(); say("Your voice " + (dxSlot + 1) + " (“" + vName(dxv) + "”): the pluck plays it. Every change is heard as you make it, and kept in the emulator's voices (this browser)."); }
+      if (keep || first) dxWhat();
+    }
+    if (!dxAgain) break;
+  }
+  dxBusy = false;
+}
+function dxParseSyx(buf) {                                    // a 32-voice bank, or single voices (VCED), in any .syx
+  const out = [];
+  if (buf.length === 4096) { for (let i = 0; i < 32; i++) out.push(vUnpack(buf.subarray(i * 128, i * 128 + 128))); return out; }
+  for (let i = 0; i < buf.length;) {
+    if (buf[i] !== 0xF0) { i++; continue; }
+    let j = i + 1; while (j < buf.length && buf[j] !== 0xF7) j++;
+    const m = buf.subarray(i + 1, j); i = j + 1;
+    if (m.length === 4102 && m[0] === 0x43 && m[2] === 0x09 && m[3] === 0x20 && m[4] === 0x00) for (let v = 0; v < 32; v++) out.push(vUnpack(m.subarray(5 + v * 128, 5 + (v + 1) * 128)));
+    else if (m.length === 161 && m[0] === 0x43 && m[2] === 0x00 && m[3] === 0x01 && m[4] === 0x1B) out.push(vSanitize(Uint8Array.from(m.subarray(5, 160))));
+  }
+  return out;
+}
+$("sound").addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.dx !== undefined && dxv) { const i = +t.dataset.dx; dxSet(i, +t.value, true); const b = t.parentElement.querySelector("b"); if (b && t.type === "range") b.textContent = dxFmt(i, dxv[i]); if (i % 21 === FP.FC || i % 21 === FP.FF || i % 21 === FP.MODE) dxOpFill(); }
+  if (t.id === "dxName" && dxv) { const nm = t.value.toUpperCase().replace(/[^ -~]/g, " ").padEnd(10).slice(0, 10); for (let k = 0; k < 10; k++) dxv[FP.NAME + k] = nm.charCodeAt(k); dxEdit(); }
+});
+$("sound").addEventListener("change", async (e) => {
+  const t = e.target;
+  if (t.dataset.dx !== undefined && dxv && t.tagName === "SELECT") { dxSet(+t.dataset.dx, +t.value, true); dxOpFill(); }
+  if (t.id === "dxFrom") await dxPick(t.value);
+  if (t.id === "dxFileIn" && t.files.length) {
+    dxFile = []; for (const f of t.files) dxFile.push(...dxParseSyx(new Uint8Array(await f.arrayBuffer())));
+    soundRender();
+    say(dxFile.length ? dxFile.length + " voices in the file: pick one under EDIT (“From the .syx file”); it goes into a voice slot of your own." : "No DX7 voices in that file.", !dxFile.length);
+  }
+});
+$("sound").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b || !dxv) return;
+  if (b.dataset.dxop) { dxOp = +b.dataset.dxop; dxOpFill(); dxDraw(); return; }
+  if (b.id === "dxAlgP" || b.id === "dxAlgX") { dxSet(FP.ALG, (dxv[FP.ALG] + (b.id === "dxAlgP" ? 31 : 1)) % 32); $("dxAlgN").textContent = "ALG " + (dxv[FP.ALG] + 1); dxOpFill(); return; }
+  if (b.id === "dxLoad") return $("dxFileIn").click();
+  if (b.id === "dxSave") {
+    const v = vSanitize(Uint8Array.from(dxv)), a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([new Uint8Array([0xF0, 0x43, 0x00, 0x00, 0x01, 0x1B, ...v, vSum(v), 0xF7])], { type: "application/octet-stream" }));
+    a.download = (vName(v) || "voice").replace(/[^A-Za-z0-9_-]+/g, "_") + ".syx"; document.body.append(a); a.click(); a.remove();
+    say("Saved “" + vName(v) + "” as a DX7 single voice (.syx): any DX7 librarian, Dexed, or the FM-1 takes it.");
+  }
+});
+$("sound").addEventListener("pointerdown", (e) => {
+  if (!dxv) return;
+  const cv = e.target;
+  if (cv.id === "dxAlg") { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, h = dxAlgHit.find(([hx, hy, w, hh]) => x >= hx && x < hx + w && y >= hy && y < hy + hh); if (h) { dxOp = h[4]; dxOpFill(); dxDraw(); } return; }
+  if (cv.id !== "dxEnv" || !dxEnvG) return;
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const h = dxEnvG.hp.reduce((a, q) => (Math.hypot(q.x - x, q.y - y) < (a ? Math.hypot(a.x - x, a.y - y) : 18) ? q : a), null);
+  if (!h) return;
+  e.preventDefault(); cv.setPointerCapture(e.pointerId);
+  dxEnvDrag = { k: h.k, x0: h.x0, sx: dxEnvG.sx }; dxDrawEnv();
+});
+$("sound").addEventListener("pointermove", (e) => {
+  if (!dxEnvDrag || e.target.id !== "dxEnv" || !dxv) return;
+  const r = e.target.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, G = dxEnvG, d = (6 - dxOp) * FP.OP, k = dxEnvDrag.k;
+  dxSet(d + 4 + k, (G.H - G.pad - y) / (G.H - 2 * G.pad - 6) * 99);
+  const segU = Math.max(8, (x - dxEnvDrag.x0) / dxEnvDrag.sx);   // the segment's width back to its rate (8 + ((99 - r) / 99)^1.6 * 80)
+  dxSet(d + k, 99 - 99 * Math.pow(Math.min(1, (segU - 8) / 80), 1 / 1.6));
+  dxOpFill();
+});
+$("sound").addEventListener("pointerup", () => { if (dxEnvDrag) { dxEnvDrag = null; dxDrawEnv(); } });
+window.addEventListener("resize", () => { if (pane === "sound" && sel === "pluck") dxDraw(); });
+
 // the picture a section of a page gets (by its page and section, its knobs found by their labels), or none
 function picFor(tabName, x, col) {
   const k = (re) => { const q = x.knobs.find((y) => re.test(y.label)); return q ? q.p : NaN; };
