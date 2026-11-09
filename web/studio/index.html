@@ -37,6 +37,14 @@
   .bar .sp { flex: 1; }
   #top { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; position: sticky; top: 0; z-index: 30; box-shadow: 0 6px 14px rgba(0,0,0,.35); }
   #top .tsep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+  #top { gap: .35rem; }
+  #top select { max-width: 8.5em; }
+  @media (min-width: 1250px) { #top { flex-wrap: nowrap; } #top #pos, #top #tc { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } #top .sp { min-width: 0; } }
+  #top .tsep { margin: 0; }
+  #top button, #top .menu summary { padding: .4em .65em; }
+  #sound:not([hidden]) { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; align-items: start; }
+  #sound > .sec { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; }
+  #sound > .sec.dx7, #sound > .sec:has(.lanes6), #sound > p { grid-column: 1 / -1; }
   .beats { display: inline-flex; gap: 3px; }
   .beats i { width: 8px; height: 8px; border-radius: 2px; background: #2a2d35; }
   .beats i.on { background: var(--acc); box-shadow: 0 0 6px var(--acc); }
@@ -114,8 +122,35 @@
   .lanes6 .ctl { padding: 2px 6px 4px; }
   .lanes6 .ctl .top span:first-child { display: none; }
   /* the desk: a strip a part */
-  #desk { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)) minmax(240px, 1.6fr); gap: 8px; }
-  @media (max-width: 1100px) { #desk { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  #desk { display: flex; flex-direction: column; gap: 10px; }
+  .strips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  @media (max-width: 760px) { .strips { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .strip .mix { display: flex; justify-content: center; align-items: stretch; gap: 8px; margin: 2px 0 0; }
+  .strip .mix .fader { margin: 0; height: 132px; }
+  .strip .meter.v { width: 10px; height: 132px; position: relative; border-radius: 3px; background: repeating-linear-gradient(to top, #22252c 0 5px, #121318 5px 7px); }
+  .strip .meter.v i { position: absolute; left: 0; right: 0; bottom: 0; width: auto; height: 0; transition: height .06s linear;
+                      background: linear-gradient(to top, var(--c) 0 70%, #ffd447 85%, #ff5a5f 100%); background-size: 100% 132px; background-position: bottom;
+                      -webkit-mask: repeating-linear-gradient(to top, #000 0 5px, transparent 5px 7px); mask: repeating-linear-gradient(to top, #000 0 5px, transparent 5px 7px); }
+  .strip .knobs { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 2px; }
+  .strip .lists { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
+  .strip .lists .ctl.list select { font-size: .75rem; }
+  .strips .strip { align-self: start; min-height: 100%; }
+  .strip .ctl.list { padding: 3px 6px 5px; }
+  .strip .ctl.list .top { font-size: .7rem; }
+  .deskbelow { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 10px; align-items: start; }
+  .deskbelow .sec { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; }
+  .deskbelow .sec.wide { grid-column: span 2; }
+  @media (max-width: 640px) { .deskbelow .sec.wide { grid-column: auto; } }
+  .ctls.kn { display: flex; flex-wrap: wrap; gap: 6px 4px; }
+  .ctl.knob { background: none; border: 0; padding: 2px 2px 4px; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: ns-resize; }
+  .ctl.knob:focus-visible .dial { box-shadow: 0 0 0 2px var(--acc); }
+  .ctl.knob .dial { --f: 0; width: 44px; height: 44px; border-radius: 50%; position: relative;
+                    background: conic-gradient(from 225deg, var(--c, var(--acc)) calc(var(--f) * 270deg), #2a2d35 0 270deg, transparent 0); }
+  .ctl.knob .dial::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #2e3139, #181a1f 70%); box-shadow: 0 2px 4px rgba(0,0,0,.6); }
+  .ctl.knob .dial i { position: absolute; left: calc(50% - 1.5px); top: 8px; width: 3px; height: 12px; border-radius: 2px; background: var(--ink); z-index: 1;
+                      transform-origin: 50% 14px; transform: rotate(calc(-135deg + var(--f) * 270deg)); }
+  .ctl.knob .v { font: 700 .78rem "Chakra Petch", sans-serif; max-width: 72px; text-align: center; }
+  .ctl.knob .kl { font-size: .68rem; color: var(--dim); text-align: center; line-height: 1.1; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .strip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
   .strip .cap { height: 6px; background: var(--c); }
   .strip h3 { font: 700 1rem "Chakra Petch", sans-serif; letter-spacing: .08em; margin: 6px 8px 2px; display: flex; justify-content: space-between; align-items: center; }
@@ -129,8 +164,6 @@
   .strip .solo[aria-pressed=true] { background: var(--ink); color: #0e0f12; border-color: var(--ink); }
   .strip .ms { display: inline-flex; gap: 3px; }
   .strip.out .body, .strip.out .cap { opacity: .35; }
-  .deskside { display: flex; flex-direction: column; gap: 8px; }
-  .deskside .ctls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   canvas.pic { width: 100%; display: block; border-radius: 6px; margin: 0 0 8px; background: #121318; border: 1px solid var(--line); touch-action: none; }
   .meter { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
   .meter i { display: block; height: 100%; width: 0; background: var(--c); transition: width .06s linear; }
@@ -458,7 +491,7 @@ function resetHistory() { hist = {}; slotT = 0; slotNow = -2; lastBar = -1; }
 let loomPos = -1;                                            // the playhead: a loom bar and its fraction
 function onLive(b) {
   live = parseLive(b);
-  document.querySelectorAll("#desk .meter[data-k]").forEach((m) => { m.firstChild.style.width = Math.min(100, Math.sqrt(live.lv[+m.dataset.k] / 255) * 130) + "%"; });
+  document.querySelectorAll("#desk .meter[data-k]").forEach((m) => { m.firstChild.style[m.classList.contains("v") ? "height" : "width"] = Math.min(100, Math.sqrt(live.lv[+m.dataset.k] / 255) * 130) + "%"; });
   if (!io) return;
   const tl = timeline(), nb = loomBars(tl), bar = Math.floor(live.t / 16), frac = (live.t % 16) / 16;
   let lb;
@@ -1281,6 +1314,15 @@ const parSetV = (p, v) => {
 };
 const valText = (p, v) => (meta(p).t ? (meta(p).t[v - meta(p).min] ?? String(v)) : String(v));
 const shortLabel = (l) => String(l).replace(/\s*\(.*\)\s*$/, "");
+const isList = (p) => { const q = meta(p); return !!(q && q.t && q.t.length > 2); };
+function knobHTML(p, label, col) {                           // (a list stays a list)
+  const q = meta(p);
+  if (!q) return "";
+  if (q.t && q.t.length > 2) return ctlHTML(p, label, col);
+  const lab = shortLabel(label || q.n).replace(/[<&]/g, "");
+  return '<div class="ctl knob" tabindex="0" role="slider" aria-label="' + lab + '" aria-valuemin="' + q.min + '" aria-valuemax="' + q.max + '" data-p="' + p + '" style="--c:' + (col || COL.acc) +
+    '" title="' + lab + ': drag up or down (Shift: finer), the wheel, the arrow keys; double-click: its default"><div class="dial"><i></i></div><span class="v"></span><span class="kl">' + lab + "</span></div>";
+}
 function ctlHTML(p, label, col) {
   const q = meta(p);
   if (!q) return "";
@@ -1297,7 +1339,8 @@ function syncCtls() {                                         // every control o
     const p = +el.dataset.p, v = parV(p), q = meta(p);
     if (el.classList.contains("list")) { const sl = el.querySelector("select"); if (document.activeElement !== sl && +sl.value !== v) sl.value = v; return; }
     el.querySelector(".v").textContent = valText(p, v);
-    el.querySelector("i").style.width = (100 * (v - q.min) / Math.max(1, q.max - q.min)) + "%";
+    if (el.classList.contains("knob")) el.querySelector(".dial").style.setProperty("--f", (v - q.min) / Math.max(1, q.max - q.min));
+    else el.querySelector("i").style.width = (100 * (v - q.min) / Math.max(1, q.max - q.min)) + "%";
     el.setAttribute("aria-valuenow", v);
   });
   document.querySelectorAll(".fader[data-p]").forEach((el) => {
@@ -1314,7 +1357,7 @@ document.addEventListener("pointerdown", (e) => {
   const el = e.target.closest(".ctl:not(.list), .fader");
   if (!el || !io) return;
   const p = +el.dataset.p, r = el.getBoundingClientRect();
-  drag = { el, p, x: e.clientX, y: e.clientY, v0: parV(p), moved: false, fader: el.classList.contains("fader"), r };
+  drag = { el, p, x: e.clientX, y: e.clientY, v0: parV(p), moved: false, fader: el.classList.contains("fader"), knob: el.classList.contains("knob"), r };
   el.setPointerCapture(e.pointerId); el.focus(); e.preventDefault();
   if (drag.fader) setFromCtl(p, meta(p).min + (r.bottom - e.clientY) / r.height * (meta(p).max - meta(p).min));
 });
@@ -1322,9 +1365,9 @@ document.addEventListener("pointermove", (e) => {
   if (!drag) return;
   const q = meta(drag.p), range = q.max - q.min;
   if (drag.fader) { setFromCtl(drag.p, q.min + (drag.r.bottom - e.clientY) / drag.r.height * range); return; }
-  const dx = e.clientX - drag.x;
+  const dx = drag.knob ? drag.y - e.clientY : e.clientX - drag.x;   // (a knob: up turns it up, 150 px the whole way)
   if (Math.abs(dx) > 2) drag.moved = true;
-  if (drag.moved) setFromCtl(drag.p, drag.v0 + dx / Math.max(80, drag.r.width) * range * (e.shiftKey ? 0.2 : 1));
+  if (drag.moved) setFromCtl(drag.p, drag.v0 + dx / (drag.knob ? 150 : Math.max(80, drag.r.width)) * range * (e.shiftKey ? 0.2 : 1));
 });
 document.addEventListener("pointerup", () => {
   if (drag && !drag.moved && !drag.fader) { const q = meta(drag.p); if (q.max - q.min === 1) setFromCtl(drag.p, parV(drag.p) ? q.min : q.max); }   // a switch: a click turns it over
@@ -1358,16 +1401,16 @@ function soundRender() {
   const tab = D.tabs.find((t) => t.name === LANE_TAB[sel]), col = (LANES.find((l) => l.id === sel) || {}).col;
   if (!tab || !io) { $("sound").innerHTML = ""; return; }
   const plain = tab.sections.filter((x) => !/ lane$/.test(x.name)), lanes = tab.sections.filter((x) => / lane$/.test(x.name));
-  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + picFor(tab.name, x, col) + '<div class="ctls">' + x.knobs.map((k) => ctlHTML(k.p, k.label, col)).join("") + "</div></div>").join("");
+  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + picFor(tab.name, x, col) + '<div class="ctls kn">' + x.knobs.map((k) => knobHTML(k.p, k.label, col)).join("") + "</div></div>").join("");
   if (lanes.length) {                                         // the drums' six lanes: a row each
     const kp = (x, re) => (x.knobs.find((k) => re.test(k.label)) || {}).p;
     h += '<div class="sec"><h3>Each lane</h3>' + picHTML("kit", lanes.flatMap((x) => [kp(x, /^Level/), kp(x, /^Tune/), kp(x, /^Decay/)]), col, 130) + '<table class="lanes6"><tr><th></th>' + lanes[0].knobs.map((k) => "<th>" + shortLabel(k.label).replace("Probability", "Chance").replace("Length", "Steps") + "</th>").join("") + "</tr>" +
       lanes.map((x) => "<tr><th>" + x.name.replace(/ lane$/, "").toUpperCase() + "</th>" + x.knobs.map((k) => "<td>" + ctlHTML(k.p, k.label, col) + "</td>").join("") + "</tr>").join("") + "</table></div>";
   }
   const fx = { pad: [-1], chords: [-1], bass: [-2, -4, -5, -6, -7], acid: [-3, -4, -5, -6, -7] }[sel];
-  if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3><div class="ctls">' + fx.map((p) => ctlHTML(p, null, col)).join("") + "</div></div>";
+  if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3><div class="ctls kn">' + fx.map((p) => knobHTML(p, null, col)).join("") + "</div></div>";
   if (sel === "pluck") h += dxHTML();
-  $("sound").innerHTML = h + '<p class="muted">Drag a control (Shift: finer), turn the mouse wheel over it, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
+  $("sound").innerHTML = h + '<p class="muted">Drag a knob up or down (Shift: finer), drag the handles on the pictures, turn the mouse wheel over a knob, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
   syncCtls(); drawPics();
   if (sel === "pluck") dxMount();
 }
@@ -1693,7 +1736,7 @@ const knobIn = (tabName, re, secRe) => { const t = tabOf(tabName); for (const x 
 function deskStrips() {
   const mix = tabOf("Mixer"), sec = (n) => (mix.sections.find((x) => x.name.startsWith(n)) || { knobs: [] }).knobs;
   const L = sec("Levels"), Pn = sec("Pan"), Sd = sec("Send");
-  const parts = [["PAD", "Pad", COL.pad], ["BASS", "Bass", COL.bass], ["ACID", "Acid", COL.acid], ["PLUCK", "Pluck", COL.pluck], ["DRUMS", "Drums", COL.drum], ["VINYL", "Vinyl", "#c9c6bd"]];
+  const parts = [["PAD", "Pad", COL.pad], ["BASS", "Bass", COL.bass], ["ACID", "Acid", COL.acid], ["PLUCK", "Pluck", COL.pluck], ["DRUMS", "Drums", COL.drum]];   // (no VINYL strip: the Mixer's Vinyl level and Wear are not used by the engine, 0.17.15; the vinyl is the FX menu's VINYL key)
   return parts.map(([n, t, c]) => {
     const lv = L.find((k) => k.label === t), pn = Pn.find((k) => k.label === t), sd = Sd.find((k) => k.label === t);
     const extra = [];
@@ -1720,21 +1763,23 @@ function deskMS() {                                           // M lit from what
 setInterval(() => { if (view === "desk") deskMS(); }, 120);
 function deskRender() {
   if (view !== "desk" || !io) return;
-  let h = deskStrips().map((st) => '<div class="strip" style="--c:' + st.c + '"><div class="cap"></div><h3>' + st.n +
+  let h = '<div class="strips">' + deskStrips().map((st) => '<div class="strip" style="--c:' + st.c + '"><div class="cap"></div><h3>' + st.n +
     (DESK_TRK[st.n] ? '<span class="ms"><button class="small mute" data-trk="' + DESK_TRK[st.n] + '" title="Mute: out now (as GLO and a key on the FM-1: not stored with the piece)">M</button>' +
       '<button class="small solo" data-trk="' + DESK_TRK[st.n] + '" title="Solo: only the soloed parts play (not stored)">S</button></span>' : "") + '</h3><div class="body">' +
-    (st.lvl >= 0 ? '<div class="fader" tabindex="0" role="slider" aria-label="' + st.n + ' level" data-p="' + st.lvl + '"><i></i><b></b></div><div class="lv"></div>' : "") +
-    (st.k >= 0 ? '<div class="meter" data-k="' + st.k + '" title="What it plays now"><i></i></div>' : "") +
-    (st.pan >= 0 ? ctlHTML(st.pan, "Pan", st.c) : "") + (st.send >= 0 ? ctlHTML(st.send, "Send", st.c) : "") + st.extra.map(([p, l]) => ctlHTML(p, l, st.c)).join("") + "</div></div>").join("");
-  const sp = tabOf("Space & master"), tg = tabOf("Tempo & global"), skip = new Set([PE.P_THEME, PE.P_MIDI, PE.P_TUNE]);
+    '<div class="mix">' + (st.lvl >= 0 ? '<div class="fader" tabindex="0" role="slider" aria-label="' + st.n + ' level" data-p="' + st.lvl + '"><i></i><b></b></div>' : "") +
+    (st.k >= 0 ? '<div class="meter v" data-k="' + st.k + '" title="What it plays now"><i></i></div>' : "") + "</div>" + (st.lvl >= 0 ? '<div class="lv"></div>' : "") +
+    '<div class="knobs">' + (st.pan >= 0 ? knobHTML(st.pan, "Pan", st.c) : "") + (st.send >= 0 ? knobHTML(st.send, "Send", st.c) : "") + "</div>" +
+    ((ls) => (ls.length ? '<div class="lists">' + ls.map(([p, l]) => ctlHTML(p, l, st.c)).join("") + "</div>" : ""))(st.extra.filter(([p]) => isList(p))) +
+    ((ks) => (ks.length ? '<div class="knobs">' + ks.map(([p, l]) => knobHTML(p, l, st.c)).join("") + "</div>" : ""))(st.extra.filter(([p]) => !isList(p))) + "</div></div>").join("") + "</div>";
+  const sp = tabOf("Space & master"), tg = tabOf("Tempo & global"), skip = new Set([PE.P_THEME, PE.P_MIDI, PE.P_TUNE, PE.P_TEMPO, PE.P_ROOT, PE.P_MODE].filter((x) => x !== undefined));   // (tempo and key: on the top bar)
   const all = sp.sections.flatMap((x) => x.knobs), kk = (re, secRe) => { for (const x of sp.sections) if (!secRe || secRe.test(x.name)) { const q = x.knobs.find((y) => re.test(y.label)); if (q) return q.p; } return NaN; };
   const strips = deskStrips().slice(0, 5);
-  h += '<div class="deskside"><div class="sec"><h3>The stage</h3>' + picHTML("stereo", strips.flatMap((st) => [st.pan, st.send]), COL.acc, 170) + "</div>" + [...sp.sections, ...tg.sections].map((x) => {
+  h += '<div class="deskbelow"><div class="sec wide"><h3>The stage: drag a part (left / right: where it sits; up: how much goes to the echo and reverb)</h3>' + picHTML("stereo", strips.flatMap((st) => [st.pan, st.send]), COL.acc, 200) + "</div>" + [...sp.sections, ...tg.sections].map((x) => {
     const ks = x.knobs.filter((k) => !skip.has(k.p));
     let pic = "";
     if (x.name === "Space") pic = picHTML("space", [kk(/^Echo$/), kk(/^Echo time/), kk(/^Reverb$/), kk(/^Size/), kk(/^Damping/, /^Reverb/), kk(/^Predelay/, /^Reverb/)], COL.ink, 120);
     if (/^Master/.test(x.name)) pic = picHTML("comp", [kk(/^Ratio/), kk(/^Thresh/), kk(/^Make-up/), kk(/^Ceiling/)], COL.acc, 150);
-    return ks.length ? '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + pic + '<div class="ctls">' + ks.map((k) => ctlHTML(k.p, k.label)).join("") + "</div></div>" : "";
+    return ks.length ? '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + pic + '<div class="ctls kn">' + ks.map((k) => knobHTML(k.p, k.label)).join("") + "</div></div>" : "";
   }).join("") + "</div>";
   $("desk").innerHTML = h;
   syncCtls(); drawPics();
