@@ -4405,18 +4405,18 @@ static void input(void)
         ui.turn_t = plat_ms();
     }
     if ((e = plat_enc(EN_ALGO)) != 0) {
-        if (perf_like() && !ui.fx_menu && !(btn >> B_SEL & 1u)) {   /* the perform screen (and the visualizers): the mood */
+        if (btn >> B_SEL & 1u) {                      /* shift: the sound of the voice on screen (drums: the kit) */
+            ui.btn_used |= 1u << B_SEL;
+            shift_sound(e > 0 ? 1 : -1);
+        } else if ((ui.view == V_CHORDS || ui.view == V_GLOBAL) && !ui.fx_menu) {   /* (0.17.16) the mode only where the scale is edited */
+            set_mode(proj.par[P_MODE] + (e > 0 ? 1 : -1));
+        } else {                                      /* everywhere else the mood (the maker: a turn changing the scale by accident) */
             int m = ui.mood + 2 * e;
             char t[8];
             ui.mood = (uint8_t)(m < 0 ? 0 : m > 100 ? 100 : m);
             mood_apply();
             itoa_u(ui.mood, t);
             say("MOOD", t);
-        } else if (btn >> B_SEL & 1u) {               /* shift: the sound of the voice on screen (drums: the kit) */
-            ui.btn_used |= 1u << B_SEL;
-            shift_sound(e > 0 ? 1 : -1);
-        } else {
-            set_mode(proj.par[P_MODE] + (e > 0 ? 1 : -1));
         }
         ui.turn_t = plat_ms();
     }

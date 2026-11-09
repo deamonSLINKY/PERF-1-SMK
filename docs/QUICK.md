@@ -27,7 +27,7 @@
 | **MASTER** | Volume. | | |
 | **SELECT** | The pages, in order (31, stops at the ends). FX menu: the bank. Settings: the next page. Visualizers: the next one. | With **HOME** held: the tempo. | |
 | **PRESETS** | The piece, 1-10 (wraps). | With **GLO** held: the genre. | The piece, on the next bar. |
-| **ALGORITHM** | The mode of the scale. Perform, visualizers: the mood. | | The voice's sound (drum pages: the kit). |
+| **ALGORITHM** | The mood. Chords and Global: the mode of the scale. | | The voice's sound (drum pages: the kit). |
 | **KNOB1-4** | The page's values a, b, c, d. FX menu, Perform, visualizers: Filter, Crush, Throw, Wash. | | Sequencer: Euclid, rotate, chance, length. |
 | **OCT-** / **OCT+** | An octave down / up: on a voice's pages that voice, elsewhere the song. Sequencer: the drum. FX menu: OCT- turns all off. | Both 5 s: update mode. | Sequencer: clear the lane / the piece's own lane back. |
 | **FX** | The FX menu on and off. Twice quickly: the last effect's settings. | | Steps through the effect settings, then back. |
@@ -190,7 +190,7 @@
 - **Build: tap SAVE again.** A snare roll climbs as the bass opens, for four bars (two in trap, lofi and trip-hop; eight in house). In the last bar the open hat plays every eighth and, in the four-on-the-floor genres, the kick comes back. Then the drop. The header counts `DROP 3`.
 - **Drop: hold SAVE** (0.5 s). Everything is back on the next bar with a ringing crash, mostly on the home chord. SAVE is lit in a breakdown or build and blinks while it waits for the bar.
 - **Freeze: REC.** The chord holds and the reverb rings on until you press REC again. **Next chord: EDIT**, on the next bar.
-- **The scale: the keys on Global** (elsewhere they play a voice). Each adds or removes its note; the root stays. **ALGORITHM** picks a mode (Aeolian is plain minor, Dorian a brighter minor, Phrygian a darker one, Mixolydian major with a flat 7th). Root is on Global.
+- **The scale: the keys on Global** (elsewhere they play a voice). Each adds or removes its note; the root stays. **ALGORITHM** there (and on Chords) picks a mode (Aeolian is plain minor, Dorian a brighter minor, Phrygian a darker one, Mixolydian major with a flat 7th). Root is on Global.
 - **Patterns:** KNOB4 on the Drums page, or SEL + white keys 1-6; the change waits for the bar. Hold a pattern key past 0.25 s and it plays only while held, then the one before comes back.
 - **Pieces:** PRESETS; with SEL held, on the next bar. **Genres:** GLO held + PRESETS, or Global's Genre knob.
 - **Songs aren't saved:** record the audio or MIDI out into your DAW.
@@ -227,7 +227,7 @@ The **SET** settings page (after USB & MIDI): **Rounds** a piece plays before th
 
 ### Mood
 
-On Perform and the visualizers **ALGORITHM** sets the energy: 0 chill, 50 (default) the piece as it is, 100 peak. It nudges the acid's density and cutoff, the hats' and perc's levels, the pad's brightness, the pluck's density, level and decay, the bass's cutoff and drive, reverb and echo (less at peak), Evolve and the drums' level. It changes what plays, not what's stored, and is forgotten at power-off.
+On every page but Chords and Global **ALGORITHM** sets the energy: 0 chill, 50 (default) the piece as it is, 100 peak. It nudges the acid's density and cutoff, the hats' and perc's levels, the pad's brightness, the pluck's density, level and decay, the bass's cutoff and drive, reverb and echo (less at peak), Evolve and the drums' level. It changes what plays, not what's stored, and is forgotten at power-off.
 
 ### Drum drift (SEQ x4)
 

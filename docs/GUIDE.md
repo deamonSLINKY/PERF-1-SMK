@@ -95,7 +95,7 @@ You don't need any of this to have fun, but it is there.
 
 - **Turn SELECT** to walk through the pages. Each page has four knobs underneath the screen. The page name tells you what they change: the pad, the bass, the acid, the drums, the reverb and much more.
 - **The Jam page** (turn SELECT past Global) picks what the keys play: the pluck, the pad, the acid or the bass, single notes or whole chords, and how high. On a part's own pages (the pad's, bass's, acid's or pluck's) the keys play that part instead.
-- **Change the scale** on the **Global** page (press GLO): there, each key puts a note into the music or takes one out, and ALGORITHM changes its mood.
+- **Change the scale** on the **Global** page (press GLO): there, each key puts a note into the music or takes one out, and ALGORITHM picks its mode (a brighter or darker minor, a major). Everywhere else ALGORITHM is the mood.
 - **Hold HOME** for the settings, then turn **SELECT** to go through them. The first two, **FILTERS** and **SCREAM**, change how the
   bass, the acid and the pad sound (SCREAM pushes the acid until it howls). They belong to the piece: save the piece and they come back with it.
 - **The SET page** (one of the settings) has an **Intro** that starts with just a pad and brings the band in one part at a time over a few minutes. Great for mixing in, or for playing over.

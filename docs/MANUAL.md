@@ -108,7 +108,7 @@ You don't need any of this to have fun, but it is there.
 
 - **Turn SELECT** to walk through the pages. Each page has four knobs underneath the screen. The page name tells you what they change: the pad, the bass, the acid, the drums, the reverb and much more.
 - **The Jam page** (turn SELECT past Global) picks what the keys play: the pluck, the pad, the acid or the bass, single notes or whole chords, and how high. On a part's own pages (the pad's, bass's, acid's or pluck's) the keys play that part instead.
-- **Change the scale** on the **Global** page (press GLO): there, each key puts a note into the music or takes one out, and ALGORITHM changes its mood.
+- **Change the scale** on the **Global** page (press GLO): there, each key puts a note into the music or takes one out, and ALGORITHM picks its mode (a brighter or darker minor, a major). Everywhere else ALGORITHM is the mood.
 - **Hold HOME** for the settings.
 - **The SET page** has an **Intro** that starts with just a pad and brings the band in one part at a time over a few minutes. Great for mixing in, or for playing over. You get there by holding **SEL** and pressing **FX**, then turning SELECT.
 
@@ -309,7 +309,7 @@ short version.
 | **MASTER** | Volume. |
 | **SELECT** | Steps through the pages in order. With **HOME** held: the tempo, from any page. In the FX menu: the bank (FX, BEAT FX, FLEX BEAT, DJ SNIPS), or inside an effect's settings, the next settings page. On the visualizers: the next one. |
 | **PRESETS** | The piece, 1 to 10. With **SEL** held, the new piece starts on the next bar. With **GLO** held: the genre. |
-| **ALGORITHM** | The mode of the scale, which sets its mood (Aeolian is the natural minor, Dorian a brighter minor, Phrygian a darker one, Mixolydian a major with a flat seventh). With **SEL** held: the sound of the voice on screen (on the drum pages, the whole kit). On the Perform screen and the visualizers: the mood. |
+| **ALGORITHM** | The mood, on every page but two (so a turn never changes the scale by accident). On the **Chords** page and **Global**: the mode of the scale (Aeolian is the natural minor, Dorian a brighter minor, Phrygian a darker one, Mixolydian a major with a flat seventh). With **SEL** held: the sound of the voice on screen (on the drum pages, the whole kit). |
 | **KNOB1**-**KNOB4** | The four values (a, b, c, d) of the page on screen. |
 | **OCT-** | Down an octave, to -3. On a voice's pages it moves that voice (pad, bass or acid; the pluck goes down to -2). On any other page it moves the whole song. In the sequencer it picks the previous drum. In the FX menu it turns every effect off. |
 | **OCT+** | Up an octave, to +3, the same way. In the sequencer it picks the next drum. |
@@ -571,7 +571,7 @@ and Drift, or **EDIT**). The **Chords** page (**ENV** four times) sets what kind
 | 9ths | The 1st, 3rd, 7th and 9th, with the fifth left out (four notes): Am9, CM9, G9 |
 | Sus | The 1st, 4th, 5th and 7th: A7sus4 (CM7sus4 where the seventh is major; a sus2 where the fourth would be sharp, as on F in A minor). Open and unresolved. |
 | Dub | The same minor 9 shape on every chord, whatever the scale says. These are the parallel chord stabs of dub techno. |
-| Fourths | Notes stacked in fourths (shown as A4ths), an m11 sound. Deep, hollow and modal. |
+| Fourths | The scale's notes stacked in fourths (shown as A4ths on the home chord of a minor key), an m11 sound. Where the scale's next fourth would be a tritone it takes the note below, as in the "So What" chord. Deep, hollow and modal. |
 
 **Filter types.** The pad's saw sounds, the bass and the acid each run through a resonant filter, low-pass as
 standard. The **FILTERS** settings page (hold **HOME**, then turn **SELECT** past MIDI IN) changes each one's type:
@@ -620,7 +620,7 @@ heard, so you can start from those.
 | Knob | Does |
 |---|---|
 | Chord | The slot's chord, picked from the chords of the scale. The page shows each as a numeral (I to VII, small for a minor chord) and its name, like Am7. **Hold** leaves the slot empty: the chord before keeps playing for its bars. |
-| Type | The kind of chord this slot plays. **Piece's** follows the Chord setting on the Pad's Chords page, like every slot did before. The others give the slot its own: **Triad** (three notes), **7th**, **9th**, **Sus** (the third swapped for the fourth), **Dub** (a minor ninth stab), **Fourths** (stacked fourths) or **11th** (root, seventh, ninth and eleventh). All of them use only notes of the scale. |
+| Type | The kind of chord this slot plays. **Piece's** follows the Chord setting on the Pad's Chords page, like every slot did before. The others give the slot its own: **Triad** (three notes), **7th**, **9th**, **Sus** (the third swapped for the fourth), **Dub** (a minor ninth stab), **Fourths** (the scale's fourths stacked) or **11th** (root, seventh, ninth and eleventh). All of them but Dub use only notes of the scale. |
 | Bars | How long the slot's chord lasts: 1, 2, 4 or 8 bars. |
 | Play | **Walk**: the genre picks the chords, as usual. **Loop**: your slots play in turn. |
 
@@ -1746,7 +1746,7 @@ The set list is kept with the theme, Tune and MIDI out. It plays your stored pie
 
 ### Mood
 
-Mood is one control that makes the whole piece calmer or more intense. On the Perform screen and the visualizers, **ALGORITHM** sets it. 0 is chill, 100 is peak, and 50 (the middle, and the default) leaves the piece as it is.
+Mood is one control that makes the whole piece calmer or more intense. **ALGORITHM** sets it on every page except Chords and Global, where it picks the mode. 0 is chill, 100 is peak, and 50 (the middle, and the default) leaves the piece as it is.
 
 The further you turn from 50, the more it changes these:
 
@@ -1890,7 +1890,7 @@ The Settings page:
 |---|---|
 | Key | A key change for the drop: same, +2, +3, +5 or +7 semitones. When a breakdown or build ends and the groove comes back in, the whole piece moves up by this much for that round. The next breakdown, a stop or another piece moves it back. `KEY` shows in the header while it's on. |
 | Voices | Which set of DX7 voices the pluck uses: **DY**, thirty human-made voices from public-domain banks (the default), or **DX**, the thirty built-in ones. |
-| Form | **Song** (the default): a piece moves through its own drum patterns, a new one every 8 bars (16 in the slower genres), with a fill just before each change, so it plays like a track. **Loop**: it stays on its first pattern, for when you want to steer it yourself. If you set Drum drift (**SEQ** x4), yours plays instead, in either. |
+| Form | **Song** (the default): a piece moves through its own drum patterns, a new one every 8 bars (16 in the slower genres), with a fill just before each change, so it plays like a track. Song also arranges the parts: now and then a phrase rests the pluck or the acid (or both) for half of it, and the bass may sit out the fill bar and land on the change. The pad always plays. A set-list slot with its own bars leaves the arranging to you. **Loop**: it stays on its first pattern, for when you want to steer it yourself. If you set Drum drift (**SEQ** x4), yours plays instead, in either. |
 | Start | **Last** (the default): the FM-1 switches on to the piece you last played, as it is saved (unsaved changes are not kept: save with **GLO**, then **SAVE**). **Random**: a piece of HYPNO at random, the old way. |
 
 ### The SCREEN page

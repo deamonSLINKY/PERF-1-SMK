@@ -142,7 +142,7 @@ static const int16_t PC_DEEP_FIELD[] = {P_TEMPO, 118, P_ROOT, 3, P_PAD, 60, P_BR
     TU(1), -10, DE(1), 60, DE(0), 60, -1};
 /* LOFI: ten pieces, 68 .. 94 beats a minute, swung, the Rhodes in sevenths and ninths over a warm bass, a soft sparse lead, the
  * dusty kit; each piece the base with a few changed (its key, mode, sounds and tempo). The patterns are made below. */
-#define LOFI_BASE P_CM_VU, 50, P_GHOST, 60, P_HUMAN, 35,  P_BL_MODE, 1, P_BL_LEN, 65, P_BL_MOVE, 20, P_PADTONE, 0, P_PAD, 54, P_BRIGHT, 30, P_DETUNE, 35, P_CHORD, EN_CH_7TH, P_VOICING, 1, P_PE_ATK, 25, P_PE_REL, 50, \
+#define LOFI_BASE P_CM_VU, 60, P_GHOST, 60, P_HUMAN, 35,  P_BL_MODE, 1, P_BL_LEN, 65, P_BL_MOVE, 20, P_PADTONE, 0, P_PAD, 54, P_BRIGHT, 30, P_DETUNE, 35, P_CHORD, EN_CH_7TH, P_VOICING, 1, P_PE_ATK, 25, P_PE_REL, 50, \
     P_ACID, 28, P_AC_WAVE, 15, P_AC_CUT, 30, P_AC_RES, 18, P_AC_ENV, 25, P_AC_DEC, 55, P_AC_SLIDE, 35, P_AC_DENS, 28, \
     P_AC_LEN, 12, P_AC_MUT, 15, P_BASS, 58, P_DR_INST, 1, P_DR_CUT, 30, P_DR_RES, 10, P_PULSE, 68, KIT(8), P_DRIVE, 20, \
     P_SWING, 38, P_REVERB, 34, P_SIZE, 55, P_ECHO, 32, P_ETIME, 3, P_EVOLVE, 30, P_MOTION, 30, P_PATTERN, 0, LV(0), 92, LV(1), 55, \
@@ -199,16 +199,16 @@ static const int16_t X_DUBR[] = {P_CM_VU, 45, P_GHOST, 0, P_HUMAN, 25, P_PULSE, 
     KIT(8), P_PATTERN, 0, P_EVOLVE, 25, P_PL_CHO, 15, P_RV_DAMP, 55, P_BL_MODE, 1, P_BL_LEN, 85, P_BL_MOVE, 8, P_BL_GLIDE, 30, P_MC_RATIO, 2, P_MC_THR, 50, P_MC_MAKE, 38, -1};
 static const int16_t X_DNB[] = {P_CH_LOOP, 1, P_BL_MODE, 1, P_CM_VU, 40, P_GHOST, 40, P_HUMAN, 10, P_PULSE, 78, P_DRIVE, 40, P_SWING, 5, P_BASSOCT, -1, P_DE_TRIG, 2, P_PAD, 36, P_ACID, 42, P_BASS, 82, P_AC_DENS, 40, P_AC_LEN, 12, P_ECHO, 35, P_REVERB, 40,
     KIT(12), DE(0), 20, P_PATTERN, 0, P_EVOLVE, 40, P_PL_CHO, 45, P_RV_TYPE, 1, P_RV_X, 25, P_RV_DAMP, 40, P_MC_RATIO, 3, P_MC_THR, 45, P_MC_MAKE, 30, -1};
-static const int16_t X_BREAKS[] = {P_BL_MODE, 6, P_CM_VU, 30, P_GHOST, 70, P_HUMAN, 25, P_PULSE, 80, P_DRIVE, 70, P_SWING, 14, P_PAD, 40, P_ACID, 55, P_BASS, 70, P_AC_RES, 70, P_AC_ENV, 65, P_AC_DENS, 55, P_ECHO, 40, P_REVERB, 30,
+static const int16_t X_BREAKS[] = {P_BL_MODE, 6, P_CM_VU, 50, P_GHOST, 70, P_HUMAN, 25, P_PULSE, 80, P_DRIVE, 70, P_SWING, 14, P_PAD, 40, P_ACID, 55, P_BASS, 70, P_AC_RES, 70, P_AC_ENV, 65, P_AC_DENS, 55, P_ECHO, 40, P_REVERB, 30,
     KIT(4), P_PATTERN, 0, P_EVOLVE, 45, P_PL_CHO, 20, P_RV_TYPE, 2, P_RV_X, 35, P_MC_RATIO, 4, P_MC_THR, 42, P_MC_MAKE, 35, -1};
-static const int16_t X_GARAGE[] = {P_CH_LOOP, 2, P_BL_MODE, 6, P_BL_MOVE, 30, P_CM_VU, 50, P_GHOST, 45, P_HUMAN, 20, P_PULSE, 70, P_DRIVE, 25, P_SWING, 64, P_PAD, 42, P_ACID, 42, P_BASS, 70, P_AC_DENS, 45, P_AC_LEN, 12, P_ECHO, 40, P_REVERB, 40,
+static const int16_t X_GARAGE[] = {P_CH_LOOP, 2, P_BL_MODE, 6, P_BL_MOVE, 30, P_CM_VU, 60, P_GHOST, 45, P_HUMAN, 20, P_PULSE, 70, P_DRIVE, 25, P_SWING, 64, P_PAD, 42, P_ACID, 42, P_BASS, 70, P_AC_DENS, 45, P_AC_LEN, 12, P_ECHO, 40, P_REVERB, 40,
     P_KIT_KICK, 1, P_KIT_SNARE, 5, P_KIT_HAT, 1, P_KIT_PERC, 5, P_PATTERN, 0, P_EVOLVE, 35, P_PL_CHO, 40, P_RV_DAMP, 45, P_MC_RATIO, 2, P_MC_THR, 50, P_MC_MAKE, 40, -1};
 static const int16_t X_ELECTRO[] = {P_CH_LOOP, 1, P_CM_VU, 65, P_CM_LOOP, 1, P_BL_MODE, 3, P_BL_LEN, 30, P_BL_MOVE, 35, P_PULSE, 78, P_DRIVE, 45, P_SWING, 3, P_PAD, 40, P_ACID, 55, P_BASS, 70, P_AC_DENS, 60, P_AC_LEN, 12, P_ECHO, 45, P_REVERB, 30,
     KIT(11), P_PATTERN, 0, P_EVOLVE, 40, P_PL_CHO, 40, P_RV_TYPE, 2, P_RV_X, 30, P_MC_RATIO, 3, P_MC_THR, 48, P_MC_MAKE, 30, -1};
 static const int16_t X_TRAP[] = {P_CH_LOOP, 2, P_CM_VU, 40, P_BL_MODE, 2, P_BL_LEN, 90, P_BL_MOVE, 8, P_BL_GLIDE, 25, P_PULSE, 85, P_DRIVE, 35, P_SWING, 0, P_BASSOCT, -1, P_DE_TRIG, 2, P_PAD, 40, P_ACID, 35, P_BASS, 88, P_AC_DENS, 20, P_AC_LEN, 8, P_ECHO, 40, P_REVERB, 35,
     KIT(13), LV(0), 95, P_PATTERN, 0, P_EVOLVE, 35, P_PL_CHO, 30, P_RV_TYPE, 1, P_RV_X, 30, P_RV_DAMP, 40, P_MC_RATIO, 4, P_MC_THR, 40, P_MC_MAKE, 40, -1};
 static const int16_t X_DISCO[] = {P_CH_LOOP, 2, P_PULSE, 80, P_DRIVE, 20, P_SWING, 8, P_PAD, 50, P_ACID, 45, P_BASS, 75, P_AC_DENS, 55, P_AC_LEN, 16, P_ECHO, 25, P_REVERB, 30,
-    KIT(1), P_PATTERN, 0, P_EVOLVE, 35, P_PL_CHO, 40, P_BL_MODE, 6, P_BL_LEN, 35, P_BL_MOVE, 10, P_CM_VU, 50, P_MC_RATIO, 3, P_MC_THR, 48, P_MC_MAKE, 32, -1};
+    KIT(1), P_PATTERN, 0, P_EVOLVE, 35, P_PL_CHO, 40, P_BL_MODE, 6, P_BL_LEN, 35, P_BL_MOVE, 10, P_CM_VU, 60, P_MC_RATIO, 3, P_MC_THR, 48, P_MC_MAKE, 32, -1};
 static const int16_t X_FUNK[] = {P_PULSE, 78, P_DRIVE, 25, P_SWING, 20, P_PAD, 40, P_ACID, 50, P_BASS, 78, P_AC_DENS, 60, P_AC_LEN, 16, P_AC_MUT, 20, P_ECHO, 20, P_REVERB, 20,
     KIT(4), P_PATTERN, 0, P_EVOLVE, 35, P_BL_MODE, 6, P_BL_LEN, 28, P_BL_MOVE, 25, P_CM_VU, 45, P_GHOST, 65, P_HUMAN, 25, P_MC_RATIO, 3, P_MC_THR, 48, P_MC_MAKE, 30, -1};
 static const int16_t X_REGGAE[] = {P_PULSE, 72, P_DRIVE, 15, P_SWING, 30, P_PAD, 45, P_ACID, 30, P_BASS, 85, P_AC_DENS, 35, P_AC_LEN, 16, P_ECHO, 55, P_REVERB, 35,
@@ -229,12 +229,12 @@ static const int16_t X_INDUS[] = {P_CH_LOOP, 1, P_BL_MODE, 1, P_BL_LEN, 40, P_BL
  * the four-on-the-floor kick with the rolling bass between its beats (K-B-B-B), the 16th hats soft, the open hat off the beat, the acid as the squelching
  * lead, a 3/16 echo, phrygian and minor, a chord held for 8 bars; and three slow pieces (01, 02, 10: psy-ambient / psychill, 92-112) with a downtempo
  * beat, held bass, a wide shimmer (psy_slow), so a set can go from the cosmic into the trance and back. The Mix glide (SET page) carries the tempo. */
-static const int16_t X_PSY[] = {P_CH_LOOP, 1, P_BL_MODE, 1, P_BL_LEN, 25, P_BL_MOVE, 4, P_BL_GLIDE, 0, P_CM_VU, 50, P_CM_LOOP, 1, P_GHOST, 10, P_HUMAN, 5, P_PULSE, 85,
+static const int16_t X_PSY[] = {P_CH_LOOP, 1, P_BL_MODE, 1, P_BL_LEN, 25, P_BL_MOVE, 4, P_BL_GLIDE, 0, P_CM_VU, 65, P_CM_LOOP, 1, P_GHOST, 10, P_HUMAN, 5, P_PULSE, 85,
     P_DRIVE, 30, P_SWING, 0, P_DETUNE, 30, P_PAD, 45, P_ACID, 60, P_BASS, 85, P_AC_DENS, 70, P_AC_LEN, 16, P_AC_RES, 70, P_AC_ENV, 60, P_AC_CUT, 40, P_AC_MUT, 30,
     P_ECHO, 35, P_ETIME, 1, P_REVERB, 40, P_SIZE, 70, P_RV_TYPE, 1, P_RV_X, 35, KIT(2), P_PATTERN, 0, P_EVOLVE, 50, P_MOTION, 55, P_MC_RATIO, 4, P_MC_THR, 40, P_MC_MAKE, 35, -1};
 /* DARK FOREST (0.16.2, genre 19): forest and dark psy, 148-165 BPM, the same K-B-B-B under a dense, glitching percussion (3-against-4 perc, rolls, triplets),
  * driven hard drums, phrygian and fourths, the chord barely moving (i and the flat II), a dry room and a short echo */
-static const int16_t X_FOREST[] = {P_CH_LOOP, 1, P_BL_MODE, 1, P_BL_LEN, 22, P_BL_MOVE, 6, P_BL_GLIDE, 0, P_CM_VU, 40, P_CM_LOOP, 1, P_GHOST, 40, P_HUMAN, 5, P_PULSE, 88,
+static const int16_t X_FOREST[] = {P_CH_LOOP, 1, P_BL_MODE, 1, P_BL_LEN, 22, P_BL_MOVE, 6, P_BL_GLIDE, 0, P_CM_VU, 65, P_CM_LOOP, 1, P_GHOST, 40, P_HUMAN, 5, P_PULSE, 88,
     P_DRIVE, 55, P_SWING, 0, P_DETUNE, 45, P_PAD, 35, P_ACID, 55, P_BASS, 72, P_AC_DENS, 85, P_AC_LEN, 16, P_AC_RES, 80, P_AC_ENV, 70, P_AC_CUT, 35, P_AC_MUT, 45,
     P_ECHO, 30, P_ETIME, 0, P_REVERB, 35, P_SIZE, 55, P_RV_TYPE, 0, P_RV_DAMP, 55, KIT(6), TU(5), 7, P_PATTERN, 0, P_EVOLVE, 60, P_MOTION, 60, P_MC_RATIO, 4, P_MC_THR, 38,
     P_MC_MAKE, 35, -1};
@@ -3303,7 +3303,9 @@ static void cm_step(int st, int32_t sw)         /* a sixteenth of the counter-me
         if (!use) {
             mo_on = 0;
         } else if (ph == 0) {                   /* the phrase's first bar: a new idea (most times), or the kept one opens it again */
-            if (!mo_valid || frand() * 100.0f < 70.0f) {
+            /* (0.17.16, the song-length audit: the pluck's notes echoed least in these genres; a hook comes back) the new idea's chance, a genre */
+            static const uint8_t MO_NEW[EN_NGENRE] = {70, 50, 70, 70, 70, 70, 50, 50, 70, 70, 50, 70, 70, 70, 70, 70, 70, 35, 35};
+            if (!mo_valid || frand() * 100.0f < (en_song ? (float)MO_NEW[chord_genre] : 70.0f)) {   /* (with Song: a song has hooks) */
                 mo_play = 0;
                 mo_last = -1;
                 mo_rec = 1;
