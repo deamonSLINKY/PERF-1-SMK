@@ -377,6 +377,10 @@ __attribute__((used, visibility("default"))) uint8_t *web_st_live(void)
         b[135] = (uint8_t)ui.sl_pos;
         b[136] = (uint8_t)(en_playing ? (bb > 254u ? 254u : bb) : 255u);
         b[137] = (uint8_t)en_trk_heard();       /* the tracks muted now (a place's parts out, or GLO's mutes) */
+        {
+            extern int en_host_arrm(void);
+            b[138] = (uint8_t)en_host_arrm();   /* (0.17.16) the tracks Form Song's arrangement rests now (not mutes: they come back by themselves) */
+        }
     }
     return b;
 }

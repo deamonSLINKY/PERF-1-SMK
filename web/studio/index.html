@@ -507,7 +507,7 @@ function parseLive(b) {
            bsHist: sl(16, 16), bsPos: s8(b[32]), acLen: b[33] || 16, acPos: b[34], acGate: u16(35), acAcc: u16(37), acSlide: u16(39),
            acOff: sl(41, 16), acOct: sl(57, 16), cmRung: sl(73, 16), cmLvl: sl(89, 16), cmPos: b[105], laneSrc: sl(106, 6), playing: b[112],
            genre: b[113], piece: b[114], chordN: b[115], lanePos: sl(116, 6), pool: u16(122), root: b[124], blMode: b[125],
-           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0, slPos: b.length > 136 ? b[135] : 255, slBar: b.length > 136 ? b[136] : 255, trk: b.length > 137 ? b[137] : 0 };
+           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0, slPos: b.length > 136 ? b[135] : 255, slBar: b.length > 136 ? b[136] : 255, trk: b.length > 137 ? b[137] : 0, rest: b.length > 138 ? b[138] : 0 };
 }
 let hist = {}, slotT = 0, slotNow = -2, lastBar = -1;
 function resetHistory() { hist = {}; slotT = 0; slotNow = -2; lastBar = -1; }
@@ -673,12 +673,17 @@ function drawLoom() {
     else drawLineLane(g, L, laneNotes(L.id, nb, tl).filter((n) => n.b >= w0 - 1 && n.b <= w0 + vis), X, SW);
     g.restore();
   }
-  const outM = live ? live.trk || 0 : 0;
-  for (const L of layout) {                                   // a lane that is out now: greyed, said so
+  const outM = live ? live.trk || 0 : 0, restM = live && live.playing ? live.rest || 0 : 0;
+  for (const L of layout) {                                   // a lane that is out now: greyed, said so (resting: the arrangement's, lighter, back by itself)
     const m = LANE_TRK[L.id];
-    if (!m || (outM & m) !== m) continue;
-    g.fillStyle = "rgba(14,15,18,.62)"; g.fillRect(LX, L.top, RX - LX, L.h); g.fillRect(0, L.top, LX - 2, L.h);
-    g.fillStyle = "#8b8e98"; g.font = FONT(700, 11); g.fillText("MUTED", LX + 8, L.top + Math.min(L.h - 6, 18));
+    if (!m) continue;
+    if ((outM & m) === m) {
+      g.fillStyle = "rgba(14,15,18,.62)"; g.fillRect(LX, L.top, RX - LX, L.h); g.fillRect(0, L.top, LX - 2, L.h);
+      g.fillStyle = "#8b8e98"; g.font = FONT(700, 11); g.fillText("MUTED", LX + 8, L.top + Math.min(L.h - 6, 18));
+    } else if ((restM & m) === m) {
+      g.fillStyle = "rgba(14,15,18,.35)"; g.fillRect(LX, L.top, RX - LX, L.h);
+      g.fillStyle = "#8b8e98"; g.font = FONT(700, 11); g.fillText("RESTING (THE ARRANGEMENT)", LX + 8, L.top + Math.min(L.h - 6, 18));
+    }
   }
   if (loomPos >= w0 && loomPos < w0 + vis) {                // the playhead
     const x = X(loomPos, 0);
