@@ -270,7 +270,7 @@ enum {
     EN_FXS_SM_MODE, EN_FXS_SM_LOOP, EN_FXS_SM_LEN, EN_FXS_SM_MIX,        /* the sampler: pitch (0) or slice (1), one shot (0) or loop (1), the window (0 full, 1 half, 2 quarter), its mix */
     EN_FXS_RP_PITCH, EN_FXS_RP_DECAY, EN_FXS_RP_GATE, EN_FXS_RP_REFRESH,   /* the beat repeats (0.14.10): the pitch reached over four beats held (0..24: -12..+12 semitones), a decay a repeat (0..100: 0..6 dB), the gate (0..3: all, 3/4, half, a quarter of the slice), the slip refresh (0 off, 1 each beat, 2 each bar: the slice is the newest again) */
     EN_FXS_FT_PAD, EN_FXS_FT_BASS, EN_FXS_FT_ACID,                       /* the synths' filter types (0.15.15, the FILTERS page, after Caustic's MultiFilter): 0 low-pass (as before),
-                                                                          * 1 high-pass, 2 band-pass, 3 notch, 4 peak; the pad's for its saw sounds (the others have none) */
+                                                                          * 1 high-pass, 2 band-pass, 3 notch, 4 peak, 5 (the acid's only, 0.17.17) the 303 ladder; the pad's for its saw sounds (the others have none) */
     EN_FXS_TF_TYPE, EN_FXS_TF_CUT, EN_FXS_TF_RESO, EN_FXS_TF_TGT,        /* (0.15.19) the punch-in FILTER: its type (as above), cutoff (40 Hz .. 16 kHz), resonance, targets (EN_PT_*) */
     EN_FXS_TD_SEND, EN_FXS_TD_FB, EN_FXS_TD_TGT,                         /* the punch-in DELAY (into the echo, at the piece's echo time): how much, how long it repeats, targets */
     EN_FXS_TP_RATE, EN_FXS_TP_DEPTH, EN_FXS_TP_MIX, EN_FXS_TP_TGT,       /* the punch-in PHASER: rate, depth, mix, targets */

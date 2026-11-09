@@ -2184,6 +2184,57 @@ int main(void)
             CHECK(fabsf(lv[2] - lv[0]) < 0.02f * lv[0], "scream aimed at the other voice leaves the %s as it was (%.4f of it: echo and reverb off)",
                   V[v].name, (double)(lv[0] > 0.0f ? lv[2] / lv[0] : 0.0f));
         }
+        {   /* (0.17.17) FILTERS > Acid 303, the ladder: no bad samples with Reso at 100 and SCREAM all the way; its level near Low's (within 3 dB) */
+            float lt[2];
+            int t, f;
+            for (t = 0; t < 2; t++) {
+                for (f = 0; f < EN_NFXS; f++)
+                    en_fxs(f, EN_FXS_DEF[f]);
+                en_init();
+                en_dj_sync(0);
+                en_test_reseed(7);
+                en_play(0);
+                en_genre(2);
+                en_set(P_ACID, 70);
+                en_set(P_AC_RES, 100);
+                en_set(P_ECHO, 0);
+                en_set(P_REVERB, 0);
+                en_fxs(EN_FXS_FT_ACID, t ? 5 : 0);
+                en_trk(0, 1u << EN_TR_ACID);
+                en_regrow();
+                en_play(1);
+                run(0.5f);
+                sum2 = 0.0f;
+                bad = 0;
+                peak = 0.0f;
+                run(4.0f);
+                lt[t] = sum2;
+                CHECK(bad == 0 && peak < 1.0f, "the acid's filter type %d at Reso 100: peak %.3f, %d bad samples", t ? 5 : 0, (double)peak, bad);
+            }
+            CHECK(lt[0] > 0.0f && lt[1] > 0.5f * lt[0] && lt[1] < 2.0f * lt[0], "the 303 filter's level near Low's (%.2f of its energy)",
+                  (double)(lt[0] > 0.0f ? lt[1] / lt[0] : 0.0f));
+            for (f = 0; f < EN_NFXS; f++)
+                en_fxs(f, EN_FXS_DEF[f]);
+            en_fxs(EN_FXS_FT_ACID, 5);
+            en_fxs(EN_FXS_SQ_DRIVE, 100);
+            en_fxs(EN_FXS_SQ_AMT, 100);
+            en_fxs(EN_FXS_SQ_WOW, 100);
+            en_fxs(EN_FXS_SQ_TGT, 0);
+            en_init();
+            en_test_reseed(7);
+            en_genre(2);
+            en_set(P_AC_RES, 100);
+            en_trk(0, 1u << EN_TR_ACID);
+            en_regrow();
+            en_play(1);
+            sum2 = 0.0f;
+            bad = 0;
+            peak = 0.0f;
+            run(4.0f);
+            CHECK(bad == 0 && peak < 1.0f, "the 303 filter screaming: peak %.3f, %d bad samples", (double)peak, bad);
+            for (f = 0; f < EN_NFXS; f++)
+                en_fxs(f, EN_FXS_DEF[f]);
+        }
         {
             static const struct { int p, dest, tr; const char *name; } L[4] = {
                 {P_PL_DEST, 4, EN_TR_ACID, "the pad's LFO on the acid's cutoff"}, {P_PL_DEST, 5, EN_TR_ACID, "the pad's LFO on the acid's resonance"},

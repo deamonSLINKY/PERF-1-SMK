@@ -1588,8 +1588,10 @@ static inline float svf_mm(float x, const float *c, float *s, int t)   /* the mu
     s[1] = 2.0f * v2 - s[1];
     return svf_pick(x, v1, v2, c[3], t);
 }
-/* a voice's two filter stages by its type: low and high are 24 dB (the second stage the same), band, notch and peak the first stage alone */
+/* a voice's two filter stages by its type: low and high are 24 dB (the second stage the same), band, notch and peak the first stage alone; the acid's
+ * sixth type is the 303 ladder (FT_303, 0.17.17) */
 #define FT_TWO(t) ((t) <= 1)
+#define FT_303 5
 
 static void midi(uint32_t st, uint32_t d1, uint32_t d2);
 /* the pad's MIDI notes are queued, and sent by the first core once the pad's render is done (MIDI out is not for the other core to call) */
@@ -1775,6 +1777,7 @@ static struct {
     uint8_t note, sliding;
     uint8_t play;                               /* played from the keys: the line steps on, silent */
     float ps, p3, p4, p5, lph;                  /* more phases (sync, sub, the trance saws, the supersaw's...), the PWM's LFO */
+    float lfb;                                  /* the 303 filter: its output's slow part (150 Hz), kept out of the feedback */
 } acid;
 static int8_t ac_off[EN_NSTEP], ac_oct[EN_NSTEP];   /* each step: scale steps above the chord's degree, octave */
 static uint16_t ac_gate, ac_accent, ac_slide;       /* bit s: step s plays; is accented; slides into the next */
@@ -7140,8 +7143,17 @@ static void render_acid(uint32_t n)
             float fc = fm_clampf(60.0f * fm_exp2f(oct), 50.0f, 14000.0f);
             const float wow = sqw * acid.acc * acid.env;
             sqg = sqin + 2.0f * wow;
-            svf_coefs(acid.c1, fc, k1 * (1.0f - 0.8f * wow));
-            svf_coefs(acid.c2, fc * 1.15f, k2);
+            if (ft_acid == FT_303) {            /* the 303: the stages' gain G, the feedback k, G^4 and 1 / (1 + k G^4) (acid.c1 holds them) */
+                const float gg = fm_tanf(FM_PI * fm_clampf(fc, 40.0f, 16000.0f) * (1.0f / EN_SR)), G = gg / (1.0f + gg), G2 = G * G,
+                            k = fm_minf((0.15f + 3.85f * res) * (1.0f + 0.5f * sqa) * (1.0f - 0.85f * lfo_ares) * (1.0f + 0.3f * wow), 4.4f);
+                acid.c1[0] = G;
+                acid.c1[1] = k;
+                acid.c1[2] = G2 * G2;
+                acid.c1[3] = 1.0f / (1.0f + k * G2 * G2);
+            } else {
+                svf_coefs(acid.c1, fc, k1 * (1.0f - 0.8f * wow));
+                svf_coefs(acid.c2, fc * 1.15f, k2);
+            }
             sratio = 1.6f + 2.6f * acid.env;    /* Sync: the slave's pitch, swept by the envelope */
             acid.lph += 32.0f * 0.35f / EN_SR;  /* PWM: its width, 0.35 Hz */
             if (acid.lph >= 1.0f)
@@ -7306,16 +7318,35 @@ static void render_acid(uint32_t n)
             if (osc == AO_SYNC)
                 ps = ph * sratio;               /* the sync: the slave starts again with the note */
         }
-        y = svf_mm(x * sqin, acid.c1, &acid.s[0], ft_acid);
-        y = fm_tanhf(y * (1.6f + 1.5f * res) * adrv * sqg) / fm_minf(adrv, 1.3f);   /* the squelch: driven between the two (Drive and Wow: harder) */
-        if (FT_TWO(ft_acid))
-            y = svf_mm(y, acid.c2, &acid.s[2], ft_acid);
+        if (ft_acid == FT_303) {
+            /* THE 303 (0.17.17): four one-pole stages in a ladder with the output fed back (zero-delay: the loop solved for the output, then a soft
+             * clip on the ladder's input, as the transistors do), the feedback's low end taken out (a 150 Hz high-pass in the loop, as the TB-303's
+             * coupling does), so the bass stays full while the resonance sings and squeals near the top; then the squelch, a touch gentler. */
+            const float G = acid.c1[0], k = acid.c1[1], b = 1.0f - G, xin = x * sqin * (1.0f + 0.45f * k),   /* (the passband held up as the resonance rises) */
+                        sum = ((b * acid.s[0] * G + b * acid.s[1]) * G + b * acid.s[2]) * G + b * acid.s[3],
+                        y4 = (acid.c1[2] * (xin + k * acid.lfb) + sum) * acid.c1[3];
+            float u = fm_tanhf(1.2f * (xin - k * (y4 - acid.lfb))) * (1.0f / 1.2f), v;
+            int st;
+            for (st = 0; st < 4; st++) {        /* each stage, zero-delay: v = (in - s) G, out = v + s, s = out + v */
+                v = (u - acid.s[st]) * G;
+                u = v + acid.s[st];
+                acid.s[st] = u + v;
+            }
+            acid.lfb += 0.0211f * (u - acid.lfb);
+            y = fm_tanhf(u * (3.4f + 2.2f * res) * adrv * sqg) / fm_minf(adrv, 1.3f);   /* (its makeup: a 24 dB ladder passes less than the two SVFs, about 6 dB) */
+        } else {
+            y = svf_mm(x * sqin, acid.c1, &acid.s[0], ft_acid);
+            y = fm_tanhf(y * (1.6f + 1.5f * res) * adrv * sqg) / fm_minf(adrv, 1.3f);   /* the squelch: driven between the two (Drive and Wow: harder) */
+            if (FT_TWO(ft_acid))
+                y = svf_mm(y, acid.c2, &acid.s[2], ft_acid);
+        }
         amp += (acid.amp_t - amp) * 0.006f;     /* ~4 ms edges */
         acid_o[j] = y * amp * vel * g * TG(TR_ACID, j);   /* (the sends: 0.15 and 0.35 of it) */
         lvl = fm_maxf(lvl, amp);
     }
     for (j = 0; j < 4; j++)
         acid.s[j] = fm_flush(acid.s[j]);
+    acid.lfb = fm_flush(acid.lfb);
     acid.ph = ph;
     acid.ps = ps;
     acid.p3 = p3;

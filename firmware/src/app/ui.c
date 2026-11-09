@@ -112,7 +112,7 @@ static const char *const SMPG_NAME[4] = {"0.5 S", "1 S", "2 S", "4 S"};
 static const uint16_t SMP_GAP_MS[4] = {500, 1000, 2000, 4000};
 static const char *const MIN_NAME[4] = {"KEYS", "PADS", "M:S", "MPK"};   /* (KEYS was SCALE until 0.17.7: its notes changed the scale anywhere) */
 static const char *const CC_NAME[4] = {"OFF", "IN", "OUT", "IN+OUT"};
-static const char *const FT_NAME[5] = {"LOW", "HIGH", "BAND", "NOTCH", "PEAK"};
+static const char *const FT_NAME[6] = {"LOW", "HIGH", "BAND", "NOTCH", "PEAK", "303"};   /* (303: the acid's alone, 0.17.17) */
 static const char *const SQT_NAME[3] = {"ACID", "BASS", "BOTH"};   /* SCREAM's target (0.16.4) */
 static const char *const AFA_NAME[4] = {"OFF", "GENTLE", "MEDIUM", "WILD"};   /* AUTO FX (0.16.8): how much, how often, how long, which */
 static const char *const AFE_NAME[4] = {"4 BARS", "8 BARS", "16 BARS", "32 BARS"};
@@ -181,7 +181,7 @@ static const struct {
     {"USB & MIDI", 63, 0, {{"Level", KN_NAME, 12, USBL_NAME, 2}, {"MIDI out", KN_PAR, P_MIDI, 0, 0}, {"MIDI map", KN_NAME, 18, EN_MAP_NAME, EN_NMAP}, {"", KN_NONE, 0, 0, 0}}},   /* (Scanlines on SCREEN, 0.16.1) */   /* the cable: the USB audio's level (the knob's, or fixed), MIDI out (it was Global's); the screen's scanlines; and where MIDI out's parts go (GM, or a sampler's own layout) */
     {"SET", 63, 0, {{"Rounds", KN_NAME, 15, ROUNDS_NAME, 4}, {"Ramp", KN_NAME, 16, RAMP_NAME, 5}, {"Intro", KN_NAME, 17, INTRO_NAME, 5}, {"Mix", KN_NAME, 24, XMIX_NAME, 5}}},   /* the set: rounds a piece, the tempo's climb, the intro; the mix into the next piece (0.16.1) */
     {"MIDI IN", 63, 0, {{"Notes", KN_NAME, 20, MIN_NAME, 4}, {"Channel", KN_NAME, 19, MCH_NAME, 17}, {"USB host", KN_NAME, 21, ONOFF_NAME, 2}, {"Knob CCs", KN_NAME, 22, CC_NAME, 4}}},   /* MIDI in's notes: the scale (as before), or PADS (a pad controller plays PERF: pads_in); the channel listened to; the USB port as the host of a USB-MIDI device (not kept: every power-on is a device) */
-    {"FILTERS", FX_SPARE14, 0, {{"Pad", KN_NAME, EN_FXS_FT_PAD, FT_NAME, 5}, {"Bass", KN_NAME, EN_FXS_FT_BASS, FT_NAME, 5}, {"Acid", KN_NAME, EN_FXS_FT_ACID, FT_NAME, 5}, {"", KN_NONE, 0, 0, 0}}},   /* the synths' filter types (0.15.15; a spare effect bit: nothing held) */
+    {"FILTERS", FX_SPARE14, 0, {{"Pad", KN_NAME, EN_FXS_FT_PAD, FT_NAME, 5}, {"Bass", KN_NAME, EN_FXS_FT_BASS, FT_NAME, 5}, {"Acid", KN_NAME, EN_FXS_FT_ACID, FT_NAME, 6}, {"", KN_NONE, 0, 0, 0}}},   /* the synths' filter types (0.15.15; a spare effect bit: nothing held) */
     {"FILTER", FX_TFILT, 0, {{"Type", KN_NAME, EN_FXS_TF_TYPE, FT_NAME, 5}, {"Cutoff", KN_PLAIN, EN_FXS_TF_CUT, 0, 0}, {"Reso", KN_PLAIN, EN_FXS_TF_RESO, 0, 0},
                              {"Targets", KN_NAME, EN_FXS_TF_TGT, EN_PT_NAME, EN_NPT}}},   /* (0.15.19) the punch-ins on tracks: a multimode filter on the tracks chosen */
     {"DELAY", FX_TDELAY, 0, {{"Send", KN_PLAIN, EN_FXS_TD_SEND, 0, 0}, {"Repeats", KN_PLAIN, EN_FXS_TD_FB, 0, 0}, {"Targets", KN_NAME, EN_FXS_TD_TGT, EN_PT_NAME, EN_NPT},

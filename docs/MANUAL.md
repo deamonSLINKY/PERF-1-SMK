@@ -583,6 +583,7 @@ standard. The **FILTERS** settings page (hold **HOME**, then turn **SELECT** pas
 | Band | Only a band around the cutoff: nasal, telephone-like, great with resonance. |
 | Notch | A gap at the cutoff: hollow and phasey as the cutoff moves. |
 | Peak | The cutoff's band boosted against the rest: a vowel-like bite. |
+| 303 | The acid only: a ladder filter after the Roland TB-303's. Four stages that bend as they are driven, the resonance singing at the cutoff while the bass underneath stays full (its low end is kept out of the resonance, as on the original). Rounder and more liquid than Low, and it squeals rather than whistles when Reso and SCREAM are high. |
 
 **Making it scream.** The **SCREAM** settings page (the next one after FILTERS) pushes the acid's and the bass's filters into the raw, screaming sound of an acid line through a distortion pedal. It is for all pieces (it is kept with the settings, not with a piece), and at 0 everything sounds as it did:
 
