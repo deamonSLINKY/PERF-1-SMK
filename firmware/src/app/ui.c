@@ -827,10 +827,16 @@ static void sl_start(void)                      /* a start from the top (PLAY, p
     if (sl_play() && ui.sl_pos < SL_N)
         sl_parts(ui.sl_pos);
 }
+static int sl_differs(int a, int b)             /* places a and b play something different (the piece, its parts, pattern or energy) */
+{
+    return glob.sl[a] != glob.sl[b] || glob.sl_mute[a] != glob.sl_mute[b] || glob.sl_pat[a] != glob.sl_pat[b] || glob.sl_mood[a] != glob.sl_mood[b];
+}
 static void sl_tick(void)                       /* each frame while playing: the place's last bar asks for the next */
 {
+    static uint32_t fill_at = 0xFFFFFFFFu;      /* the bar a fill was asked in (once a place) */
     uint32_t bar;
     int n, s;
+    en_arrange = (uint8_t)!sl_exact();          /* (0.17.16) a place with its own bars is arranged by the player: Song's own rests off */
     if (sl_fresh) {
         if (!en_playing || en_bars >= 16u)
             return;
@@ -840,6 +846,12 @@ static void sl_tick(void)                       /* each frame while playing: the
         return;
     bar = sl_bar_now() - sl_b0;
     n = glob.sl_bars[ui.sl_pos];
+    if ((int)bar == n - 2 && fill_at != sl_b0 + bar) {   /* (0.17.16) the bar before the last: a fill into the next place, if it changes anything */
+        const int nx = sl_step(ui.sl_pos, 1);
+        fill_at = sl_b0 + bar;
+        if (nx >= 0 && !(glob.sl_end && nx <= (int)ui.sl_pos) && sl_differs(ui.sl_pos, nx))
+            en_fill_next();
+    }
     if ((int)bar < n - 1)
         return;
     s = sl_step(ui.sl_pos, 1);

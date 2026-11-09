@@ -47,7 +47,10 @@ tap PLAY
 wait 200
 expect setpos 0
 expect trkmute 0
+# (0.17.16) the bar before the hand-over asked the engine for a fill; a place with bars: Song's own rests off
+expect arrange 0
 waitfor setpos 1 12000
+expect fillq 1
 expect sixteenths 64
 expect setbar -1
 wait 200

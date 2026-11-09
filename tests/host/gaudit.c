@@ -61,6 +61,7 @@ void en_midi_out(uint32_t st, uint32_t d1, uint32_t d2)
                         const int ic = (d1 - n + 120) % 12;
                         if ((ic == 1 || ic == 11) && (!ct || !chord_pc[n % 12]))
                             clash++, clp[p < q ? p : q][p < q ? q : p]++, clash_s += (en_bars - b0) % 2u == 0, clash_alt += en_chord_alt && (en_bars - b0) % 2u == 0;
+                        if ((ic == 1 || ic == 11) && (!ct || !chord_pc[n % 12]) && getenv("CLASHDBG") && en_chord_alt && (en_bars - b0) % 2u == 0) { int z, cnt = 0; for (z = 0; z < 128; z++) cnt += snd[PAD][z]; fprintf(stderr, "bar %u %s %d vs %s %d (pad sounding %d) chord", (en_bars - b0) / 16u, p == PLK ? "pluck" : p == BAS ? "bass" : "acid", (int)d1, q == PAD ? "pad" : q == PLK ? "pluck" : q == BAS ? "bass" : "acid", n, cnt); for (z = 0; z < 12; z++) if (chord_pc[z]) fprintf(stderr, " %d", z); fprintf(stderr, "\n"); }
                     }
     }
     snd[p][d1] = 1;
@@ -72,6 +73,7 @@ void en_midi_out(uint32_t st, uint32_t d1, uint32_t d2)
         nt[nn].inchord = (uint8_t)chord_pc[d1 % 12];
         nt[nn].inscale = (uint8_t)scale_pc[d1 % 12];
         nt[nn].root = en_chord_root;
+        nt[nn].vel = (uint8_t)(d2 | (en_chord_alt ? 0x80 : 0));   /* (bit 7: the chord is altered; vel is 1..127) */
         nn++;
     }
 }
@@ -184,8 +186,8 @@ static void one(int g, int pc, int secs)
     if (getenv("NOTES")) {
         const int q = atoi(getenv("NOTES"));
         for (i = 0; i < nn && i < 4000; i++)
-            if (nt[i].part == q && nt[i].step < 16u * 24u)
-                fprintf(stderr, "%u.%02u %d%s%s  ", nt[i].step / 16u, nt[i].step % 16u, nt[i].note, nt[i].inchord ? "" : "*", nt[i].inscale ? "" : "!");
+            if (nt[i].part == q && nt[i].step < 16u * (getenv("BARS") ? (unsigned)atoi(getenv("BARS")) : 24u))
+                fprintf(stderr, "%u.%02u %d%s%s%s  ", nt[i].step / 16u, nt[i].step % 16u, nt[i].note, nt[i].inchord ? "" : "*", nt[i].inscale ? "" : "!", nt[i].vel & 0x80 ? "a" : "");
         fprintf(stderr, "\n");
     }
     nb = (int)((en_bars - b0) / 16u);
@@ -198,7 +200,7 @@ static void one(int g, int pc, int secs)
         b = (int)(nt[i].step / 16u);
         if (b >= nb)
             continue;
-        bh[nt[i].part][b] = mix(mix(mix(bh[nt[i].part][b], nt[i].step % 16u), nt[i].note), nt[i].vel > 100);
+        bh[nt[i].part][b] = mix(mix(mix(bh[nt[i].part][b], nt[i].step % 16u), nt[i].note), (nt[i].vel & 0x7F) > 100);
         bn[nt[i].part][b]++;
     }
     for (p = 0; p < NPART; p++)

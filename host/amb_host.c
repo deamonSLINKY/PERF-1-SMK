@@ -564,6 +564,15 @@ static int expect(const char *what, const char *val)
         got = (int)clock_out_count;
     else if (!strcmp(what, "sixteenths"))
         got = (int)en_bars;
+    else if (!strcmp(what, "fillq")) {           /* (0.17.16) fills asked of the engine (the song place's last bar) */
+        extern int en_host_fillq;
+        got = en_host_fillq;
+    } else if (!strcmp(what, "arrange"))         /* (0.17.16) Song's arrangement on (a set-list place with bars: off) */
+        got = en_arrange;
+    else if (!strcmp(what, "arrm")) {            /* the tracks it rests now */
+        extern int en_host_arrm(void);
+        got = en_host_arrm();
+    }
     else if (!strcmp(what, "hashsame"))           /* (0.17.11) the notes since the armed start as those kept (and some were played) */
         got = nh == nh_keep && nh_n > 20u;
     else if (!strcmp(what, "notes"))              /* the notes hashed */

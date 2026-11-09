@@ -856,13 +856,27 @@ int en_chord_kind(uint32_t pool, int root, int deg, int kind, int *pcs)
         {0, 6, 1, 3, 2, 4, 5},                  /* elevenths: 1 b7 9 11 (the third and fifth left out, as it is usually voiced) */
         {0, 1, 4, 6, 2, 3, 5},                  /* sus2: 1 2 5 7 (Sus where the fourth is sharp, as on Ionian's IV: 0.16.9) */
     };
-    static const uint8_t SHAPE[2][4] = {{0, 3, 10, 14}, {0, 5, 10, 15}};   /* dub: m9 (no fifth); fourths */
+    static const uint8_t SHAPE[4] = {0, 3, 10, 14};   /* dub: m9 (no fifth) */
     int st[12], m = en_scale(pool, st), want, n = 0, i, j;
     const uint8_t *off = OFF[0];
     deg = ((deg % m) + m) % m;
-    if (kind == EN_CH_DUB || kind == EN_CH_4THS) {   /* a fixed shape on the degree's note */
+    if (kind == EN_CH_DUB) {                    /* a fixed shape on the degree's note: dub techno's parallel stabs, whatever the scale says */
         for (i = 0; i < 4; i++)
-            pcs[i] = (root + st[deg] + SHAPE[kind == EN_CH_4THS][i]) % 12;
+            pcs[i] = (root + st[deg] + SHAPE[i]) % 12;
+        return 4;
+    }
+    if (kind == EN_CH_4THS) {                   /* the scale's own fourths stacked (0.17.16; a fixed 0 5 10 15 before, a quarter of it out of the scale):
+                                                   three steps of a 7-note scale, two of a pentatonic; where that is a tritone, a step less (the So What voicing) */
+        const int k = (m * 5 + 6) / 12;
+        int d = deg;
+        pcs[0] = (root + st[deg]) % 12;
+        for (i = 1; i < 4; i++) {
+            int e = d + k;
+            if (k > 1 && (st[e % m] - st[d % m] + 12) % 12 == 6)
+                e--;
+            pcs[i] = (root + st[e % m]) % 12;
+            d = e;
+        }
         return 4;
     }
     want = kind == EN_CH_TRIAD ? 3 : kind == EN_CH_AUTO ? (m >= 6 ? 4 : 3) : 4;
@@ -1142,12 +1156,16 @@ static const midimap_t MAPS[EN_NMAP] = {
     {{MAP_OFF, MAP_OFF, MAP_OFF, MAP_OFF}, {0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {36, 37, 38, 39, 40, 41}},
 };
 static volatile uint8_t midi_map;
+static uint8_t arr_m;                            /* (the arrangement's resting tracks: THE ARRANGEMENT, below) */
 static void midi(uint32_t st, uint32_t d1, uint32_t d2)
 {
     if (!par[P_MIDI] || muted)
         return;
     if (st < 0xF0u && (st & 15u) < 4u) {         /* a part's note: its channel on the map, transposed */
+        static const uint8_t TR[4] = {EN_TR_PAD, EN_TR_PLUCK, EN_TR_DRONE, EN_TR_ACID};
         const midimap_t *m = &MAPS[midi_map];
+        if ((st & 0xF0u) == 0x90u && d2 && arr_m >> TR[st & 15u] & 1u)
+            return;                             /* (a part the arrangement rests: not sent) */
         const uint32_t p = st & 15u;
         const int n = (int)d1 + m->tr[p];
         if (m->ch[p] == MAP_OFF)
@@ -1867,6 +1885,25 @@ static int avoid_fix(int n)
     }
     return maj && !mnr && ((n - chord_pcs[0]) % 12 + 12) % 12 == 5 && n + 2 <= 96 ? n + 2 : n;
 }
+static int in_scale(int n)                      /* n is a note of the scale as it sounds now (an altered chord's too) */
+{
+    int k;
+    for (k = 0; k < nsteps; k++)
+        if ((n - par[P_ROOT] - steps[k] + 120) % 12 == 0)
+            return 1;
+    return 0;
+}
+static int scale_snap(int n)                    /* n, or the nearest note of the scale (a tie: the lower) (0.17.16) */
+{
+    int d;
+    for (d = 0; d < 6 && nsteps; d++) {
+        if (in_scale(n - d))
+            return n - d;
+        if (in_scale(n + d))
+            return n + d;
+    }
+    return n;
+}
 static int acid_note(int s, int v)              /* acid step s's note, as the call (v 0) or as answer v plays it */
 {
     const int type = v / 5, ds = v % 5 - 2;
@@ -1896,7 +1933,7 @@ static int acid_note(int s, int v)              /* acid step s's note, as the ca
             to += 12;
         n = to;
     }
-    return n;
+    return type == 2 || type == 4 ? scale_snap(n) : n;   /* (the fifth and the mirror move by semitones: back onto the scale, 0.17.16) */
 }
 /* the line's step st when answer v plays: which step of the line it reads (reverse and rotate move them) and whether it sounds */
 static int acid_src(int st, int len, int type)
@@ -2142,6 +2179,8 @@ static void prog_take(uint32_t lo, uint32_t hi) /* the progression from the page
 #ifdef EN_HOST
 int en_host_dimwalk;                            /* moves to a diminished chord other than home (the walk never: 0.16.26) */
 int en_host_alt[3];                             /* the walk's chords: as they are, secondary dominants, borrowed (0.16.27) */
+int en_host_fillq;                              /* fills asked for (en_fill_next) */
+int en_host_arrm(void) { return arr_m; }
 #endif
 static uint8_t deg_prev, cad_n;                 /* the chord before this one; the chords since the phrase began */
 static uint8_t drop_tonic;                       /* the drop takes the next chord home */
@@ -2189,6 +2228,8 @@ static void alt_apply(int i, int bor, int n)    /* the chord on degree i (just m
     }
     if (changed) {
         pad_retarget();
+        pad_leave();                            /* (0.17.16) a voice on the scale's own note fades out for the altered one, as at any chord change; it held
+                                                   to the end of its breath before, a semitone from the new chord (the audit: twice the clashes) */
         bass_to(bass_pc());
     }
 }
@@ -2668,6 +2709,54 @@ static int song_pool(void)                      /* the piece's patterns that dif
     return n;
 }
 static int song_on(void) { return en_song && !par[P_DD_CHANGE] && !par[P_DD_MUTATE] && song_pool() > 1; }
+/* THE ARRANGEMENT (0.17.16, the song-length audit: pluck, bass, acid and drums all played in 97% of bars, nothing ever left and came back). With Song,
+ * each phrase (the genre's SONG_BARS, from one pattern change to the next; never the first) may rest the pluck or the acid, or both, for its first or
+ * second half (ARR_AMT: percent of phrases), and the bass may sit out the fill bar before a change and land on its one (ARR_BOUT). The pad always plays.
+ * A resting part's track is muted as a mute is (5 ms) and its notes are not sent to MIDI. Not in a breakdown or a build, the intro, or a set-list
+ * place with its own bars (en_arrange 0). Drawn from its own seed (taken from the piece's at regrow), so the rest of the music is as it was. */
+static const uint8_t ARR_AMT[EN_NGENRE] = {30, 45, 60, 50, 50, 55, 55, 55, 55, 50, 55, 45, 40, 50, 55, 40, 50, 45, 40};
+static const uint8_t ARR_BOUT[EN_NGENRE] = {0, 25, 40, 50, 35, 30, 30, 40, 30, 40, 30, 25, 30, 25, 30, 25, 30, 25, 25};
+volatile uint8_t en_arrange = 1;
+static uint8_t arr_m, arr_k, arr_plan, arr_bout, arr_ph;   /* the tracks resting; the bar in the phrase; its plan; the bass out at its end; phrases */
+static uint32_t arr_s, arr_chg;                  /* the seed; drum drift's change count at the phrase's start */
+static uint32_t arr_rand(uint32_t n) { arr_s = arr_s * 1664525u + 1013904223u; return (arr_s >> 8) % n; }
+static void arr_bar(int intro)                   /* at each bar line, after dd_bar */
+{
+    static const uint8_t PLAN[5] = {1u << EN_TR_PLUCK, 1u << EN_TR_ACID, 1u << EN_TR_PLUCK, 1u << EN_TR_ACID, 1u << EN_TR_PLUCK | 1u << EN_TR_ACID};
+    const int L = SONG_BARS[chord_genre];
+    if (!song_on() || !en_arrange || sec != SEC_GROOVE || intro) {
+        arr_m = 0;
+        arr_plan = 0;
+        arr_bout = 0;
+        arr_chg = en_dd_changes;
+        return;
+    }
+    if (en_dd_changes != arr_chg) {             /* a new phrase: its plan */
+        static const uint8_t W[5] = {25, 25, 15, 15, 20};
+        arr_chg = en_dd_changes;
+        arr_k = 0;
+        arr_plan = 0;
+        if (arr_ph < 255u)
+            arr_ph++;
+        if (arr_rand(100) < ARR_AMT[chord_genre]) {
+            uint32_t r = arr_rand(100), i = 0;
+            while (i < 4u && r >= W[i])
+                r -= W[i++];
+            arr_plan = (uint8_t)(i + 1u);
+        }
+        arr_bout = (uint8_t)(arr_rand(100) < ARR_BOUT[chord_genre]);
+    } else if (arr_k < 255u) {
+        arr_k++;
+    }
+    arr_m = 0;
+    if (arr_plan) {
+        const int first = arr_plan == 1 || arr_plan == 2 || arr_plan == 5, in_first = arr_k < L / 2;
+        if (first == in_first)
+            arr_m = PLAN[arr_plan - 1];
+    }
+    if (arr_bout && dd_fill)
+        arr_m |= 1u << EN_TR_DRONE;
+}
 static int dd_len(void)
 {
     static const uint8_t L[6] = {0, 4, 8, 16, 32, 64};
@@ -3708,6 +3797,7 @@ static void tick(void)
             wob_rate = (int8_t)((SECT[chord_genre].fl & SF_WOB) && sec == SEC_GROOVE && grv_bars >= 1u && grv_bars <= 8u ? WR[(bars * 3u + grv_bars) % 4u] : -1);
         }
         dd_bar();                               /* drum drift: a fill coming, or a change now */
+        arr_bar(intro_len > 0 && intro_t < intro_len);   /* the arrangement: which parts rest this bar */
         {   /* the acid's answer, Sync: Bar: this bar? (every 2nd .. 8th bar, or the bar before the drums change); Sync: Loop is decided where the line starts (acid_step) */
             const int rv = par[P_AC_RESP], ev = par[P_AC_EVERY];
             if (ac_resync_bar) {                /* the answer's settings changed: its count starts at this bar */
@@ -4548,6 +4638,9 @@ static void regrow(void)                        /* a new piece: a fresh acid lin
     dd_in = -1;                                 /* drum drift counts its bars from here */
     dd_bars = 0;
     dd_fill = 0;
+    arr_m = arr_k = arr_plan = arr_bout = arr_ph = 0;   /* the arrangement from its first phrase, its own seed from the piece's */
+    arr_s = rng ^ 0x5BD1E995u;
+    arr_chg = en_dd_changes;
     grv_bars = 0;                               /* the time plan, the fills and the drop's tricks too */
     wob_rate = -1;
     fill_hold = fill_q = fill_bar = drop_imp = 0;
@@ -5531,7 +5624,7 @@ static void fx_control(uint32_t n)              /* once a chunk: what the held e
     uint32_t solo = trk_solo,
              mute = trk_mute | (uint32_t)(m >> FX_MUTE_KICK & 1u) << EN_TR_KICK | (uint32_t)(m >> FX_MUTE_HATS & 1u) << EN_TR_HATS |
                     (uint32_t)(m >> FX_MUTE_SNARE & 1u) << EN_TR_SNARE | (uint32_t)(m >> FX_MUTE_PERC & 1u) << EN_TR_PERC |
-                    (uint32_t)(m >> FX_MDRUMS & 1u) * 0x0Fu;   /* (M:DRUMS: all four) */
+                    (uint32_t)(m >> FX_MDRUMS & 1u) * 0x0Fu | arr_m;   /* (M:DRUMS: all four; arr_m: the arrangement's rests) */
     float dt = (float)n * (1.0f / EN_SR);
     int t, want = -1;
     fx_on = m;
@@ -6404,7 +6497,12 @@ static void drain(void)
             trk_solo = (uint8_t)(b >> 8 & 0xFF);
             break;
         case C_GATEPAT: gx_pat = (uint16_t)b; break;
-        case C_FILLQ: fill_q = 1; break;
+        case C_FILLQ:
+            fill_q = 1;
+#ifdef EN_HOST
+            en_host_fillq++;
+#endif
+            break;
         case C_FLXH: flx_phys = (uint8_t)a; break;
         case C_SHED: en_shed_level = (uint8_t)a; break;
         case C_USERVOICE: fm_user_take(a); break;

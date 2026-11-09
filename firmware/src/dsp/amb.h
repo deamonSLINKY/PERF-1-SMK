@@ -378,6 +378,7 @@ extern volatile int8_t en_walk_next;           /* THE CIRCLE MOVES (0.16.27): th
 extern volatile uint8_t en_walk_next_root;      /* its root (pitch class; borrowed: the parallel minor's) */
 extern volatile uint8_t en_chord_alt;           /* the chord playing: 0 as the scale has it, 1 a secondary dominant (V of the next), 2 borrowed from the parallel minor */
 extern volatile uint8_t en_song;               /* FORM (0.16.26): 1 Song, a piece moves through its own patterns while Drum Drift is off; 0 Loop */
+extern volatile uint8_t en_arrange;            /* (0.17.16) 1: with Song, the parts are arranged too (one rests half a phrase now and then); the UI turns it off for a set-list place with its own bars */
 extern volatile uint8_t en_usb_fixed;          /* 1: the USB audio is rendered at unity gain (the master knob is the speakers' alone) */
 extern volatile uint8_t en_fm_dy;              /* 1: the DY voices (human-made DX7 voices) stand in for the thirty DX voices */
 void en_fm_set_dy(int on);                     /* sets it, and the sound names (the engine reloads the patch between chunks) */
