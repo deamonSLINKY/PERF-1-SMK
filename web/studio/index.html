@@ -1006,9 +1006,13 @@ $("open").addEventListener("click", async () => {
 });
 $("power").addEventListener("click", switchOn);
 $("play").addEventListener("click", () => node && press(BTN_PLAY));
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space" && node && !/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); press(BTN_PLAY); }
+document.addEventListener("keydown", (e) => {                // Space: play and stop (in SONG: the song from its first place; a recording: stop it)
+  if (e.code !== "Space" || !node || e.repeat || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
+  e.preventDefault();
+  if (rec) return rec.stop();
+  if (view === "song" && song && song.places.some((x) => x)) songPlay(-1); else press(BTN_PLAY);
 });
+document.addEventListener("keyup", (e) => { if (e.code === "Space" && document.activeElement.tagName === "BUTTON") e.preventDefault(); });   // (not the focused button's click)
 
 /* ---- a piece as a file or a code (fm1piece.js): out, and in (to its genre and place, put into play) */
 function pieceOut() {
@@ -1200,13 +1204,14 @@ function undoNote() {                                         // (called after a
   if (undoBase && now - undoT > 700) { undoStack.push(undoBase); if (undoStack.length > 200) undoStack.shift(); redoStack = []; }
   undoT = now; undoBase = io.slice(); undoButtons();
 }
-function undoButtons() { $("undoB").disabled = !undoStack.length; $("redoB").disabled = !redoStack.length; }
+function undoButtons() { const sg = view === "song" && song; $("undoB").disabled = !(sg ? songUndo : undoStack).length; $("redoB").disabled = !(sg ? songRedo : redoStack).length; }
 function undoGo(from, to) {
   if (!from.length || !io) return;
   to.push(io.slice()); io = from.pop(); undoBase = io.slice(); undoT = 0;
   changed(true); undoButtons(); soundRender(); deskRender();
 }
-const undo = () => undoGo(undoStack, redoStack), redo = () => undoGo(redoStack, undoStack);
+const undo = () => (view === "song" && song ? songHist(songUndo, songRedo, "Undone") : undoGo(undoStack, redoStack));
+const redo = () => (view === "song" && song ? songHist(songRedo, songUndo, "Redone") : undoGo(redoStack, undoStack));
 $("undoB").addEventListener("click", undo);
 $("redoB").addEventListener("click", redo);
 document.addEventListener("keydown", (e) => {
@@ -1390,7 +1395,7 @@ document.querySelector(".views").addEventListener("click", (e) => {
   view = b.dataset.view;
   document.querySelectorAll(".views button[data-view]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
   $("loom").hidden = view !== "loom"; $("desk").hidden = view !== "desk"; $("song").hidden = view !== "song";
-  deskRender(); songLoad(); refresh();
+  deskRender(); songLoad(); refresh(); undoButtons();
 });
 
 $("zoom").addEventListener("change", () => { zoom = +$("zoom").value; refresh(); });
@@ -1515,18 +1520,30 @@ const songFrom = (b) => ({ places: Array.from(b.slice(0, 16)), on: b[16], bars: 
 const songBytes = (x) => Uint8Array.from([...x.places, x.on ? 1 : 0, ...x.bars, ...x.mutes, x.end ? 1 : 0, ...x.pats, ...x.moods]);
 const SONG_ARRS = (x) => [x.places, x.bars, x.mutes, x.pats, x.moods];
 const moodName = (m) => (m ? "energy " + (m - 1) : "energy as is");
+let songUndo = [], songRedo = [], songPrev = null;            // the song's edits, undone in SONG (Ctrl+Z, the Undo button)
+const sameB = (a, b) => a && b && a.length === b.length && a.every((v, i) => v === b[i]);
+async function songHist(from, to, word) {
+  if (!from.length || !song || rec) return;
+  to.push(songBytes(song));
+  song = songFrom(from.pop());
+  await songWrite(word + ": the song as it was.", true);
+}
 async function songLoad() {
   if (view !== "song") return;
   if (!node) { $("song").innerHTML = '<p class="muted">Switch on to see and arrange the song.</p>'; return; }
   const r = await ask({ type: "st_set" });
   song = songFrom(r.sl);
+  songPrev = songBytes(song); undoButtons();
   if (!slGenre && cur) slGenre = cur.genre;
   slShown = -2;
   songRender();
 }
-async function songWrite(msg) {
-  const r = await ask({ type: "st_set", sl: songBytes(song) });
+async function songWrite(msg, quiet) {                      // (quiet: no undo step: an undo itself, or the recorder's Once and back)
+  const nb = songBytes(song);
+  if (!quiet && songPrev && !sameB(nb, songPrev)) { songUndo.push(songPrev); if (songUndo.length > 200) songUndo.shift(); songRedo = []; }
+  const r = await ask({ type: "st_set", sl: nb });
   song = songFrom(r.sl);
+  songPrev = songBytes(song); undoButtons();
   songRender();
   if (msg) say(msg);
 }
@@ -1554,7 +1571,7 @@ function songRender() {
   if (!song) return;
   const sel = setSel, q = song.places[sel] ? pcSetPlaces([song.places[sel]])[0] : null, mode = !song.on ? 0 : song.end ? 2 : 1;
   const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), total = used.reduce((a, i) => a + (song.bars[i] || 0), 0), autos = used.filter((i) => !song.bars[i]).length;
-  let h = '<div class="bar"><button id="slSend"' + (used.length ? "" : " disabled") + ' title="Opens the Library &amp; pieces page with this song as a set: connect the FM-1 there and add it">Send the song to the FM-1</button><button id="slPlay"' + (used.length ? "" : " disabled") + '>' + (live && live.playing && song.on ? "■ Stop" : "▶ Play the song") + '</button><button id="slFrom"' + (q ? "" : " disabled") + ">▶ From place " + (sel + 1) + "</button>" +
+  let h = '<div class="bar"><button id="slWav"' + (used.length || rec ? "" : " disabled") + ' title="Plays the song once from its first place and records it: a WAV (44.1 kHz, 16-bit stereo) to download">' + (rec ? "■ Stop recording" : "● Song to WAV") + '</button><button id="slSend"' + (used.length ? "" : " disabled") + ' title="Opens the Library &amp; pieces page with this song as a set: connect the FM-1 there and add it">Send the song to the FM-1</button><button id="slPlay"' + (used.length ? "" : " disabled") + '>' + (live && live.playing && song.on ? "■ Stop" : "▶ Play the song") + '</button><button id="slFrom"' + (q ? "" : " disabled") + ">▶ From place " + (sel + 1) + "</button>" +
     '<span class="lbl">&nbsp;SONG</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
     '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? song.full2 ? "" : " · patterns and energy need 0.17.14" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
     '<canvas id="songline" height="' + SLH + '" aria-label="The song: a block a place, as long as its bars, a lane a part, its energy"></canvas><div id="songnow" class="muted" style="margin-top:4px"></div>' +
@@ -1772,6 +1789,77 @@ async function songSend() {
   say("The song is on the Library & pieces page (a new tab), as a set: " + n + (n === 1 ? " place" : " places") + (set.pieces.length ? " and " + set.pieces.length + " saved piece" + (set.pieces.length === 1 ? "" : "s") : "") +
     ". Connect the FM-1 there and add it: the set list, its bars, parts, patterns and energy" + (song.on ? ", Play " + (song.end ? "Once" : "Loop") : "") + ". Edits you have not saved (Save in the emulator) are not in it.");
 }
+const REC_SRC = `class R extends AudioWorkletProcessor {      // (the recorder: the emulator's output in, its samples to the page; it sounds nothing)
+  constructor() { super(); this.on = false; this.l = []; this.r = []; this.n = 0;
+    this.port.onmessage = (e) => { this.on = !!e.data.on; if (!this.on) { this.flush(); this.port.postMessage({ done: true }); } }; }
+  flush() { if (!this.n) return; const L = new Float32Array(this.n), R = new Float32Array(this.n); let o = 0;
+    for (let i = 0; i < this.l.length; i++) { L.set(this.l[i], o); R.set(this.r[i], o); o += this.l[i].length; }
+    this.port.postMessage({ L, R }, [L.buffer, R.buffer]); this.l = []; this.r = []; this.n = 0; }
+  process(ins) { const i = ins[0]; if (this.on && i && i.length) { this.l.push(i[0].slice()); this.r.push((i[1] || i[0]).slice()); this.n += i[0].length; if (this.n >= 16384) this.flush(); } return true; }
+}
+registerProcessor("perf1-rec", R);`;
+let rec = null, recN = null;
+async function recNode() {
+  if (recN) return recN;
+  const url = URL.createObjectURL(new Blob([REC_SRC], { type: "application/javascript" }));
+  await ac.audioWorklet.addModule(url);
+  recN = new AudioWorkletNode(ac, "perf1-rec", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 2, channelCountMode: "explicit" });
+  node.connect(recN); recN.connect(ac.destination);           // (to the output so it runs; it writes silence)
+  return recN;
+}
+function wavOf(L, R, sr) {                                    // 16-bit stereo PCM
+  const n = L.length, b = new ArrayBuffer(44 + n * 4), v = new DataView(b), w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + n * 4, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 4, true);
+  const q = (x) => Math.round(Math.max(-1, Math.min(1, x)) * 32767);
+  for (let i = 0, o = 44; i < n; i++, o += 4) { v.setInt16(o, q(L[i]), true); v.setInt16(o + 2, q(R[i]), true); }
+  return new Blob([b], { type: "audio/wav" });
+}
+const mmss = (t) => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+async function songWav() {                                    // the song once (Once, from its first place), recorded as it plays, and 2.5 s of tail
+  if (!node || !song || rec) return;
+  const s0 = song.places.findIndex((x) => x), pq = s0 >= 0 ? pcSetPlaces([song.places[s0]])[0] : null;
+  if (!pq) return;
+  const rn = await recNode(), was = { on: song.on, end: song.end }, L = [], R = [];
+  if (live && live.playing) { press(BTN_PLAY); await new Promise((res) => setTimeout(res, 300)); }
+  song.on = 1; song.end = 1; await songWrite(null, true);
+  await openPiece(pq.genre, pq.slot, s0);
+  let finished = false;
+  const finish = async (why) => {
+    if (finished) return;
+    finished = true;
+    clearInterval(rec.timer);
+    const n = L.reduce((a, x) => a + x.length, 0), FL = new Float32Array(n), FR = new Float32Array(n);
+    for (let i = 0, o = 0; i < L.length; i++) { FL.set(L[i], o); FR.set(R[i], o); o += L[i].length; }
+    let a = 0;                                                // (the silence before the first note, cut to 10 ms)
+    while (a < n && Math.abs(FL[a]) < 1e-4 && Math.abs(FR[a]) < 1e-4) a++;
+    a = Math.max(0, a - Math.round(ac.sampleRate / 100));
+    rec = null;
+    song.on = was.on; song.end = was.end; await songWrite(null, true);
+    if (n - a < ac.sampleRate / 2) return say("Nothing recorded.", true);
+    const blob = wavOf(FL.subarray(a), FR.subarray(a), ac.sampleRate), url = URL.createObjectURL(blob), el = document.createElement("a");
+    const name = "perf1-song-" + S.genreName(pq.genre).toLowerCase() + "-" + new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "") + ".wav";
+    el.href = url; el.download = name; document.body.append(el); el.click(); el.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    say("Recorded " + mmss((n - a) / ac.sampleRate) + (why ? " (" + why + ")" : "") + ": " + name + " (" + (blob.size / 1048576).toFixed(1) + " MB, 44.1 kHz 16-bit stereo) is downloading.");
+  };
+  rn.port.onmessage = (e) => { if (e.data.L) { L.push(e.data.L); R.push(e.data.R); } if (e.data.done) finish(rec && rec.why); };
+  rec = { t0: performance.now(), started: false, endAt: 0, why: "", timer: 0,
+          stop: (why) => { if (!rec || rec.stopping) return; rec.stopping = true; rec.why = why === undefined ? "stopped" : why; if (live && live.playing) press(BTN_PLAY); rn.port.postMessage({ on: false }); } };
+  rn.port.postMessage({ on: true });
+  press(BTN_PLAY);
+  songRender();
+  say("Recording the song once from place " + (s0 + 1) + ": it plays to the end (Once), then the WAV downloads. ■ Stop recording (or Space) ends it early and keeps what is recorded.");
+  rec.timer = setInterval(() => {
+    if (!rec) return;
+    const t = (performance.now() - rec.t0) / 1000, b = $("slWav");
+    if (b) b.textContent = "■ Stop recording " + mmss(t);
+    if (live && live.playing) rec.started = true;
+    else if (rec.started && !rec.endAt) rec.endAt = performance.now() + 2500;   // (the song ended: its echoes and reverb ring out)
+    if (rec.endAt && performance.now() > rec.endAt) rec.stop("");
+    if (t > 1800) rec.stop("30 minutes, the most");
+  }, 100);
+}
 async function slPutPiece(i, gq, pq) {                        // a piece into place i (an empty place starts at 16 bars, all parts)
   if (i < 0 || i > 15) return;
   const was = song.places[i];
@@ -1811,6 +1899,7 @@ $("song").addEventListener("click", async (e) => {
   const id = b.id;
   if (id === "slPlay" || id === "slFrom") return songPlay(id === "slFrom" ? setSel : -1);
   if (id === "slSend") return songSend();
+  if (id === "slWav") return rec ? rec.stop() : songWav();
   if (id === "slPut") { if (!io) return; song.places[setSel] = cur.genre * 10 + cur.piece + 1; await songWrite("Place " + (setSel + 1) + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + ". It plays as saved: Save in the emulator keeps your edits."); }
   else if (id === "slClear") { for (const a of SONG_ARRS(song)) a[setSel] = 0; await songWrite(); }
   else if (id === "slLeft" || id === "slRight") {
