@@ -113,7 +113,7 @@
   .fader i { position: absolute; left: 3px; right: 3px; bottom: 3px; border-radius: 4px; background: var(--c); opacity: .85; }
   .fader b { position: absolute; left: -6px; right: -6px; height: 8px; margin-bottom: -4px; background: var(--ink); border-radius: 2px; }
   .strip .lv { text-align: center; font: 700 1.3rem "Chakra Petch", sans-serif; color: var(--c); }
-  .strip .mute[aria-pressed=true] { background: var(--bass); color: #fff; border-color: var(--bass); }
+  .strip .mute[aria-pressed=true] { background: #555a66; color: #fff; border-color: #6a6f7c; text-decoration: line-through; }
   .deskside { display: flex; flex-direction: column; gap: 8px; }
   .deskside .ctls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   canvas.pic { width: 100%; display: block; border-radius: 6px; margin: 0 0 8px; background: #121318; border: 1px solid var(--line); touch-action: none; }
@@ -122,6 +122,10 @@
   /* the song: the set list's sixteen places as blocks */
   #song .bar { margin-bottom: 8px; }
   #songline { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; touch-action: none; user-select: none; }
+  .partkey { display: flex; gap: 10px; align-items: center; margin-left: 14px; }
+  .partkey i { font: 700 .72rem "Chakra Petch", sans-serif; letter-spacing: .06em; font-style: normal; color: var(--c); display: flex; align-items: center; gap: 4px; }
+  .partkey i::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+  @media (max-width: 700px) { .partkey { display: none; } }
   .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
   .chip { border-left: 3px solid var(--c, var(--line)) !important; cursor: grab; }
   .chip:active { cursor: grabbing; }
@@ -185,7 +189,7 @@
     <p id="impreport"></p>
     <div class="bar"><button id="impgo" class="go">Put it in the piece</button><button id="impcancel">Cancel</button></div>
   </section>
-  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button><button role="tab" data-view="song" aria-selected="false">SONG</button><span class="sp" style="flex:1"></span><span class="lbl" style="align-self:center">SHOW&nbsp;</span><select id="zoom" aria-label="How many bars the Loom shows"><option value="0">every bar</option><option value="8">8 bars</option><option value="4">4 bars</option><option value="2">2 bars</option></select></div>
+  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button><button role="tab" data-view="song" aria-selected="false">SONG</button><span class="partkey" aria-label="The parts' colours, the same in every view"><i style="--c:var(--pad)">PAD</i><i style="--c:var(--bass)">BASS</i><i style="--c:var(--acid)">ACID</i><i style="--c:var(--pluck)">PLUCK</i><i style="--c:var(--drum)">DRUMS</i></span><span class="sp" style="flex:1"></span><span class="lbl" style="align-self:center">SHOW&nbsp;</span><select id="zoom" aria-label="How many bars the Loom shows"><option value="0">every bar</option><option value="8">8 bars</option><option value="4">4 bars</option><option value="2">2 bars</option></select></div>
   <section class="loomwrap">
     <canvas id="loom" height="560" aria-label="The Loom: every lane of the piece over its bars"></canvas>
     <div id="desk" hidden></div>
@@ -1497,7 +1501,7 @@ setInterval(() => { if (ac && node && !analyser) scopeStart(); }, 500);
  * macro: 0 as it is, else mood + 1). A place plays its piece as saved in the bank (Save in the emulator). The timeline draws the song: a block a
  * place as long as its bars, a lane a part (left out: empty), its energy as a line, the place and bar playing. */
 let song = null, setSel = 0;
-const GENRE_COL = [COL.pad, COL.acid, COL.drum, COL.bass, COL.pluck];
+const GENRE_COL = ["#ff6fb5", "#d8c39a", "#e6e6e6", "#7f8ea3", "#b5838d"];   // (a genre's own colours: never a part's, which mean the parts everywhere)
 const SONG_BARS = [0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128];
 const PARTS = [["PAD", COL.pad], ["BASS", COL.bass], ["ACID", COL.acid], ["PLUCK", COL.pluck], ["DRUMS", COL.drum]];
 function bankOf(g) {                                          // a genre's bank as the emulator keeps it (this browser), or empty
@@ -1550,7 +1554,7 @@ function songRender() {
   if (!song) return;
   const sel = setSel, q = song.places[sel] ? pcSetPlaces([song.places[sel]])[0] : null, mode = !song.on ? 0 : song.end ? 2 : 1;
   const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), total = used.reduce((a, i) => a + (song.bars[i] || 0), 0), autos = used.filter((i) => !song.bars[i]).length;
-  let h = '<div class="bar"><button id="slPlay"' + (used.length ? "" : " disabled") + '>' + (live && live.playing && song.on ? "■ Stop" : "▶ Play the song") + '</button><button id="slFrom"' + (q ? "" : " disabled") + ">▶ From place " + (sel + 1) + "</button>" +
+  let h = '<div class="bar"><button id="slSend"' + (used.length ? "" : " disabled") + ' title="Opens the Library &amp; pieces page with this song as a set: connect the FM-1 there and add it">Send the song to the FM-1</button><button id="slPlay"' + (used.length ? "" : " disabled") + '>' + (live && live.playing && song.on ? "■ Stop" : "▶ Play the song") + '</button><button id="slFrom"' + (q ? "" : " disabled") + ">▶ From place " + (sel + 1) + "</button>" +
     '<span class="lbl">&nbsp;SONG</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
     '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? song.full2 ? "" : " · patterns and energy need 0.17.14" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
     '<canvas id="songline" height="' + SLH + '" aria-label="The song: a block a place, as long as its bars, a lane a part, its energy"></canvas><div id="songnow" class="muted" style="margin-top:4px"></div>' +
@@ -1740,6 +1744,34 @@ function songLive() {                                         // the place playi
   if (b) b.textContent = k >= 0 || (live && live.playing && song.on) ? "■ Stop" : "▶ Play the song";
   songLine();
 }
+function storeObj(id) {                                       // one of the emulator's stored objects (this browser), or empty
+  try { const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}")[id]; return raw ? Uint8Array.from(atob(raw), (c) => c.charCodeAt(0)) : new Uint8Array(0); } catch { return new Uint8Array(0); }
+}
+function songSet() {                                          // the song as a set file (as the Library & pieces page reads one from an FM-1): the places, Play,
+  const have = pcVoices(storeObj(S.OBJ_VOICES)), knd = storeObj(S.OBJ_KINDS), bst = storeObj(S.OBJ_BSTEP);   // bars, parts, patterns, energy; the pieces saved
+  const voices = [], vslot = [], pieces = [];                                                                  // here (a factory piece is the same on every FM-1)
+  for (const q of pcSetPlaces(song.places)) {
+    if (!q || pieces.some((x) => x.genre === q.genre && x.slot === q.slot)) continue;
+    const bank = bankOf(q.genre);
+    if (pcBankCheck(bank, q.genre) || !((pcSaved(bank) >> q.slot) & 1)) continue;
+    const pc = pcFromBank(bank, q.genre, q.slot), k = S.userSlot(pc);
+    if (k >= 0 && k < have.length) pc.voice = have[k];
+    pc.kinds = pcKindsOf(knd, q.genre, q.slot); pc.fx = pcFxOf(knd, q.genre, q.slot); pc.bass = pcBassOf(bst, q.genre, q.slot);
+    let vidx = -1;
+    if (k >= 0 && pc.voice) { vidx = vslot.indexOf(k); if (vidx < 0) { vslot.push(k); voices.push(pc.voice); vidx = voices.length - 1; } }
+    pieces.push({ ...pc, vidx });
+  }
+  const gl = pcGlobList(storeObj(S.OBJ_GLOB));
+  return { kind: "set", list: song.places.slice(), on: !!song.on, mix: gl.mix || 0, bars: song.bars.slice(), mutes: song.mutes.slice(), end: song.end ? 1 : 0,
+           pats: song.pats.slice(), moods: song.moods.slice(), pieces, voices, meta: { t: "Studio song" } };
+}
+async function songSend() {
+  if (!song || !song.places.some((x) => x)) return;
+  const set = songSet(), n = song.places.filter((x) => x).length;
+  window.open("../pieces/#p=" + (await pcToCode(set)), "_blank", "noopener");
+  say("The song is on the Library & pieces page (a new tab), as a set: " + n + (n === 1 ? " place" : " places") + (set.pieces.length ? " and " + set.pieces.length + " saved piece" + (set.pieces.length === 1 ? "" : "s") : "") +
+    ". Connect the FM-1 there and add it: the set list, its bars, parts, patterns and energy" + (song.on ? ", Play " + (song.end ? "Once" : "Loop") : "") + ". Edits you have not saved (Save in the emulator) are not in it.");
+}
 async function slPutPiece(i, gq, pq) {                        // a piece into place i (an empty place starts at 16 bars, all parts)
   if (i < 0 || i > 15) return;
   const was = song.places[i];
@@ -1778,6 +1810,7 @@ $("song").addEventListener("click", async (e) => {
   }
   const id = b.id;
   if (id === "slPlay" || id === "slFrom") return songPlay(id === "slFrom" ? setSel : -1);
+  if (id === "slSend") return songSend();
   if (id === "slPut") { if (!io) return; song.places[setSel] = cur.genre * 10 + cur.piece + 1; await songWrite("Place " + (setSel + 1) + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + ". It plays as saved: Save in the emulator keeps your edits."); }
   else if (id === "slClear") { for (const a of SONG_ARRS(song)) a[setSel] = 0; await songWrite(); }
   else if (id === "slLeft" || id === "slRight") {
@@ -1997,12 +2030,12 @@ PICS.comp = (g, W, H, [Ra, Th, Mk, Ce], col) => {
   const pts = [];
   for (let i = -48; i <= 0; i += 1) { let o = i < T ? i : T + (i - T) / r; o = Math.min(C, o + M); pts.push([X(i), Y(Math.max(-48, o))]); }
   curve(g, pts, col, y0);
-  g.strokeStyle = COL.bass; g.beginPath(); g.moveTo(X(-48), Y(C)); g.lineTo(X(0), Y(C)); g.stroke();
-  label(g, "IN → OUT · " + valText(Ra, parV(Ra)) + (r === 1 ? " (OFF)" : ""), x0, 14); label(g, "CEILING", X(-48) + 4, Y(C) - 4, COL.bass);
+  g.strokeStyle = COL.acc; g.beginPath(); g.moveTo(X(-48), Y(C)); g.lineTo(X(0), Y(C)); g.stroke();
+  label(g, "IN → OUT · " + valText(Ra, parV(Ra)) + (r === 1 ? " (OFF)" : ""), x0, 14); label(g, "CEILING", X(-48) + 4, Y(C) - 4, COL.acc);
   if (live) {                                                  // the reduction now (dB) and the output's peak
     const gr = (live.gr || 0) / 8, gx = x0 + sz + 18;
     g.fillStyle = "#22252c"; g.fillRect(gx, y0 - sz, 10, sz); g.fillStyle = COL.acc; g.fillRect(gx, y0 - sz, 10, Math.min(sz, gr / 12 * sz));
-    g.fillStyle = "#22252c"; g.fillRect(gx + 16, y0 - sz, 10, sz); g.fillStyle = COL.acid; const pk = (live.peak || 0) / 255 * sz; g.fillRect(gx + 16, y0 - pk, 10, pk);
+    g.fillStyle = "#22252c"; g.fillRect(gx + 16, y0 - sz, 10, sz); g.fillStyle = COL.ink; const pk = (live.peak || 0) / 255 * sz; g.fillRect(gx + 16, y0 - pk, 10, pk);
     label(g, "GR", gx - 1, y0 + 9); label(g, "OUT", gx + 13, y0 + 9);
   }
   const ok = (y) => Math.max(y0 - sz, Math.min(y0, y));
@@ -2023,7 +2056,7 @@ PICS.space = (g, W, H, [Ec, Et, Rv, Sz, Dm, Pd], col) => {
     if (!k) hs.push({ name: "Echo", x: x + 2, y: base - h, py: Ec, ay: [base, top] });
   }
   const xp = pad + 6 + pf(Pd) * bar * 0.12, len = (0.1 + pf(Sz)) * bar * 1.3, rh = pf(Rv) * (base - top), grd = g.createLinearGradient(xp, 0, xp + len, 0);
-  grd.addColorStop(0, hexA(COL.pad, 0.55)); grd.addColorStop(1, hexA(COL.pad, 0.55 * (1 - 0.8 * pf(Dm))));
+  grd.addColorStop(0, hexA(col, 0.55)); grd.addColorStop(1, hexA(col, 0.55 * (1 - 0.8 * pf(Dm))));
   g.beginPath(); g.moveTo(xp, base);
   for (let i = 0; i <= 30; i++) { const t = i / 30; g.lineTo(xp + len * t, base - rh * Math.exp(-3 * t)); }
   g.lineTo(xp + len, base); g.closePath(); g.fillStyle = grd; g.fill();
