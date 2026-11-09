@@ -121,7 +121,10 @@
   .meter i { display: block; height: 100%; width: 0; background: var(--c); transition: width .06s linear; }
   /* the song: the set list's sixteen places as blocks */
   #song .bar { margin-bottom: 8px; }
-  #songline { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; }
+  #songline { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; touch-action: none; user-select: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .chip { border-left: 3px solid var(--c, var(--line)) !important; cursor: grab; }
+  .chip:active { cursor: grabbing; }
   .places { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
   @media (max-width: 900px) { .places { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   .place { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 8px; min-height: 108px; cursor: pointer; position: relative; }
@@ -1513,6 +1516,8 @@ async function songLoad() {
   if (!node) { $("song").innerHTML = '<p class="muted">Switch on to see and arrange the song.</p>'; return; }
   const r = await ask({ type: "st_set" });
   song = songFrom(r.sl);
+  if (!slGenre && cur) slGenre = cur.genre;
+  slShown = -2;
   songRender();
 }
 async function songWrite(msg) {
@@ -1523,12 +1528,13 @@ async function songWrite(msg) {
 }
 async function songPlay(from) {                             // the song from its first place (from -1) or place `from`: Loop if it was Off, then PLAY
   if (!node || !song) return;
-  if (live && live.playing) {                                 // playing: stop (the button reads Stop while the song plays)
+  if (live && live.playing) {                                 // playing: stop (the button reads Stop while the song plays; a block's ■ is -2)
     press(BTN_PLAY);
-    if (from < 0 && song.on) { setTimeout(songRender, 250); return; }
+    if (from === -2 || (from < 0 && song.on)) { setTimeout(songRender, 250); return; }
     await new Promise((res) => setTimeout(res, 250));
   }
   if (!song.on) { song.on = 1; song.end = 0; await songWrite(); }
+  if (from === -2) return;
   const s = from >= 0 ? from : song.places.findIndex((x) => x);
   const pq = s >= 0 && song.places[s] ? pcSetPlaces([song.places[s]])[0] : null;
   if (!pq) return;
@@ -1547,7 +1553,11 @@ function songRender() {
   let h = '<div class="bar"><button id="slPlay"' + (used.length ? "" : " disabled") + '>' + (live && live.playing && song.on ? "■ Stop" : "▶ Play the song") + '</button><button id="slFrom"' + (q ? "" : " disabled") + ">▶ From place " + (sel + 1) + "</button>" +
     '<span class="lbl">&nbsp;SONG</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
     '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? song.full2 ? "" : " · patterns and energy need 0.17.14" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
-    '<canvas id="songline" height="150" aria-label="The song: a block a place, as long as its bars, a lane a part"></canvas><div id="songnow" class="muted" style="margin-top:4px"></div>' +
+    '<canvas id="songline" height="' + SLH + '" aria-label="The song: a block a place, as long as its bars, a lane a part, its energy"></canvas><div id="songnow" class="muted" style="margin-top:4px"></div>' +
+    '<div class="muted" style="margin-top:2px;font-size:.8rem">On the song: click a lane to take that part out or bring it back · drag a block\'s right edge for its bars · drag up or down in ENERGY (right-click: as is) · drag a block\'s name to move it · ▶ on a block plays from there.</div>' +
+    '<div class="bar chips" style="margin-top:8px"><span class="lbl">PIECES</span><select id="slGenre" aria-label="Genre of the pieces to add">' + N.genres.map((n, g) => '<option value="' + g + '"' + (g === slGenre ? " selected" : "") + ">" + n + "</option>").join("") + "</select>" +
+    (N.pieces[slGenre] || []).map((n, k) => '<button class="small chip" draggable="true" data-g="' + slGenre + '" data-p="' + k + '" style="--c:' + GENRE_COL[slGenre % 5] + '" title="Drag onto the song, or click: into place ' + (sel + 1) + '">' + n + "</button>").join("") +
+    '<span class="muted">drag one onto the song, or click: into place ' + (sel + 1) + "</span></div>" +
     '<div class="bar" style="margin-top:8px"><span class="lbl">PLACE ' + (sel + 1) + "</span>" + (q ? "<b>" + S.genreName(q.genre) + " " + S.pieceName(q.genre, q.slot) + "</b>" : '<span class="muted">empty</span>') +
     '<span class="lbl">&nbsp;BARS</span><select id="slBars" aria-label="Place ' + (sel + 1) + ' bars"' + (q ? "" : " disabled") + ">" + SONG_BARS.map((b) => '<option value="' + b + '"' + (song.bars[sel] === b ? " selected" : "") + ">" + (b ? b + " bars" : "Auto") + "</option>").join("") + "</select>" +
     '<span class="lbl">&nbsp;PARTS</span>' + PARTS.map(([n], k) => '<button class="small" data-part="' + k + '" aria-pressed="' + !((song.mutes[sel] >> k) & 1) + '"' + (q ? "" : " disabled") + ">" + n + "</button>").join("") +
@@ -1555,7 +1565,7 @@ function songRender() {
     '<span class="lbl">&nbsp;ENERGY</span><select id="slMood" aria-label="Place ' + (sel + 1) + ' energy"' + (q && song.full2 ? "" : " disabled") + ">" + (SONG_MOODS.includes(song.moods[sel]) ? SONG_MOODS : [...SONG_MOODS, song.moods[sel]].sort((a, b) => a - b)).map((v) => '<option value="' + v + '"' + (song.moods[sel] === v ? " selected" : "") + ">" + (v ? v - 1 + (v === 1 ? " chill" : v === 101 ? " peak" : "") : "As is") + "</option>").join("") + "</select></div>" +
     '<div class="bar"><button id="slPut">Put the open piece in place ' + (sel + 1) + '</button><button id="slOpen"' + (q ? "" : " disabled") + ">Open it</button>" +
     '<button id="slLeft">◀ Move</button><button id="slRight">Move ▶</button><button id="slClear">Clear place ' + (sel + 1) + "</button>" +
-    '<span class="muted">Click a block (or a place below) to pick it; drag the places to reorder. Parts lit play; the others are left out of that place.</span></div><div class="places">';
+    '<span class="muted">Click a place to pick it; drag the places to reorder.</span></div><div class="places">';
   song.places.forEach((x, i) => {
     const pq = x ? pcSetPlaces([x])[0] : null, now = live && live.playing && live.slPos === i;
     if (!pq) { h += '<div class="place empty' + (i === sel ? " sel" : "") + '" data-i="' + i + '" draggable="true"><div class="n">' + (i + 1) + "</div><div>empty</div></div>"; return; }
@@ -1583,47 +1593,160 @@ function songRender() {
   });
   songLine();
 }
-let songHit = [];
-function songLine() {                                         // the song as a timeline: a block a place, its lanes, the place and bar playing
+let songHit = [], songGeo = null, tl = null, slShown = -2, slGenre = 0;   // (tl: a drag on the timeline: bars, energy, move, part)
+const SLH = 204, SL_TOP = 24, SL_EH = 40, SL_BARS = SONG_BARS.slice(1), SL_FIT = [24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048];   // (the scale: in steps, so an edit seldom moves the others)
+const slBarsOf = (i) => (tl && tl.kind === "bars" && tl.i === i ? tl.v : placeBars(i));
+const slMoodOf = (i) => (tl && tl.kind === "energy" && tl.i === i ? tl.v : song.moods[i]);
+function songLine() {                                         // the song as a timeline: a block a place, its lanes, its energy, the place and bar playing
   const cv = $("songline");
   if (!cv || !song) return;
-  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = 150;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = SLH;
   if (!W) return;
   if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
-  const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), LX = 60, top = 22, lh = (H - top - 8) / 5;
+  const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), LX = 60, top = SL_TOP, eH = SL_EH, eTop = H - eH - 4, lh = (eTop - top - 4) / 5;
   PARTS.forEach(([n, c], k) => { g.fillStyle = c; g.fillRect(6, top + k * lh + 3, 3, lh - 6); g.font = FONT(700, 10); g.fillStyle = COL.dim; g.fillText(n, 13, top + k * lh + lh / 2 + 4); });
+  g.fillStyle = COL.ink; g.fillRect(6, eTop + 3, 3, eH - 6); g.font = FONT(700, 10); g.fillStyle = COL.dim; g.fillText("ENERGY", 13, eTop + eH / 2 + 4);
   songHit = [];
-  if (!used.length) { g.fillStyle = COL.dim; g.font = "500 14px 'Barlow Semi Condensed', sans-serif"; g.fillText("No places yet: open a piece and put it in place 1.", LX, H / 2); return; }
-  const total = used.reduce((a, i) => a + placeBars(i), 0), bw = (W - LX - 8) / total;
+  songGeo = { LX, top, lh, eTop, eH, W, H, bw: 0 };
+  if (!used.length) { g.fillStyle = COL.dim; g.font = "500 14px 'Barlow Semi Condensed', sans-serif"; g.fillText("No places yet: drag a piece from PIECES (below) onto here.", LX, H / 2); return; }
+  const total = used.reduce((a, i) => a + slBarsOf(i), 0), bw = tl && tl.bw ? tl.bw : (W - LX - 8) / (SL_FIT.find((f) => f >= total + 6) || total + 6);
+  songGeo.bw = bw;
   let x = LX;
   for (const i of used) {
-    const pq = pcSetPlaces([song.places[i]])[0], w = placeBars(i) * bw, auto = !song.bars[i], gc = GENRE_COL[pq.genre % 5];
-    g.fillStyle = i === setSel ? "#2a2416" : "#181a1f"; g.fillRect(x + 1, 2, w - 2, H - 4);
+    const pq = pcSetPlaces([song.places[i]])[0], b = slBarsOf(i), w = b * bw, auto = !song.bars[i] && !(tl && tl.kind === "bars" && tl.i === i), gc = GENRE_COL[pq.genre % 5];
+    const now = !!(live && live.playing && song.on && live.slPos === i), bar = now ? Math.min(b, (live.slBar === 255 ? 0 : live.slBar) + (live.step || 0) / 16) : 0;
+    g.fillStyle = i === setSel ? "#2a2416" : now ? "#1b2119" : "#181a1f"; g.fillRect(x + 1, 2, w - 2, H - 4);
+    if (now) { g.fillStyle = hexA(COL.acc, 0.08); g.fillRect(x + 1, 2, bar * bw, H - 4); }   // the part of it played
     g.fillStyle = gc; g.fillRect(x + 1, 2, w - 2, 3);
-    g.font = FONT(700, 11); g.fillStyle = COL.ink; g.save(); g.beginPath(); g.rect(x + 1, 0, w - 2, H); g.clip();
-    g.fillText((i + 1) + " " + S.genreName(pq.genre) + " " + S.pieceName(pq.genre, pq.slot) + "  " + (auto ? "auto" : song.bars[i] + " bars") + (song.pats[i] ? "  P" + song.pats[i] : ""), x + 5, 17);
-    PARTS.forEach(([n, c], k) => {                            // a part's lane: lit where it plays
-      if ((song.mutes[i] >> k) & 1) { g.strokeStyle = "#2e313a"; g.setLineDash([2, 3]); g.strokeRect(x + 3.5, top + k * lh + 3.5, w - 7, lh - 7); g.setLineDash([]); return; }
-      g.fillStyle = hexA(c, auto ? 0.28 : 0.55); g.fillRect(x + 3, top + k * lh + 3, w - 6, lh - 6);
-      if (auto) { g.strokeStyle = hexA(c, 0.5); g.lineWidth = 1; for (let hx = x + 3; hx < x + w - 6; hx += 8) { g.beginPath(); g.moveTo(hx, top + k * lh + lh - 3); g.lineTo(hx + 6, top + k * lh + 3); g.stroke(); } }
+    g.save(); g.beginPath(); g.rect(x + 1, 0, w - 2, H); g.clip();
+    g.fillStyle = now ? COL.acc : hexA(COL.ink, 0.75); g.font = FONT(700, 11); g.fillText(now ? "■" : "▶", x + 5, 17);   // play from here (stop, when it plays)
+    g.fillStyle = COL.ink;
+    g.fillText((i + 1) + " " + S.genreName(pq.genre) + " " + S.pieceName(pq.genre, pq.slot) + "  " + (auto ? "auto" : b + " bars") + (song.pats[i] ? "  P" + song.pats[i] : "") +
+      (now && !auto ? "  · " + Math.max(0, Math.ceil(b - bar)) + " left" : ""), x + 19, 17);
+    PARTS.forEach(([n, c], k) => {                            // a part's lane: lit where it plays, an outline where it is left out
+      const ly = top + k * lh;
+      if ((song.mutes[i] >> k) & 1) { g.strokeStyle = "#3a3e4a"; g.lineWidth = 1; g.setLineDash([2, 3]); g.strokeRect(x + 3.5, ly + 3.5, w - 7, lh - 7); g.setLineDash([]);
+        if (w > 70) { g.fillStyle = "#4a4e5a"; g.font = FONT(600, 9); g.fillText("out", x + 8, ly + lh / 2 + 3); } return; }
+      g.fillStyle = hexA(c, auto ? 0.28 : now ? 0.7 : 0.55); g.fillRect(x + 3, ly + 3, w - 6, lh - 6);
+      if (auto) { g.strokeStyle = hexA(c, 0.5); g.lineWidth = 1; for (let hx = x + 3; hx < x + w - 6; hx += 8) { g.beginPath(); g.moveTo(hx, ly + lh - 3); g.lineTo(hx + 6, ly + 3); g.stroke(); } }
     });
-    if (song.moods[i]) {                                      // its energy: a line, low chill .. high peak
-      const ey = H - 6 - (song.moods[i] - 1) / 100 * (H - top - 12);
-      g.strokeStyle = COL.ink; g.globalAlpha = 0.8; g.lineWidth = 2; g.beginPath(); g.moveTo(x + 4, ey); g.lineTo(x + w - 4, ey); g.stroke(); g.globalAlpha = 1;
-      g.font = FONT(700, 10); g.fillStyle = COL.ink; g.fillText("E" + (song.moods[i] - 1), x + w - 30, ey - 3);
-    }
+    const m = slMoodOf(i);                                     // its energy: a bar from the floor, chill .. peak
+    g.fillStyle = "#14161b"; g.fillRect(x + 3, eTop + 2, w - 6, eH - 4);
+    if (!song.full2) { g.fillStyle = "#4a4e5a"; g.font = FONT(600, 9); if (w > 60) g.fillText("needs 0.17.14", x + 7, eTop + eH / 2 + 3); }
+    else if (m) {
+      const eh = Math.max(2, (m - 1) / 100 * (eH - 6));
+      g.fillStyle = hexA(COL.ink, i === setSel || (tl && tl.i === i) ? 0.55 : 0.32); g.fillRect(x + 3, eTop + eH - 3 - eh, w - 6, eh);
+      g.fillStyle = COL.ink; g.fillRect(x + 3, eTop + eH - 3 - eh, w - 6, 2);
+      g.font = FONT(700, 10); g.fillText(String(m - 1), x + 7, Math.max(eTop + 12, eTop + eH - 6 - eh));
+    } else { g.fillStyle = "#4a4e5a"; g.font = FONT(600, 9); if (w > 40) g.fillText("as is", x + 7, eTop + eH / 2 + 3); }
     g.restore();
-    if (i === setSel) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.strokeRect(x + 1, 1, w - 2, H - 2); }
-    if (live && live.playing && live.slPos === i && song.on) {   // the bar playing in it
-      const bx = x + Math.min(placeBars(i), (live.slBar === 255 ? 0 : live.slBar) + (live.step || 0) / 16) * bw;
-      g.fillStyle = COL.acc; g.fillRect(Math.round(bx) - 1, 2, 2, H - 4);
+    if (i === setSel) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.strokeRect(x + 1, 1, w - 2, H - 2);
+      g.fillStyle = COL.acc; g.fillRect(x + w - 5, top + lh * 2, 3, lh);   // the grip: drag the edge for the bars
     }
+    if (now) { const bx = x + bar * bw; g.fillStyle = COL.acc; g.fillRect(Math.round(bx) - 1, 2, 2, H - 4); }   // the bar playing in it
     songHit.push([x, w, i]);
     x += w;
   }
+  if (x < W - 60 && used.length < 16) {                        // the room after the song: a piece dropped here takes the next empty place
+    g.strokeStyle = "#2e313a"; g.lineWidth = 1; g.setLineDash([4, 4]); g.strokeRect(x + 6.5, 6.5, W - x - 14, H - 13); g.setLineDash([]);
+    g.fillStyle = "#4a4e5a"; g.font = FONT(600, 11); g.fillText("+ drop a piece here", x + 16, H / 2 + 4);
+  }
+  if (tl && tl.moved && tl.kind === "move" && tl.to !== undefined && tl.to !== tl.i) {   // where the moved place lands
+    const h = songHit.find(([, , j]) => j === tl.to);
+    if (h) { const mx = tl.to > tl.i ? h[0] + h[1] : h[0]; g.fillStyle = COL.acc; g.fillRect(mx - 2, 0, 4, H); }
+  }
+  if (tl && tl.kind === "bars") {                             // the bars it would have
+    const h = songHit.find(([, , j]) => j === tl.i);
+    if (h) { const t = tl.v + " bars", tx = Math.min(W - 60, h[0] + h[1] + 6); g.font = FONT(700, 12); g.fillStyle = "#000000"; g.fillRect(tx - 3, top + lh * 2 - 2, g.measureText(t).width + 6, 18); g.fillStyle = COL.acc; g.fillText(t, tx, top + lh * 2 + 11); }
+  }
+}
+function slAt(e) {                                            // a pointer on the timeline: where, and which block
+  const r = $("songline").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  return { x, y, hit: songHit.find(([x0, w]) => x >= x0 && x < x0 + w) };
+}
+function slKind(p) {                                          // what a press there does
+  const G = songGeo;
+  if (!G || !song) return null;
+  if (p.y >= G.top && p.y < G.eTop) { const ed = songHit.find(([x0, w]) => Math.abs(p.x - (x0 + w)) < 8); if (ed) return { kind: "bars", i: ed[2], bx: ed[0] }; }
+  if (!p.hit) return null;
+  const [x0, , i] = p.hit;
+  if (p.y < G.top) return p.x < x0 + 17 ? { kind: "play", i } : { kind: "move", i };
+  if (p.y >= G.eTop) return song.full2 ? { kind: "energy", i } : { kind: "pick", i };
+  return { kind: "part", i, k: Math.max(0, Math.min(4, Math.floor((p.y - G.top) / G.lh))) };
+}
+const slEnergyAt = (y) => { const G = songGeo, v = Math.round((G.eTop + G.eH - 3 - y) / (G.eH - 6) * 20); return Math.max(0, Math.min(20, v)) * 5 + 1; };
+const slBarsAt = (x) => { const raw = (x - tl.bx) / tl.bw; return SL_BARS.reduce((a, b) => (Math.abs(b - raw) < Math.abs(a - raw) ? b : a)); };
+const SL_CURSOR = { bars: "ew-resize", energy: "ns-resize", move: "grab", part: "pointer", play: "pointer", pick: "pointer" };
+$("song").addEventListener("pointerdown", (e) => {
+  if (e.target.id !== "songline" || e.button !== 0 || !song) return;
+  const p = slAt(e), t = slKind(p);
+  if (!t) return;
+  e.preventDefault();
+  e.target.setPointerCapture(e.pointerId);
+  setSel = t.i;
+  tl = { ...t, x0: p.x, y0: p.y, moved: false, bw: songGeo.bw };
+  if (t.kind === "bars") tl.v = placeBars(t.i);
+  if (t.kind === "energy") tl.v = slEnergyAt(p.y);
+  if (t.kind === "move") e.target.style.cursor = "grabbing";
+  songLine();
+});
+$("song").addEventListener("pointermove", (e) => {
+  if (e.target.id !== "songline" || !song) return;
+  const p = slAt(e);
+  if (!tl) { const t = slKind(p); e.target.style.cursor = t ? SL_CURSOR[t.kind] : "default"; return; }
+  if (Math.abs(p.x - tl.x0) + Math.abs(p.y - tl.y0) > 4) tl.moved = true;
+  if (tl.kind === "bars") tl.v = slBarsAt(p.x);
+  else if (tl.kind === "energy") tl.v = slEnergyAt(p.y);
+  else if (tl.kind === "move") tl.to = p.hit ? p.hit[2] : p.x < songGeo.LX ? songHit[0][2] : songHit[songHit.length - 1][2];
+  songLine();
+});
+$("song").addEventListener("pointercancel", () => { if (tl) { tl = null; songRender(); } });
+$("song").addEventListener("pointerup", async (e) => {
+  if (!tl || !song) return;
+  const t = tl, n = "Place " + (t.i + 1) + ": ";
+  tl = null;
+  if (e.target.id === "songline") e.target.style.cursor = "";
+  if (t.kind === "bars" && t.v !== song.bars[t.i] && (t.moved || song.bars[t.i])) { song.bars[t.i] = t.v; return songWrite(n + t.v + " bars."); }
+  if (t.kind === "energy") { song.moods[t.i] = t.v; return songWrite(n + moodName(t.v) + " (the mood macro, from its first bar)."); }
+  if (t.kind === "move" && t.moved && t.to !== undefined && t.to !== t.i) {
+    for (const a of SONG_ARRS(song)) { const v = a.splice(t.i, 1)[0]; a.splice(t.to, 0, v); }
+    setSel = t.to;
+    return songWrite("Moved to place " + (t.to + 1) + ".");
+  }
+  if (t.kind === "part" && !t.moved) {
+    song.mutes[t.i] ^= 1 << t.k;
+    return songWrite(n + PARTS[t.k][0].toLowerCase() + ((song.mutes[t.i] >> t.k) & 1 ? " out" : " back in") + " · plays: " + (PARTS.filter((_, k) => !((song.mutes[t.i] >> k) & 1)).map(([m]) => m.toLowerCase()).join(", ") || "no parts") + ".");
+  }
+  if (t.kind === "play" && !t.moved) return songPlay(live && live.playing && song.on && live.slPos === t.i ? -2 : t.i);
+  songRender();
+});
+$("song").addEventListener("contextmenu", (e) => {            // right-click in ENERGY: back to as is
+  if (e.target.id !== "songline" || !song || !song.full2) return;
+  const p = slAt(e), t = slKind(p);
+  if (!t || t.kind !== "energy") return;
+  e.preventDefault();
+  song.moods[t.i] = 0; setSel = t.i;
+  songWrite("Place " + (t.i + 1) + ": energy as is.");
+});
+function songLive() {                                         // the place playing marked on the cards, the Play button's word (no re-render)
+  const k = live && live.playing && song.on ? live.slPos : -1;
+  if (k === slShown) return;
+  slShown = k;
+  document.querySelectorAll("#song .place").forEach((el) => el.classList.toggle("now", +el.dataset.i === k));
+  const b = $("slPlay");
+  if (b) b.textContent = k >= 0 || (live && live.playing && song.on) ? "■ Stop" : "▶ Play the song";
+  songLine();
+}
+async function slPutPiece(i, gq, pq) {                        // a piece into place i (an empty place starts at 16 bars, all parts)
+  if (i < 0 || i > 15) return;
+  const was = song.places[i];
+  song.places[i] = gq * 10 + pq + 1;
+  if (!was) { song.bars[i] = song.full ? 16 : 0; song.mutes[i] = 0; song.pats[i] = 0; song.moods[i] = 0; }
+  setSel = i;
+  await songWrite("Place " + (i + 1) + ": " + S.genreName(gq) + " " + S.pieceName(gq, pq) + ". It plays as saved: Save in the emulator keeps your edits.");
 }
 const PART_TRK = [0x40, 0x10, 0x20, 0x80, 0x0F];             // (ui.c SL_PARTM: the tracks a part is)
 function songNow() {                                          // what plays now: the place, its bar, the parts the engine has out
@@ -1635,13 +1758,11 @@ function songNow() {                                          // what plays now:
     "Playing a piece that is not in the song: Play the song starts it.";
   if (el.textContent !== t) el.textContent = t;
 }
-setInterval(() => { if (view === "song" && song && live && live.playing) songLine(); if (view === "song") songNow(); }, 100);
+setInterval(() => { if (view !== "song" || !song) return; if (live && live.playing && !tl) songLine(); songNow(); songLive(); }, 100);
 $("song").addEventListener("click", async (e) => {
-  if (e.target.id === "songline") {                           // a block on the timeline picks its place
-    const r = e.target.getBoundingClientRect(), x = e.clientX - r.left, hit = songHit.find(([x0, w]) => x >= x0 && x < x0 + w);
-    if (hit) { setSel = hit[2]; songRender(); }
-    return;
-  }
+  if (e.target.id === "songline") return;                     // (the timeline: its pointer handlers)
+  const ch = e.target.closest(".chip");
+  if (ch && song) return slPutPiece(setSel, +ch.dataset.g, +ch.dataset.p);
   const pl = e.target.closest(".place");
   if (pl) { setSel = +pl.dataset.i; songRender(); return; }
   const b = e.target.closest("button");
@@ -1668,16 +1789,34 @@ $("song").addEventListener("click", async (e) => {
 });
 $("song").addEventListener("change", (e) => {
   if (!song) return;
+  if (e.target.id === "slGenre") { slGenre = +e.target.value; return songRender(); }
   if (e.target.id === "slPat") { song.pats[setSel] = +e.target.value; return songWrite("Place " + (setSel + 1) + ": " + (song.pats[setSel] ? "drum pattern " + song.pats[setSel] : "the piece's own pattern") + "."); }
   if (e.target.id === "slMood") { song.moods[setSel] = +e.target.value; return songWrite("Place " + (setSel + 1) + ": " + moodName(song.moods[setSel]) + (song.moods[setSel] ? " (the mood macro, from its first bar)" : "") + "."); }
   if (e.target.id !== "slBars") return;
   song.bars[setSel] = +e.target.value;
   songWrite("Place " + (setSel + 1) + ": " + (song.bars[setSel] ? song.bars[setSel] + " bars, exactly" : "Auto (the auto-DJ's rounds)") + ".");
 });
-let dragFrom = -1;
-$("song").addEventListener("dragstart", (e) => { const pl = e.target.closest(".place"); if (pl) { dragFrom = +pl.dataset.i; e.dataTransfer.effectAllowed = "move"; } });
-$("song").addEventListener("dragover", (e) => { if (dragFrom >= 0 && e.target.closest(".place")) e.preventDefault(); });
+let dragFrom = -1, dragPiece = null;
+$("song").addEventListener("dragstart", (e) => {
+  const ch = e.target.closest(".chip");
+  if (ch) { dragPiece = { g: +ch.dataset.g, p: +ch.dataset.p }; dragFrom = -1; e.dataTransfer.effectAllowed = "copy"; e.dataTransfer.setData("text/plain", ch.textContent); return; }
+  const pl = e.target.closest(".place"); if (pl) { dragFrom = +pl.dataset.i; dragPiece = null; e.dataTransfer.effectAllowed = "move"; }
+});
+$("song").addEventListener("dragend", () => { dragPiece = null; });
+$("song").addEventListener("dragover", (e) => {
+  if (dragPiece && (e.target.id === "songline" || e.target.closest(".place"))) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; return; }
+  if (dragFrom >= 0 && e.target.closest(".place")) e.preventDefault();
+});
 $("song").addEventListener("drop", async (e) => {
+  if (dragPiece && song) {
+    e.preventDefault();
+    const d = dragPiece; dragPiece = null;
+    let to = -1;
+    if (e.target.id === "songline") { const p = slAt(e); to = p.hit ? p.hit[2] : song.places.findIndex((x) => !x); }
+    else { const c = e.target.closest(".place"); if (c) to = +c.dataset.i; }
+    if (to < 0) return say("All sixteen places are full: drop it on a block to replace that place.", true);
+    return slPutPiece(to, d.g, d.p);
+  }
   const pl = e.target.closest(".place");
   if (!pl || dragFrom < 0 || !song) return;
   e.preventDefault();
