@@ -1330,7 +1330,7 @@ document.addEventListener("keydown", (e) => {
 
 /* ======================================================================== controls: a setting as the unit's knob (a bar to drag, a list of names) */
 const FT = ["Low-pass", "High-pass", "Band-pass", "Notch", "Peak"];
-const FXMETA = [{ n: "Pad filter", min: 0, max: 4, def: 0, t: FT }, { n: "Bass filter", min: 0, max: 4, def: 0, t: FT }, { n: "Acid filter", min: 0, max: 4, def: 0, t: FT },
+const FXMETA = [{ n: "Pad filter", min: 0, max: 4, def: 0, t: FT }, { n: "Bass filter", min: 0, max: 4, def: 0, t: FT }, { n: "Acid filter", min: 0, max: 5, def: 0, t: [...FT, "303"] },   // (0.17.17: the acid's sixth, the 303 ladder)
                 { n: "Drive", min: 0, max: 100, def: 0 }, { n: "Scream", min: 0, max: 100, def: 0 }, { n: "Wow", min: 0, max: 100, def: 0 }, { n: "Target", min: 0, max: 2, def: 0, t: ["Acid", "Bass", "Both"] }];
 const meta = (p) => (p >= 0 ? P[p] : FXMETA[-p - 1]);       // a setting, or (negative) one of the FILTERS and SCREAM pages' seven (the piece's extras)
 const parV = (p) => (p >= 0 ? P[p].min + io[REC_PAR + p] : io[IO_FX - p - 1]);
@@ -2795,6 +2795,7 @@ PICS.filt = (g, W, H, [C, Q, Ty, Em], col) => {
       case 2: return -Math.abs(d) * 16 + bump * 1.2;
       case 3: return -34 * Math.exp(-Math.pow(d * 3.2 / (0.4 + q), 2));
       case 4: return bump * 1.15 + 1;
+      case 5: return (d > 0 ? -d * 26 : 0) + bump * 1.1;      // (the 303's ladder: 24 dB a octave, the resonance singing, the bass kept full)
       default: return (d > 0 ? -d * 22 : 0) + bump;
     }
   };
@@ -2802,7 +2803,7 @@ PICS.filt = (g, W, H, [C, Q, Ty, Em], col) => {
   for (let x = pad; x <= pad + w; x += 2) pts.push([x, ydb(resp((x - xc) / w * 7))]);
   curve(g, pts, col, base);
   g.strokeStyle = "#3a3e4a"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(pad, ydb(0)); g.lineTo(pad + w, ydb(0)); g.stroke(); g.setLineDash([]);
-  label(g, (["LOW-PASS", "HIGH-PASS", "BAND-PASS", "NOTCH", "PEAK"][type] || "") + "  ·  LOW ← FREQUENCY → HIGH", pad, 14);
+  label(g, (["LOW-PASS", "HIGH-PASS", "BAND-PASS", "NOTCH", "PEAK", "303 LADDER"][type] || "") + "  ·  LOW ← FREQUENCY → HIGH", pad, 14);
   const hs = [{ name: "Cutoff · resonance", x: xc, y: ydb(resp(0)), px: C, ax: [pad, pad + w], py: Q, ay: [ydb(0), ydb(13)] }];
   if (Number.isFinite(Em)) {                                   // the envelope opens it this far on each note
     const xe = xc + pf(Em) * w * 0.45, ye = base - 10;
