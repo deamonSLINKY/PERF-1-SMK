@@ -142,15 +142,15 @@
   .deskbelow .sec.wide { grid-column: span 2; }
   @media (max-width: 640px) { .deskbelow .sec.wide { grid-column: auto; } }
   .ctls.kn { display: flex; flex-wrap: wrap; gap: 6px 4px; }
-  .ctl.knob { background: none; border: 0; padding: 2px 2px 4px; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: ns-resize; }
-  .ctl.knob:focus-visible .dial { box-shadow: 0 0 0 2px var(--acc); }
-  .ctl.knob .dial { --f: 0; width: 44px; height: 44px; border-radius: 50%; position: relative;
+  .knob { background: none; border: 0; padding: 2px 2px 4px; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: ns-resize; }
+  .knob:focus-visible .dial { box-shadow: 0 0 0 2px var(--acc); }
+  .knob .dial { --f: 0; width: 44px; height: 44px; border-radius: 50%; position: relative;
                     background: conic-gradient(from 225deg, var(--c, var(--acc)) calc(var(--f) * 270deg), #2a2d35 0 270deg, transparent 0); }
-  .ctl.knob .dial::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #2e3139, #181a1f 70%); box-shadow: 0 2px 4px rgba(0,0,0,.6); }
-  .ctl.knob .dial i { position: absolute; left: calc(50% - 1.5px); top: 8px; width: 3px; height: 12px; border-radius: 2px; background: var(--ink); z-index: 1;
+  .knob .dial::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #2e3139, #181a1f 70%); box-shadow: 0 2px 4px rgba(0,0,0,.6); }
+  .knob .dial i { position: absolute; left: calc(50% - 1.5px); top: 8px; width: 3px; height: 12px; border-radius: 2px; background: var(--ink); z-index: 1;
                       transform-origin: 50% 14px; transform: rotate(calc(-135deg + var(--f) * 270deg)); }
-  .ctl.knob .v { font: 700 .78rem "Chakra Petch", sans-serif; max-width: 72px; text-align: center; }
-  .ctl.knob .kl { font-size: .68rem; color: var(--dim); text-align: center; line-height: 1.1; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .knob .v { font: 700 .78rem "Chakra Petch", sans-serif; max-width: 72px; text-align: center; }
+  .knob .kl { font-size: .68rem; color: var(--dim); text-align: center; line-height: 1.1; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .strip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
   .strip .cap { height: 6px; background: var(--c); }
   .strip h3 { font: 700 1rem "Chakra Petch", sans-serif; letter-spacing: .08em; margin: 6px 8px 2px; display: flex; justify-content: space-between; align-items: center; }
@@ -187,6 +187,28 @@
   .dxops button.car { border-bottom: 2px solid var(--pluck); }
   .dx7 details summary { cursor: pointer; color: var(--dim); font: 600 .8rem "Chakra Petch", sans-serif; margin: 8px 0 4px; }
   .dx7 .dxtwo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 14px; }
+  #fx:not([hidden]) { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: 12px; align-items: start; }
+  @media (max-width: 900px) { #fx:not([hidden]) { grid-template-columns: minmax(0, 1fr); } }
+  .fxbank { margin: 0 0 12px; }
+  .fxkeys { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 5px; }
+  .fxk { position: relative; text-align: left; padding: 7px 8px 6px; min-height: 52px; border-radius: 6px; border: 1px solid var(--line); background: #1d2026; border-top: 3px solid var(--c, #555a66); }
+  .fxk.blk { background: #121318; }
+  .fxk b { display: block; font: 700 .78rem "Chakra Petch", sans-serif; letter-spacing: .03em; }
+  .fxk span { font-size: .65rem; color: var(--dim); }
+  .fxk[aria-pressed=true] { background: var(--acc); color: #0e0f12; border-color: var(--acc); box-shadow: 0 0 10px rgba(255,176,0,.45); }
+  .fxk[aria-pressed=true] span { color: #3a2a00; }
+  .fxk.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .fxk.hold::after { content: "HOLD"; position: absolute; right: 5px; top: 4px; font: 700 .55rem "Chakra Petch", sans-serif; color: var(--dim); }
+  .fxk[aria-pressed=true].hold::after { color: #3a2a00; }
+  .fxside .sec { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; }
+  .fxkn { cursor: ns-resize; }
+  .fadebar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--dim); font-size: .85rem; }
+  .strip .fade { width: 100%; position: relative; overflow: hidden; margin-top: 2px; }
+  .strip .fade i { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,176,0,.35); width: 0; }
+  .shapes { display: flex; gap: 3px; flex-wrap: wrap; }
+  .shapes button { padding: 3px 5px; line-height: 0; }
+  .shapes svg { width: 30px; height: 16px; }
+  .shapes button[aria-pressed=true] svg path { stroke: #0e0f12; }
   .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
   .chip { border-left: 3px solid var(--c, var(--line)) !important; cursor: grab; }
   .chip:active { cursor: grabbing; }
@@ -253,11 +275,12 @@
     <p id="impreport"></p>
     <div class="bar"><button id="impgo" class="go">Put it in the piece</button><button id="impcancel">Cancel</button></div>
   </section>
-  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button><button role="tab" data-view="song" aria-selected="false">SONG</button><span class="partkey" aria-label="The parts' colours, the same in every view"><i style="--c:var(--pad)">PAD</i><i style="--c:var(--bass)">BASS</i><i style="--c:var(--acid)">ACID</i><i style="--c:var(--pluck)">PLUCK</i><i style="--c:var(--drum)">DRUMS</i></span><span class="sp" style="flex:1"></span><span class="lbl" style="align-self:center">SHOW&nbsp;</span><select id="zoom" aria-label="How many bars the Loom shows"><option value="0">every bar</option><option value="8">8 bars</option><option value="4">4 bars</option><option value="2">2 bars</option></select></div>
+  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button><button role="tab" data-view="song" aria-selected="false">SONG</button><button role="tab" data-view="fx" aria-selected="false">FX</button><span class="partkey" aria-label="The parts' colours, the same in every view"><i style="--c:var(--pad)">PAD</i><i style="--c:var(--bass)">BASS</i><i style="--c:var(--acid)">ACID</i><i style="--c:var(--pluck)">PLUCK</i><i style="--c:var(--drum)">DRUMS</i></span><span class="sp" style="flex:1"></span><span class="lbl" style="align-self:center">SHOW&nbsp;</span><select id="zoom" aria-label="How many bars the Loom shows"><option value="0">every bar</option><option value="8">8 bars</option><option value="4">4 bars</option><option value="2">2 bars</option></select></div>
   <section class="loomwrap">
     <canvas id="loom" height="560" aria-label="The Loom: every lane of the piece over its bars"></canvas>
     <div id="desk" hidden></div>
     <div id="song" hidden></div>
+    <div id="fx" hidden></div>
     <canvas id="scope" height="64" aria-label="What comes out: the waveform and the spectrum"></canvas>
     <div id="start">
       <button id="power" class="go">Switch on</button>
@@ -1315,9 +1338,10 @@ const parSetV = (p, v) => {
 const valText = (p, v) => (meta(p).t ? (meta(p).t[v - meta(p).min] ?? String(v)) : String(v));
 const shortLabel = (l) => String(l).replace(/\s*\(.*\)\s*$/, "");
 const isList = (p) => { const q = meta(p); return !!(q && q.t && q.t.length > 2); };
-function knobHTML(p, label, col) {                           // (a list stays a list)
+function knobHTML(p, label, col) {                           // (a list stays a list; an LFO's shape is its pictures)
   const q = meta(p);
   if (!q) return "";
+  if (p === PE.P_PL_SHAPE || p === PE.P_DL_SHAPE) return shapeHTML(p, col || COL.acc);
   if (q.t && q.t.length > 2) return ctlHTML(p, label, col);
   const lab = shortLabel(label || q.n).replace(/[<&]/g, "");
   return '<div class="ctl knob" tabindex="0" role="slider" aria-label="' + lab + '" aria-valuemin="' + q.min + '" aria-valuemax="' + q.max + '" data-p="' + p + '" style="--c:' + (col || COL.acc) +
@@ -1344,12 +1368,13 @@ function syncCtls() {                                         // every control o
     el.setAttribute("aria-valuenow", v);
   });
   document.querySelectorAll(".fader[data-p]").forEach((el) => {
-    const p = +el.dataset.p, q = meta(p), f = (parV(p) - q.min) / Math.max(1, q.max - q.min);
+    const p = +el.dataset.p, q = meta(p), pv = fadeV[p] !== undefined ? fadeV[p] : parV(p), f = (pv - q.min) / Math.max(1, q.max - q.min);
     el.querySelector("i").style.height = "calc(" + (f * 100) + "% - 6px)"; el.querySelector("b").style.bottom = (f * 100) + "%";
     el.setAttribute("aria-valuenow", parV(p));
-    const lv = el.parentElement.querySelector(".lv"); if (lv) lv.textContent = parV(p);
+    const lv = el.closest(".strip") ? el.closest(".strip").querySelector(".lv") : el.parentElement.querySelector(".lv"); if (lv) lv.textContent = pv;
   });
   document.querySelectorAll(".mute[data-p]").forEach((b) => b.setAttribute("aria-pressed", String(parV(+b.dataset.p) === 0)));
+  document.querySelectorAll("[data-shape]").forEach((el) => { const p = +el.dataset.shape, v = parV(p); el.querySelector(".v").textContent = valText(p, v); el.querySelectorAll("button[data-shp]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.v === v))); });
 }
 function setFromCtl(p, v) { if (io && parSetV(p, v)) changed(); }
 let drag = null;
@@ -1707,6 +1732,171 @@ $("sound").addEventListener("pointermove", (e) => {
 $("sound").addEventListener("pointerup", () => { if (dxEnvDrag) { dxEnvDrag = null; dxDrawEnv(); } });
 window.addEventListener("resize", () => { if (pane === "sound" && sel === "pluck") dxDraw(); });
 
+/* ======================================================================== FX: the FX menu's effects, played and set from the studio (the unit's own
+ * menu: its two banks of keys in their order, a tap latches, a hold plays while held; each effect's page of settings as knobs, the text the unit
+ * shows). The effects and their settings are the player's (as on the FM-1: kept with the unit's settings), not the piece's. */
+let fxd = null, fxSel = -1, fxBusy = false, fxNext = null;
+const FX_NOTE = ["F3", "F#3", "G3", "G#3", "A3", "A#3", "B3", "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4", "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5"];
+const FX_KIND = [[[0, 1, 2, 3, 4, 5, 33, 34, 26, 27, 28, 29, 31], "#ff6fb5"], [[12, 13, 30, 38, 39, 40, 52, 53, 34], "#7f8ea3"],   // (a colour a kind: repeats and
+  [[14, 15, 16, 23, 37, 17], "#d8c39a"], [[19, 20, 21, 25, 35, 32, 6, 7], "#b5838d"], [[8, 9, 10, 11, 41, 18, 22, 24, 54, 55, 56, 57, 58], "#e6e6e6"]];   // time, filters, rhythm, colour, drums)
+const fxCol = (bit) => (FX_KIND.find(([bs]) => bs.includes(bit)) || [0, "#555a66"])[1];
+const fxIsOn = (bit) => !!fxd && !!(bit < 32 ? (fxd.lo >>> bit) & 1 : (fxd.hi >>> (bit - 32)) & 1);
+async function fxAsk(m) {
+  const r = await ask({ type: "st_fx", ...m });
+  if (!r.pages) { say("This emulator build has no FX hooks: rebuild it (web/emu/build_clang.sh).", true); return null; }
+  fxd = { ...fxd, ...r };
+  return r;
+}
+async function fxLoad() {
+  if (view !== "fx") return;
+  if (!node) { $("fx").innerHTML = '<p class="muted">Switch on to play the effects.</p>'; return; }
+  if (!(await fxAsk({ all: 1 }))) return;
+  fxRender();
+}
+function fxLock(bit, on) {
+  let lo = fxd.lo >>> 0, hi = fxd.hi >>> 0;
+  if (bit < 32) lo = on ? (lo | (1 << bit)) >>> 0 : (lo & ~(1 << bit)) >>> 0; else hi = on ? (hi | (1 << (bit - 32))) >>> 0 : (hi & ~(1 << (bit - 32))) >>> 0;
+  return fxAsk({ lo: lo | 0, hi: hi | 0 }).then(fxPaint);
+}
+function fxRender() {
+  if (!fxd || !fxd.keys) return;
+  const bank = (b) => '<div class="fxbank"><h3 class="lbl">BANK ' + (b + 1) + (b ? " · REPEATS, MOTION AND DRUMS" : " · FILTERS, COLOUR AND SPACE") + '</h3><div class="fxkeys">' + fxd.keys[b].map((bit, k) => {
+    if (bit === 63) return '<div class="fxk blk" style="opacity:.25" aria-hidden="true"></div>';
+    const pg = fxd.pageOf[bit];
+    return '<button class="fxk' + (FX_NOTE[k].includes("#") ? " blk" : "") + (pg >= 0 && fxd.pages[pg].hold ? " hold" : "") + '" data-bit="' + bit + '" style="--c:' + fxCol(bit) + '" title="Tap: on until tapped again · hold: on while held' + (pg >= 0 ? " · its settings on the right" : "") + '"><b>' + fxd.names[bit] + "</b><span>" + FX_NOTE[k] + "</span></button>";
+  }).join("") + "</div></div>";
+  $("fx").innerHTML = '<div><div class="bar" style="margin-bottom:8px"><button id="fxOff">All off</button><span class="muted">The FM-1&#39;s FX menu: tap an effect to latch it, hold it to play it while you hold. The effects and their settings are the player&#39;s, not the piece&#39;s (as on the unit).</span></div>' +
+    bank(0) + bank(1) + '</div><div class="fxside" id="fxSide"></div>';
+  fxPaint(); fxSide();
+}
+function fxPaint() {
+  document.querySelectorAll("#fx .fxk[data-bit]").forEach((b) => { const bit = +b.dataset.bit; b.setAttribute("aria-pressed", String(fxIsOn(bit))); b.classList.toggle("sel", fxd.pageOf[bit] === fxSel && fxSel >= 0); });
+}
+function fxKnob(pg, i, c, col) {
+  const f = (c.v - c.lo) / Math.max(1, c.hi - c.lo);
+  return '<div class="knob fxkn" tabindex="0" role="slider" aria-label="' + c.label + '" data-page="' + pg + '" data-i="' + i + '" title="' + c.label + ': drag up or down, the wheel, the arrow keys' + (c.hi - c.lo === 1 ? "; a click turns it over" : "") + '">' +
+    '<div class="dial" style="--f:' + f + ";--c:" + col + '"><i></i></div><span class="v">' + (c.t || c.v) + '</span><span class="kl">' + c.label + "</span></div>";
+}
+function fxPage(pg) {
+  const P0 = fxd.pages[pg], col = P0.bit < 63 ? fxCol(P0.bit) : COL.acc;
+  return '<div class="sec"><h3>' + P0.name + (P0.bit < 63 && fxIsOn(P0.bit) ? " · ON" : "") + '</h3><div class="ctls kn">' + P0.c.map((c, i) => (c && c.label ? fxKnob(pg, i, c, col) : "")).join("") + "</div></div>";
+}
+function fxSide() {
+  const el = $("fxSide"); if (!el || !fxd) return;
+  const af = fxd.pages.findIndex((x) => x.name === "AUTO FX");
+  el.innerHTML = (fxSel >= 0 ? fxPage(fxSel) : '<div class="sec"><h3>SETTINGS</h3><p class="muted" style="margin:0">Tap or hold an effect: its settings come here.</p></div>') + (af >= 0 && af !== fxSel ? fxPage(af) : "");
+}
+let fxPress = null;
+$("fx").addEventListener("pointerdown", async (e) => {
+  const b = e.target.closest(".fxk[data-bit]");
+  if (b && fxd) {
+    e.preventDefault();
+    const bit = +b.dataset.bit, was = fxIsOn(bit);
+    fxPress = { bit, was, t: performance.now(), p: null };
+    if (fxd.pageOf[bit] >= 0) { fxSel = fxd.pageOf[bit]; fxSide(); }
+    if (!was) { fxPress.p = fxLock(bit, true); await fxPress.p; }
+    return;
+  }
+  const k = e.target.closest(".fxkn");
+  if (k && fxd) { e.preventDefault(); k.setPointerCapture(e.pointerId); const c = fxd.pages[+k.dataset.page].c[+k.dataset.i]; fxPress = { knob: k, y: e.clientY, v0: c.v, moved: false }; }
+});
+$("fx").addEventListener("pointermove", (e) => {
+  if (!fxPress || !fxPress.knob) return;
+  const k = fxPress.knob, c = fxd.pages[+k.dataset.page].c[+k.dataset.i], d = fxPress.y - e.clientY;
+  if (Math.abs(d) > 2) fxPress.moved = true;
+  if (fxPress.moved) fxSetK(+k.dataset.page, +k.dataset.i, Math.round(fxPress.v0 + d / 150 * (c.hi - c.lo) * (e.shiftKey ? 0.2 : 1)));
+});
+document.addEventListener("pointerup", async () => {
+  const pr = fxPress; fxPress = null;
+  if (!pr || !fxd) return;
+  if (pr.knob) { if (!pr.moved) { const c = fxd.pages[+pr.knob.dataset.page].c[+pr.knob.dataset.i]; if (c.hi - c.lo === 1) fxSetK(+pr.knob.dataset.page, +pr.knob.dataset.i, c.v === c.lo ? c.hi : c.lo); } return; }
+  const held = performance.now() - pr.t > 300;
+  if (pr.p) await pr.p;                                       // (its switch-on first)
+  if (pr.was) await fxLock(pr.bit, false);                    // a tap on one that was on: off
+  else if (held) await fxLock(pr.bit, false);                 // held: only while held
+  fxSide();
+  say(fxIsOn(pr.bit) ? fxd.names[pr.bit] + ": on (tap it again for off)." : fxd.names[pr.bit] + ": off.");
+});
+async function fxSetK(pg, i, v) {                              // a setting: the newest goes, one at a time
+  const c = fxd.pages[pg].c[i];
+  v = Math.max(c.lo, Math.min(c.hi, v));
+  if (v === c.v && !fxBusy) return;
+  c.v = v;
+  if (fxBusy) { fxNext = [pg, i, v]; return; }
+  fxBusy = true;
+  await fxAsk({ page: pg, i, v });
+  fxBusy = false;
+  if (fxNext) { const n = fxNext; fxNext = null; return fxSetK(...n); }
+  const k = document.querySelector('.fxkn[data-page="' + pg + '"][data-i="' + i + '"]'), q = fxd.pages[pg].c[i];
+  if (k) { k.querySelector(".dial").style.setProperty("--f", (q.v - q.lo) / Math.max(1, q.hi - q.lo)); k.querySelector(".v").textContent = q.t || q.v; }
+}
+$("fx").addEventListener("wheel", (e) => {
+  const k = e.target.closest(".fxkn"); if (!k || !fxd) return;
+  e.preventDefault();
+  const c = fxd.pages[+k.dataset.page].c[+k.dataset.i];
+  fxSetK(+k.dataset.page, +k.dataset.i, c.v + (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 10 : 1));
+}, { passive: false });
+$("fx").addEventListener("keydown", (e) => {
+  const k = e.target.closest(".fxkn"); if (!k || !fxd) return;
+  const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key]; if (!d) return;
+  e.preventDefault(); const c = fxd.pages[+k.dataset.page].c[+k.dataset.i]; fxSetK(+k.dataset.page, +k.dataset.i, c.v + d * (e.shiftKey ? 10 : 1));
+});
+$("fx").addEventListener("click", async (e) => { if (e.target.id === "fxOff" && fxd) { await fxAsk({ lo: 0, hi: 0 }); fxPaint(); fxSide(); say("Every effect off."); } });
+
+/* ---- fades: a part's level down to out over some bars (then muted, its level back as it was), or up from out (unmuted at nothing, up to its level);
+ * the steps go to the engine as the unit's knob would (web_st_par), so the piece keeps its level */
+let fadeBars = 4;
+const fadeV = {}, fading = {};
+async function deskFade(trk, p) {
+  if (!node || !io || fading[trk]) return;
+  const target = parV(p), out = live ? ((live.trk || 0) & trk) === trk : false, secs = fadeBars * 240 / Math.max(40, parV(PE.P_TEMPO));
+  const run = (from, to) => new Promise((res) => {
+    const t0 = performance.now();
+    const tick = () => {
+      const t = Math.min(1, (performance.now() - t0) / (secs * 1000)), v = Math.round(from + (to - from) * (to > from ? Math.sqrt(t) : t * t));   // (by ear: up quick at first, down slow at first)
+      fadeV[p] = v; fading[trk] = { t, dir: to > from };
+      node.port.postMessage({ type: "st_par", p, v, id: ++reqId });
+      deskFadeShow(trk);
+      if (t < 1) setTimeout(tick, 50); else res();
+    };
+    tick();
+  });
+  if (out) {
+    node.port.postMessage({ type: "st_par", p, v: 0, id: ++reqId });
+    await deskTrk((live.trk || 0) & ~trk, deskSolo);
+    say("Fading in over " + fadeBars + " bar" + (fadeBars > 1 ? "s" : "") + "…");
+    await run(0, target);
+  } else {
+    say("Fading out over " + fadeBars + " bar" + (fadeBars > 1 ? "s" : "") + "…");
+    await run(target, 0);
+    await deskTrk(((live && live.trk) || 0) | trk, deskSolo);
+    node.port.postMessage({ type: "st_par", p, v: target, id: ++reqId });   // (out by its mute; its level as the piece has it)
+  }
+  delete fadeV[p]; delete fading[trk];
+  deskFadeShow(trk); syncCtls();
+  say(out ? "Faded in." : "Faded out: the part is muted (M), its level as it was. FADE IN brings it back.");
+}
+function deskFadeShow(trk) {
+  const b = document.querySelector('#desk .fade[data-trk="' + trk + '"]'); if (!b) return;
+  const f = fading[trk], out = live ? ((live.trk || 0) & trk) === trk : false;
+  b.querySelector("i").style.width = f ? Math.round(f.t * 100) + "%" : "0";
+  b.firstChild.textContent = f ? (f.dir ? "FADING IN" : "FADING OUT") : out ? "FADE IN" : "FADE OUT";
+}
+setInterval(() => { if (view === "desk") document.querySelectorAll("#desk .fade[data-trk]").forEach((b) => deskFadeShow(+b.dataset.trk)); }, 250);
+
+/* ---- the LFOs' shapes as pictures to pick */
+const SHAPE_PATH = ["M1 8 C 5 -2, 9 -2, 13 8 S 21 18, 25 8 S 29 2, 29 2", "M1 14 L8 2 L15 14 L22 2 L29 14", "M1 14 L13 2 L13 14 L25 2 L25 14 L29 10", "M1 14 L1 2 L8 2 L8 14 L15 14 L15 2 L22 2 L22 14 L29 14",
+  "M1 10 L6 10 L6 3 L11 3 L11 13 L16 13 L16 6 L21 6 L21 11 L26 11 L26 4 L29 4", "M1 10 C 6 4, 9 4, 12 9 S 18 15, 22 7 S 27 6, 29 8"];
+function shapeHTML(p, col) {
+  const q = meta(p);
+  return '<div class="ctl list" data-shape="' + p + '" style="--c:' + col + '"><div class="top"><span>Shape</span><span class="v"></span></div><div class="shapes">' +
+    q.t.map((n, i) => '<button class="small" data-shp="' + p + '" data-v="' + (q.min + i) + '" title="' + n + '" aria-label="' + n + '"><svg viewBox="0 0 30 16"><path d="' + (SHAPE_PATH[i] || SHAPE_PATH[0]) + '" fill="none" stroke="' + col + '" stroke-width="2"/></svg></button>').join("") + "</div></div>";
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-shp]"); if (!b || !io) return;
+  setFromCtl(+b.dataset.shp, +b.dataset.v); syncCtls();
+});
+
 // the picture a section of a page gets (by its page and section, its knobs found by their labels), or none
 function picFor(tabName, x, col) {
   const k = (re) => { const q = x.knobs.find((y) => re.test(y.label)); return q ? q.p : NaN; };
@@ -1763,9 +1953,11 @@ function deskMS() {                                           // M lit from what
 setInterval(() => { if (view === "desk") deskMS(); }, 120);
 function deskRender() {
   if (view !== "desk" || !io) return;
-  let h = '<div class="strips">' + deskStrips().map((st) => '<div class="strip" style="--c:' + st.c + '"><div class="cap"></div><h3>' + st.n +
+  let h = '<div class="fadebar"><span class="lbl">FADES OVER</span>' + [1, 2, 4, 8, 16].map((b) => '<button class="small" data-fb="' + b + '" aria-pressed="' + (b === fadeBars) + '">' + b + (b === 1 ? " bar" : " bars") + "</button>").join("") +
+    '<span>FADE OUT takes a part down to nothing and mutes it; FADE IN brings it back up to its level. The piece keeps its levels.</span></div><div class="strips">' + deskStrips().map((st) => '<div class="strip" style="--c:' + st.c + '"><div class="cap"></div><h3>' + st.n +
     (DESK_TRK[st.n] ? '<span class="ms"><button class="small mute" data-trk="' + DESK_TRK[st.n] + '" title="Mute: out now (as GLO and a key on the FM-1: not stored with the piece)">M</button>' +
       '<button class="small solo" data-trk="' + DESK_TRK[st.n] + '" title="Solo: only the soloed parts play (not stored)">S</button></span>' : "") + '</h3><div class="body">' +
+    (DESK_TRK[st.n] && st.lvl >= 0 ? '<button class="small fade" data-trk="' + DESK_TRK[st.n] + '" data-p="' + st.lvl + '" title="Fade the part out over the bars set above (then it is muted, its level kept), or in from out">FADE OUT<i></i></button>' : "") +
     '<div class="mix">' + (st.lvl >= 0 ? '<div class="fader" tabindex="0" role="slider" aria-label="' + st.n + ' level" data-p="' + st.lvl + '"><i></i><b></b></div>' : "") +
     (st.k >= 0 ? '<div class="meter v" data-k="' + st.k + '" title="What it plays now"><i></i></div>' : "") + "</div>" + (st.lvl >= 0 ? '<div class="lv"></div>' : "") +
     '<div class="knobs">' + (st.pan >= 0 ? knobHTML(st.pan, "Pan", st.c) : "") + (st.send >= 0 ? knobHTML(st.send, "Send", st.c) : "") + "</div>" +
@@ -1785,6 +1977,10 @@ function deskRender() {
   syncCtls(); drawPics();
 }
 $("desk").addEventListener("click", (e) => {
+  const fb = e.target.closest("button[data-fb]");
+  if (fb) { fadeBars = +fb.dataset.fb; document.querySelectorAll("#desk button[data-fb]").forEach((x) => x.setAttribute("aria-pressed", String(x === fb))); return; }
+  const fd = e.target.closest(".fade[data-trk]");
+  if (fd) return deskFade(+fd.dataset.trk, +fd.dataset.p);
   const b = e.target.closest(".mute[data-trk], .solo[data-trk]");
   if (!b || !node) return;
   const m = +b.dataset.trk, out = live ? live.trk || 0 : 0;
@@ -1797,7 +1993,8 @@ document.querySelector(".views").addEventListener("click", (e) => {
   if (!b) return;
   view = b.dataset.view;
   document.querySelectorAll(".views button[data-view]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
-  $("loom").hidden = view !== "loom"; $("desk").hidden = view !== "desk"; $("song").hidden = view !== "song";
+  $("loom").hidden = view !== "loom"; $("desk").hidden = view !== "desk"; $("song").hidden = view !== "song"; $("fx").hidden = view !== "fx";
+  fxLoad();
   deskRender(); songLoad(); refresh(); undoButtons();
 });
 
@@ -2491,8 +2688,14 @@ const cyclesPerBar = (t) => {
   return m[2] === "T" ? c * 1.5 : m[2] === "." ? c / 1.5 : c;
 };
 PICS.lfo = (g, W, H, [Dp, Sh, Tg, Rt], col) => {
-  const pad = 12, w = W - 2 * pad, mid = H / 2 + 6, amp = (0.05 + 0.95 * pf(Dp)) * (H / 2 - 18), shape = parV(Sh), cyc = cyclesPerBar(valText(Rt, parV(Rt))) * 2;
-  g.strokeStyle = "#3a3e4a"; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(pad + w / 2, 18); g.lineTo(pad + w / 2, H - 4); g.stroke(); g.setLineDash([]);
+  const pad = 12, w = W - 2 * pad, mid = H / 2 + 4, amp = (0.05 + 0.95 * pf(Dp)) * (H / 2 - 18), shape = parV(Sh), cpb = cyclesPerBar(valText(Rt, parV(Rt)));
+  const win = Math.max(2, Math.min(32, Math.ceil(1 / Math.max(cpb, 1 / 32) - 1e-6))), cyc = cpb * win;   // (at least a whole cycle drawn: 2 bars, or as many as one takes)
+  for (let b = 0; b <= win; b++) {                            // the bars along the foot (the LFOs are locked to the bar)
+    const x = pad + b / win * w;
+    g.fillStyle = b % 4 === 0 ? "#3a3e4a" : "#262932"; g.fillRect(Math.round(x), H - 8, 1, 6);
+    if (win <= 8 || b % 4 === 0) { g.fillStyle = "#555a66"; g.font = FONT(600, 8); if (b < win) g.fillText(String(b + 1), x + 2, H - 1); }
+  }
+  g.strokeStyle = "#2a2d35"; g.beginPath(); g.moveTo(pad, mid); g.lineTo(pad + w, mid); g.stroke();
   let seed = 7;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1, steps = [];
   const val = (ph) => {
@@ -2509,7 +2712,12 @@ PICS.lfo = (g, W, H, [Dp, Sh, Tg, Rt], col) => {
   const pts = [];
   for (let x = 0; x <= w; x += 1.5) pts.push([pad + x, mid - val(x / w * cyc) * amp]);
   curve(g, pts, col);
-  label(g, String(P[PE.P_PL_SHAPE] ? valText(Sh, shape) : "").toUpperCase() + " · " + valText(Rt, parV(Rt)) + " · TO " + String(valText(Tg, parV(Tg))).toUpperCase() + "  (2 BARS; CLICK: NEXT SHAPE)", pad, 14);
+  label(g, String(P[PE.P_PL_SHAPE] ? valText(Sh, shape) : "").toUpperCase() + " · " + valText(Rt, parV(Rt)) + " · TO " + String(valText(Tg, parV(Tg))).toUpperCase() + "  (" + win + " BARS SHOWN)", pad, 14);
+  if (live && live.playing) {                                 // where it is now: the bar playing, the wave there
+    const pos = (live.t || 0) / 16, x = pad + ((pos % win) / win) * w, y = mid - val(pos * cpb) * amp;
+    g.strokeStyle = hexA(COL.ink, 0.25); g.beginPath(); g.moveTo(x, 18); g.lineTo(x, H - 8); g.stroke();
+    g.fillStyle = COL.ink; g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill(); g.fillStyle = col; g.beginPath(); g.arc(x, y, 2.5, 0, 7); g.fill();
+  }
   const xq = pad + Math.min(w, w / Math.max(cyc, 0.5) / 4);
   return [{ name: "Depth", x: xq, y: mid - amp, py: Dp, ay: [mid - 0.05 * (H / 2 - 18), mid - (H / 2 - 18)], click: Sh }];
 };

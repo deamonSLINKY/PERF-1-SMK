@@ -225,6 +225,68 @@ __attribute__((used, visibility("default"))) int web_st_vox_dx(int idx)
     return 2;
 }
 
+/* ---- the FX menu (web/studio's FX view): the effects latched (ui.fx_lock, as a tap on the FX menu's key latches one: the UI sends the mask every frame),
+ * the menu's keys (KEY_FX), the effects' names, and their pages (ui.c FXP: a name, the effect, four settings with their ranges and the text the unit
+ * shows), read and set as the FX menu's knobs do (fxp_get, fxp_set: the player's settings, kept a moment after, not a piece's) */
+__attribute__((used, visibility("default"))) int web_st_fx_lock(int set, int lo, int hi)
+{
+    if (set)
+        ui.fx_lock = (uint64_t)(uint32_t)hi << 32 | (uint32_t)lo;
+    return (int)(uint32_t)ui.fx_lock;
+}
+__attribute__((used, visibility("default"))) int web_st_fx_lock_hi(void) { return (int)(uint32_t)(ui.fx_lock >> 32); }
+__attribute__((used, visibility("default"))) int web_st_fx_nkeys(void) { return NKEYS; }
+__attribute__((used, visibility("default"))) int web_st_fx_key(int bank, int key) { return (unsigned)bank < 4u && (unsigned)key < (unsigned)NKEYS ? KEY_FX[bank][key] : FX_NONE; }
+__attribute__((used, visibility("default"))) const char *web_st_fx_name(int bit) { return (unsigned)bit < EN_NFX && EN_FX_NAME[bit] ? EN_FX_NAME[bit] : ""; }
+__attribute__((used, visibility("default"))) int web_st_fx_page(int bit) { return fx_page_of(bit) - 1; }
+__attribute__((used, visibility("default"))) int web_st_fxp_n(void) { return NFXP; }
+/* page p's: what 0 its effect (63: none, the UI's settings), 1 heard only while held; control i's: 2 its kind (-1 none), 3 lowest, 4 highest, 5 value */
+__attribute__((used, visibility("default"))) int web_st_fxp_num(int p, int i, int what)
+{
+    int lo, hi;
+    const int k = K_FXP + p * 4 + (i & 3);
+    if ((unsigned)p >= NFXP)
+        return 0;
+    if (what == 0)
+        return FXP[p].bit;
+    if (what == 1)
+        return FXP[p].hold;
+    if (FXP[p].c[i & 3].kind == KN_NONE)
+        return -1;
+    if (what == 2)
+        return FXP[p].c[i & 3].kind;
+    fxp_range(k, &lo, &hi);
+    return what == 3 ? lo : what == 4 ? hi : fxp_get(k);
+}
+static char st_fxt[32];
+/* page p's name (what 0), control i's label (1) or its value as the unit shows it (2) */
+__attribute__((used, visibility("default"))) const char *web_st_fxp_str(int p, int i, int what)
+{
+    if ((unsigned)p >= NFXP)
+        return "";
+    if (what == 0)
+        return FXP[p].name;
+    if (what == 1)
+        return FXP[p].c[i & 3].label;
+    st_fxt[0] = 0;
+    if (FXP[p].c[i & 3].kind != KN_NONE)
+        fxp_text(K_FXP + p * 4 + (i & 3), st_fxt);
+    return st_fxt;
+}
+__attribute__((used, visibility("default"))) int web_st_fxp_set(int p, int i, int v)
+{
+    if ((unsigned)p >= NFXP || FXP[p].c[i & 3].kind == KN_NONE)
+        return 0;
+    fxp_set(K_FXP + p * 4 + (i & 3), v);
+    return fxp_get(K_FXP + p * 4 + (i & 3));
+}
+/* a parameter set as the FM-1's knob sets it (the Editor's px_service way), without the studio's copy of the piece: a fade's steps */
+__attribute__((used, visibility("default"))) int web_st_par(int p, int v)
+{
+    ui_param_set(p, v);
+    return ui_param_get(p);
+}
+
 /* the tracks muted and soloed (a bit a track, EN_TR_*), as the FM-1's GLO and keys: heard now, not stored; a song place's parts set them again */
 __attribute__((used, visibility("default"))) int web_st_trk(int mute, int solo)
 {
