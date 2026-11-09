@@ -188,6 +188,7 @@ __attribute__((used, visibility("default"))) int web_st_vox_put(int slot, int ke
 {
     if (slot < 0 || slot > en_user_next())
         slot = en_user_next();
+    ui.act_t = plat_ms();
     if (!en_user_voice(slot, st_vox))
         return -1;
     if (keep)
@@ -230,8 +231,10 @@ __attribute__((used, visibility("default"))) int web_st_vox_dx(int idx)
  * shows), read and set as the FX menu's knobs do (fxp_get, fxp_set: the player's settings, kept a moment after, not a piece's) */
 __attribute__((used, visibility("default"))) int web_st_fx_lock(int set, int lo, int hi)
 {
-    if (set)
+    if (set) {
         ui.fx_lock = (uint64_t)(uint32_t)hi << 32 | (uint32_t)lo;
+        ui.act_t = plat_ms();
+    }
     return (int)(uint32_t)ui.fx_lock;
 }
 __attribute__((used, visibility("default"))) int web_st_fx_lock_hi(void) { return (int)(uint32_t)(ui.fx_lock >> 32); }
@@ -277,6 +280,7 @@ __attribute__((used, visibility("default"))) int web_st_fxp_set(int p, int i, in
 {
     if ((unsigned)p >= NFXP || FXP[p].c[i & 3].kind == KN_NONE)
         return 0;
+    ui.act_t = plat_ms();                        /* (as a knob turned: the settings' store waits until it is left alone) */
     fxp_set(K_FXP + p * 4 + (i & 3), v);
     return fxp_get(K_FXP + p * 4 + (i & 3));
 }
@@ -331,6 +335,7 @@ __attribute__((used, visibility("default"))) int web_st_put(void)
     take(i);
     ui.key_on = 0;
     project_apply();
+    ui.act_t = plat_ms();
     proj.edited |= (uint16_t)(1u << i);
     return ok;
 }

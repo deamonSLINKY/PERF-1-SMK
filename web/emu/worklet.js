@@ -94,6 +94,20 @@ class Amb extends AudioWorkletProcessor {
       const ex = this.ex, str = (ptr) => { const b = new Uint8Array(this.mem.buffer, ptr, 64); let s = ""; for (let i = 0; i < 64 && b[i]; i++) s += String.fromCharCode(b[i]); return s; };
       if (m.page !== undefined) ex.web_st_fxp_set(m.page | 0, m.i | 0, m.v | 0);
       const lo = ex.web_st_fx_lock(m.lo !== undefined ? 1 : 0, m.lo | 0, m.hi | 0) >>> 0, hi = ex.web_st_fx_lock_hi() >>> 0, pages = [];
+      const desc = (p) => {
+        const c = [];
+        for (let i = 0; i < 4; i++) {
+          const kind = ex.web_st_fxp_num(p, i, 2);
+          c.push(kind < 0 ? null : { label: str(ex.web_st_fxp_str(p, i, 1)), kind, lo: ex.web_st_fxp_num(p, i, 3), hi: ex.web_st_fxp_num(p, i, 4), v: ex.web_st_fxp_num(p, i, 5), t: str(ex.web_st_fxp_str(p, i, 2)) });
+        }
+        return { name: str(ex.web_st_fxp_str(p, 0, 0)), bit: ex.web_st_fxp_num(p, 0, 0), hold: ex.web_st_fxp_num(p, 0, 1), c };
+      };
+      if (m.light) {                                    // (light: the page set, or the mask alone: little work on this thread while it plays)
+        const r = { type: "st", id: m.id, ok: 1, lo, hi };
+        if (m.page !== undefined) r.one = { page: m.page | 0, desc: desc(m.page | 0) };
+        this.port.postMessage(r);
+        return;
+      }
       for (let p = 0; p < ex.web_st_fxp_n(); p++) {
         const c = [];
         for (let i = 0; i < 4; i++) {
