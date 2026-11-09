@@ -1343,11 +1343,11 @@ const parSetV = (p, v) => {
 const valText = (p, v) => (meta(p).t ? (meta(p).t[v - meta(p).min] ?? String(v)) : String(v));
 const shortLabel = (l) => String(l).replace(/\s*\(.*\)\s*$/, "");
 const isList = (p) => { const q = meta(p); return !!(q && q.t && q.t.length > 2); };
-function knobHTML(p, label, col) {                           // (a list stays a list; an LFO's shape is its pictures)
+function knobHTML(p, label, col, force) {                    // (a list stays a list unless forced; an LFO's shape is its pictures)
   const q = meta(p);
   if (!q) return "";
   if (p === PE.P_PL_SHAPE || p === PE.P_DL_SHAPE) return shapeHTML(p, col || COL.acc);
-  if (q.t && q.t.length > 2) return ctlHTML(p, label, col);
+  if (q.t && q.t.length > 2 && !force) return ctlHTML(p, label, col);
   const lab = shortLabel(label || q.n).replace(/[<&]/g, "");
   return '<div class="ctl knob" tabindex="0" role="slider" aria-label="' + lab + '" aria-valuemin="' + q.min + '" aria-valuemax="' + q.max + '" data-p="' + p + '" style="--c:' + (col || COL.acc) +
     '" title="' + lab + ': drag up or down (Shift: finer), the wheel, the arrow keys; double-click: its default"><div class="dial"><i></i></div><span class="v"></span><span class="kl">' + lab + "</span></div>";
@@ -1431,7 +1431,9 @@ function soundRender() {
   const tab = D.tabs.find((t) => t.name === LANE_TAB[sel]), col = (LANES.find((l) => l.id === sel) || {}).col;
   if (!tab || !io) { $("sound").innerHTML = ""; return; }
   const plain = tab.sections.filter((x) => !/ lane$/.test(x.name)), lanes = tab.sections.filter((x) => / lane$/.test(x.name));
-  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + picFor(tab.name, x, col) + '<div class="ctls kn">' + x.knobs.map((k) => knobHTML(k.p, k.label, col)).join("") + "</div></div>").join("");
+  const lfoRate = tab.name === "Pad" ? PE.P_PL_RATE : tab.name === "Bass" ? PE.P_DL_RATE : undefined;   // (its rate lives on the Mixer's page: here too)
+  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + picFor(tab.name, x, col) + '<div class="ctls kn">' + x.knobs.map((k) => knobHTML(k.p, k.label, col)).join("") +
+    (x.name === "LFO" && lfoRate !== undefined ? knobHTML(lfoRate, "Rate", col, true) : "") + "</div></div>").join("");
   if (lanes.length) {                                         // the drums' six lanes: a row each
     const kp = (x, re) => (x.knobs.find((k) => re.test(k.label)) || {}).p;
     h += '<div class="sec"><h3>Each lane</h3>' + picHTML("kit", lanes.flatMap((x) => [kp(x, /^Level/), kp(x, /^Tune/), kp(x, /^Decay/)]), col, 130) + '<table class="lanes6"><tr><th></th>' + lanes[0].knobs.map((k) => "<th>" + shortLabel(k.label).replace("Probability", "Chance").replace("Length", "Steps") + "</th>").join("") + "</tr>" +
@@ -1761,6 +1763,7 @@ async function fxLoad() {
 function fxLock(bit, on) {
   let lo = fxd.lo >>> 0, hi = fxd.hi >>> 0;
   if (bit < 32) lo = on ? (lo | (1 << bit)) >>> 0 : (lo & ~(1 << bit)) >>> 0; else hi = on ? (hi | (1 << (bit - 32))) >>> 0 : (hi & ~(1 << (bit - 32))) >>> 0;
+  mvAdd({ k: "fx", lo: lo | 0, hi: hi | 0 });
   return fxAsk({ lo: lo | 0, hi: hi | 0 }).then(fxPaint);
 }
 function fxRender() {
@@ -1789,10 +1792,58 @@ function fxPage(pg) {
 function fxSide() {
   const el = $("fxSide"); if (!el || !fxd) return;
   const af = fxd.pages.findIndex((x) => x.name === "AUTO FX");
-  el.innerHTML = (fxSel >= 0 ? fxPage(fxSel) : '<div class="sec"><h3>SETTINGS</h3><p class="muted" style="margin:0">Tap or hold an effect: its settings come here.</p></div>') + (af >= 0 && af !== fxSel ? fxPage(af) : "");
+  el.innerHTML = xyHTML() + (fxSel >= 0 ? fxPage(fxSel) : '<div class="sec"><h3>SETTINGS</h3><p class="muted" style="margin:0">Tap or hold an effect: its settings come here.</p></div>') + (af >= 0 && af !== fxSel ? fxPage(af) : "");
+  xyDraw();
+}
+/* the XY pad: a setting across, another up; touching it turns their effects on (off again when let go, unless Keep on), as a Kaoss pad */
+let xyA = null, xyB = null, xyTouch = null;
+function xyOpts() {
+  const o = [];
+  fxd.pages.forEach((P0, pg) => { if (P0.bit >= 62) return; P0.c.forEach((c, i) => { if (c && c.label && c.hi - c.lo >= 4) o.push([pg + ":" + i, P0.name + " · " + c.label]); }); });
+  return o;
+}
+function xyHTML() {
+  const o = xyOpts();
+  if (!xyA) { const f = fxd.pages.findIndex((x) => x.name === "FILTER"); xyA = f >= 0 ? f + ":1" : o[0][0]; xyB = f >= 0 ? f + ":2" : o[1][0]; }
+  const sel = (id, v) => '<select id="' + id + '">' + o.map(([k, t]) => '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + t + "</option>").join("") + "</select>";
+  return '<div class="sec"><h3>XY PAD · DRAG ON IT: ITS EFFECTS PLAY WHILE YOU TOUCH</h3><div class="bar" style="margin-bottom:6px"><span class="lbl">↔</span>' + sel("xyA", xyA) + '<span class="lbl">↕</span>' + sel("xyB", xyB) +
+    '<label class="muted"><input type="checkbox" id="xyKeep"' + (xyKeep ? " checked" : "") + "> keep on</label></div>" +
+    '<canvas id="xyPad" height="210" style="width:100%;display:block;border-radius:6px;background:#121318;border:1px solid var(--line);touch-action:none;cursor:crosshair"></canvas></div>';
+}
+let xyKeep = false;
+const xyGet = (k) => { const [pg, i] = k.split(":").map(Number); return { pg, i, c: fxd.pages[pg].c[i], P0: fxd.pages[pg] }; };
+function xyDraw() {
+  const cv = $("xyPad"); if (!cv || !fxd) return;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = 210;
+  if (!W) return;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
+  g.strokeStyle = "#22252c"; g.lineWidth = 1; for (let q = 1; q < 8; q++) { g.beginPath(); g.moveTo(q * W / 8, 0); g.lineTo(q * W / 8, H); g.stroke(); g.beginPath(); g.moveTo(0, q * H / 8); g.lineTo(W, q * H / 8); g.stroke(); }
+  const A = xyGet(xyA), B = xyGet(xyB), fa = (A.c.v - A.c.lo) / Math.max(1, A.c.hi - A.c.lo), fb = (B.c.v - B.c.lo) / Math.max(1, B.c.hi - B.c.lo), x = 8 + fa * (W - 16), y = H - 8 - fb * (H - 16);
+  const col = A.P0.bit < 63 ? fxCol(A.P0.bit) : COL.acc;
+  if (xyTouch) { const gr = g.createRadialGradient(x, y, 0, x, y, 60); gr.addColorStop(0, hexA(col, 0.45)); gr.addColorStop(1, hexA(col, 0)); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+  g.strokeStyle = hexA(COL.ink, 0.25); g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+  g.fillStyle = xyTouch ? COL.ink : col; g.beginPath(); g.arc(x, y, xyTouch ? 9 : 7, 0, 7); g.fill();
+  g.font = FONT(700, 10); g.fillStyle = COL.dim;
+  g.fillText(A.c.label.toUpperCase() + " " + (A.c.t || A.c.v) + " →", 8, H - 6); g.save(); g.translate(12, H - 70); g.rotate(-Math.PI / 2); g.fillText(B.c.label.toUpperCase() + " " + (B.c.t || B.c.v) + " →", 0, 0); g.restore();
+}
+async function xyAt(e) {
+  const cv = $("xyPad"), r = cv.getBoundingClientRect(), fa = Math.max(0, Math.min(1, (e.clientX - r.left - 8) / (r.width - 16))), fb = Math.max(0, Math.min(1, (r.bottom - e.clientY - 8) / (r.height - 16)));
+  const A = xyGet(xyA), B = xyGet(xyB);
+  fxSetK(A.pg, A.i, Math.round(A.c.lo + fa * (A.c.hi - A.c.lo)));
+  fxSetK(B.pg, B.i, Math.round(B.c.lo + fb * (B.c.hi - B.c.lo)));
+  xyDraw();
 }
 let fxPress = null;
 $("fx").addEventListener("pointerdown", async (e) => {
+  if (e.target.id === "xyPad" && fxd) {                       // the XY pad: its effects on while touched
+    e.preventDefault(); e.target.setPointerCapture(e.pointerId);
+    const bits = [...new Set([xyGet(xyA).P0.bit, xyGet(xyB).P0.bit])].filter((b) => b < 62 && !fxIsOn(b));
+    xyTouch = { bits };
+    for (const b of bits) await fxLock(b, true);
+    xyAt(e);
+    return;
+  }
   const b = e.target.closest(".fxk[data-bit]");
   if (b && fxd) {
     e.preventDefault();
@@ -1806,12 +1857,14 @@ $("fx").addEventListener("pointerdown", async (e) => {
   if (k && fxd) { e.preventDefault(); k.setPointerCapture(e.pointerId); const c = fxd.pages[+k.dataset.page].c[+k.dataset.i]; fxPress = { knob: k, y: e.clientY, v0: c.v, moved: false }; }
 });
 $("fx").addEventListener("pointermove", (e) => {
+  if (xyTouch && e.target.id === "xyPad") { xyAt(e); return; }
   if (!fxPress || !fxPress.knob) return;
   const k = fxPress.knob, c = fxd.pages[+k.dataset.page].c[+k.dataset.i], d = fxPress.y - e.clientY;
   if (Math.abs(d) > 2) fxPress.moved = true;
   if (fxPress.moved) fxSetK(+k.dataset.page, +k.dataset.i, Math.round(fxPress.v0 + d / 150 * (c.hi - c.lo) * (e.shiftKey ? 0.2 : 1)));
 });
 document.addEventListener("pointerup", async () => {
+  if (xyTouch) { const t = xyTouch; xyTouch = null; if (!xyKeep) for (const b of t.bits) await fxLock(b, false); xyDraw(); fxSide(); return; }
   const pr = fxPress; fxPress = null;
   if (!pr || !fxd) return;
   if (pr.knob) { if (!pr.moved) { const c = fxd.pages[+pr.knob.dataset.page].c[+pr.knob.dataset.i]; if (c.hi - c.lo === 1) fxSetK(+pr.knob.dataset.page, +pr.knob.dataset.i, c.v === c.lo ? c.hi : c.lo); } return; }
@@ -1822,16 +1875,17 @@ document.addEventListener("pointerup", async () => {
   fxSide();
   say(fxIsOn(pr.bit) ? fxd.names[pr.bit] + ": on (tap it again for off)." : fxd.names[pr.bit] + ": off.");
 });
-async function fxSetK(pg, i, v) {                              // a setting: the newest goes, one at a time
+const fxPend = new Map();
+async function fxSetK(pg, i, v) {                              // a setting: the newest of each goes, one message at a time
   const c = fxd.pages[pg].c[i];
   v = Math.max(c.lo, Math.min(c.hi, v));
   if (v === c.v && !fxBusy) return;
   c.v = v;
-  if (fxBusy) { fxNext = [pg, i, v]; return; }
+  if (fxBusy) { fxPend.set(pg + ":" + i, [pg, i, v]); return; }
   fxBusy = true;
   await fxAsk({ page: pg, i, v });
   fxBusy = false;
-  if (fxNext) { const n = fxNext; fxNext = null; return fxSetK(...n); }
+  if (fxPend.size) { const n = [...fxPend.values()]; fxPend.clear(); for (const a of n) fxSetK(...a); }
   const k = document.querySelector('.fxkn[data-page="' + pg + '"][data-i="' + i + '"]'), q = fxd.pages[pg].c[i];
   if (k) { k.querySelector(".dial").style.setProperty("--f", (q.v - q.lo) / Math.max(1, q.hi - q.lo)); k.querySelector(".v").textContent = q.t || q.v; }
 }
@@ -1846,15 +1900,54 @@ $("fx").addEventListener("keydown", (e) => {
   const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key]; if (!d) return;
   e.preventDefault(); const c = fxd.pages[+k.dataset.page].c[+k.dataset.i]; fxSetK(+k.dataset.page, +k.dataset.i, c.v + d * (e.shiftKey ? 10 : 1));
 });
-$("fx").addEventListener("click", async (e) => { if (e.target.id === "fxOff" && fxd) { await fxAsk({ lo: 0, hi: 0 }); fxPaint(); fxSide(); say("Every effect off."); } });
+$("fx").addEventListener("change", (e) => {
+  if (e.target.id === "xyA") { xyA = e.target.value; xyDraw(); }
+  if (e.target.id === "xyB") { xyB = e.target.value; xyDraw(); }
+  if (e.target.id === "xyKeep") xyKeep = e.target.checked;
+});
+$("fx").addEventListener("click", async (e) => { if (e.target.id === "fxOff" && fxd) { mvAdd({ k: "fx", lo: 0, hi: 0 }); await fxAsk({ lo: 0, hi: 0 }); fxPaint(); fxSide(); say("Every effect off."); } });
+
+/* ---- moves: the FX taps and the fades made while the song plays and Rec moves is on, kept where they happened (a place, its bar, its step) and played
+ * back each time the song comes there, in the studio and its WAV. The FM-1's song does not keep them (they are kept in this browser). */
+const MV_KEY = "perf1-studio-moves";
+let moves = (() => { try { return JSON.parse(localStorage.getItem(MV_KEY) || "[]") || []; } catch { return []; } })(), mvRec = false, mvLast = null;
+const mvSave = () => { try { localStorage.setItem(MV_KEY, JSON.stringify(moves)); } catch { /* (a private window: this page only) */ } };
+const songPos = () => (live && live.playing && song && song.on && live.slPos < 16 ? { pl: live.slPos, s: (live.slBar === 255 ? 0 : live.slBar) * 16 + (live.step || 0) } : null);
+function mvAdd(ev) {
+  if (!mvRec) return;
+  const at = songPos();
+  if (!at) return;
+  moves.push({ ...ev, pl: at.pl, s: at.s });
+  moves.sort((a, b) => a.pl - b.pl || a.s - b.s);
+  mvSave();
+  if (view === "song") songRender();
+}
+function mvFire(e) {
+  if (e.k === "fx") fxAsk({ lo: e.lo, hi: e.hi }).then(() => { if (view === "fx") { fxPaint(); fxSide(); } });
+  else if (e.k === "fade") deskFade(e.trk, e.p, e.dir, e.bars);
+}
+setInterval(() => {                                           // the song's moves, as it comes to them
+  if (!moves.length || !node) { mvLast = null; return; }
+  const at = songPos();
+  if (!at) { mvLast = null; return; }
+  if (!mvLast || at.pl !== mvLast.pl || at.s < mvLast.s) {    // a place begins (or the song round again): its moves up to here
+    const first = song.places.findIndex((x) => x);
+    const base = moves.find((e) => e.k === "base");
+    if (at.pl === first && base && moves.some((e) => e.k === "fx")) fxAsk({ lo: base.lo, hi: base.hi });   // (from the top: the effects as they were when the recording began)
+    moves.filter((e) => e.pl === at.pl && e.s <= at.s).forEach(mvFire);
+  } else moves.filter((e) => e.pl === at.pl && e.s > mvLast.s && e.s <= at.s).forEach(mvFire);
+  mvLast = at;
+}, 40);
 
 /* ---- fades: a part's level down to out over some bars (then muted, its level back as it was), or up from out (unmuted at nothing, up to its level);
  * the steps go to the engine as the unit's knob would (web_st_par), so the piece keeps its level */
 let fadeBars = 4;
 const fadeV = {}, fading = {};
-async function deskFade(trk, p) {
+async function deskFade(trk, p, dir, bars) {                 // (dir, bars: a recorded move's; dir 1 in, 0 out: none when the part is that way already)
   if (!node || !io || fading[trk]) return;
-  const target = parV(p), out = live ? ((live.trk || 0) & trk) === trk : false, secs = fadeBars * 240 / Math.max(40, parV(PE.P_TEMPO));
+  const target = parV(p), out = live ? ((live.trk || 0) & trk) === trk : false, nb = bars || fadeBars, secs = nb * 240 / Math.max(40, parV(PE.P_TEMPO));
+  if (dir !== undefined && !!dir !== out) return;
+  if (dir === undefined) mvAdd({ k: "fade", trk, p, dir: out ? 1 : 0, bars: nb });
   const run = (from, to) => new Promise((res) => {
     const t0 = performance.now();
     const tick = () => {
@@ -1869,10 +1962,10 @@ async function deskFade(trk, p) {
   if (out) {
     node.port.postMessage({ type: "st_par", p, v: 0, id: ++reqId });
     await deskTrk((live.trk || 0) & ~trk, deskSolo);
-    say("Fading in over " + fadeBars + " bar" + (fadeBars > 1 ? "s" : "") + "…");
+    say("Fading in over " + nb + " bar" + (nb > 1 ? "s" : "") + "…");
     await run(0, target);
   } else {
-    say("Fading out over " + fadeBars + " bar" + (fadeBars > 1 ? "s" : "") + "…");
+    say("Fading out over " + nb + " bar" + (nb > 1 ? "s" : "") + "…");
     await run(target, 0);
     await deskTrk(((live && live.trk) || 0) | trk, deskSolo);
     node.port.postMessage({ type: "st_par", p, v: target, id: ++reqId });   // (out by its mute; its level as the piece has it)
@@ -2139,6 +2232,7 @@ async function songLoad() {
   const r = await ask({ type: "st_set" });
   song = songFrom(r.sl);
   songPrev = songBytes(song); undoButtons();
+  if (moves.length && (!fxd || !fxd.names)) await fxAsk({ all: 1 });
   if (!slGenre && cur) slGenre = cur.genre;
   slShown = -2;
   songRender();
@@ -2176,7 +2270,8 @@ function songRender() {
   if (!song) return;
   const sel = setSel, q = song.places[sel] ? pcSetPlaces([song.places[sel]])[0] : null, mode = !song.on ? 0 : song.end ? 2 : 1;
   const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), total = used.reduce((a, i) => a + (song.bars[i] || 0), 0), autos = used.filter((i) => !song.bars[i]).length;
-  let h = '<div class="bar"><button id="slWav"' + (used.length || rec ? "" : " disabled") + ' title="Plays the song once from its first place and records it: a WAV (44.1 kHz, 16-bit stereo) to download">' + (rec ? "■ Stop recording" : "● Song to WAV") + '</button><button id="slSend"' + (used.length ? "" : " disabled") + ' title="Opens the Library &amp; pieces page with this song as a set: connect the FM-1 there and add it">Send the song to the FM-1</button><button id="slPlay"' + (used.length ? "" : " disabled") + '>' + (live && live.playing && song.on ? "■ Stop" : "▶ Play the song") + '</button><button id="slFrom"' + (q ? "" : " disabled") + ">▶ From place " + (sel + 1) + "</button>" +
+  let h = '<div class="bar"><button id="mvRec" aria-pressed="' + mvRec + '" title="While the song plays: the effects you tap (FX) and the fades (DESK) are kept where they happen, and play back with the song and its WAV">' + (mvRec ? "● Recording moves" : "● Rec moves") + "</button>" +
+    (moves.some((e) => e.k !== "base") ? '<button id="mvClear" title="Forget every recorded move">Clear moves (' + moves.filter((e) => e.k !== "base").length + ")</button>" : "") + '<button id="slWav"' + (used.length || rec ? "" : " disabled") + ' title="Plays the song once from its first place and records it: a WAV (44.1 kHz, 16-bit stereo) to download">' + (rec ? "■ Stop recording" : "● Song to WAV") + '</button><button id="slSend"' + (used.length ? "" : " disabled") + ' title="Opens the Library &amp; pieces page with this song as a set: connect the FM-1 there and add it">Send the song to the FM-1</button><button id="slPlay"' + (used.length ? "" : " disabled") + '>' + (live && live.playing && song.on ? "■ Stop" : "▶ Play the song") + '</button><button id="slFrom"' + (q ? "" : " disabled") + ">▶ From place " + (sel + 1) + "</button>" +
     '<span class="lbl">&nbsp;SONG</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
     '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? song.full2 ? "" : " · patterns and energy need 0.17.14" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
     '<canvas id="songline" height="' + SLH + '" aria-label="The song: a block a place, as long as its bars, a lane a part, its energy"></canvas><div id="songnow" class="muted" style="margin-top:4px"></div>' +
@@ -2220,7 +2315,7 @@ function songRender() {
   songLine();
 }
 let songHit = [], songGeo = null, tl = null, slShown = -2, slGenre = 0;   // (tl: a drag on the timeline: bars, energy, move, part)
-const SLH = 204, SL_TOP = 24, SL_EH = 40, SL_BARS = SONG_BARS.slice(1), SL_FIT = [24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048];   // (the scale: in steps, so an edit seldom moves the others)
+const SLH = 254, SL_MV = 48, SL_TOP = 24, SL_EH = 40, SL_BARS = SONG_BARS.slice(1), SL_FIT = [24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048];   // (the scale: in steps, so an edit seldom moves the others)
 const slBarsOf = (i) => (tl && tl.kind === "bars" && tl.i === i ? tl.v : placeBars(i));
 const slMoodOf = (i) => (tl && tl.kind === "energy" && tl.i === i ? tl.v : song.moods[i]);
 function songLine() {                                         // the song as a timeline: a block a place, its lanes, its energy, the place and bar playing
@@ -2232,9 +2327,10 @@ function songLine() {                                         // the song as a t
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
-  const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), LX = 60, top = SL_TOP, eH = SL_EH, eTop = H - eH - 4, lh = (eTop - top - 4) / 5;
+  const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), LX = 60, top = SL_TOP, eH = SL_EH, eTop = H - eH - 6 - SL_MV, lh = (eTop - top - 4) / 5;
   PARTS.forEach(([n, c], k) => { g.fillStyle = c; g.fillRect(6, top + k * lh + 3, 3, lh - 6); g.font = FONT(700, 10); g.fillStyle = COL.dim; g.fillText(n, 13, top + k * lh + lh / 2 + 4); });
   g.fillStyle = COL.ink; g.fillRect(6, eTop + 3, 3, eH - 6); g.font = FONT(700, 10); g.fillStyle = COL.dim; g.fillText("ENERGY", 13, eTop + eH / 2 + 4);
+  g.fillStyle = mvRec ? "#ff5a5f" : "#555a66"; g.font = FONT(700, 10); g.fillText(mvRec ? "● REC FX" : "FX", 13, eTop + eH + 20); g.fillStyle = mvRec ? "#ff5a5f" : "#555a66"; g.fillText("FADES", 13, eTop + eH + 42);
   songHit = [];
   songGeo = { LX, top, lh, eTop, eH, W, H, bw: 0 };
   if (!used.length) { g.fillStyle = COL.dim; g.font = "500 14px 'Barlow Semi Condensed', sans-serif"; g.fillText("No places yet: drag a piece from PIECES (below) onto here.", LX, H / 2); return; }
@@ -2276,6 +2372,7 @@ function songLine() {                                         // the song as a t
     songHit.push([x, w, i]);
     x += w;
   }
+  songMovesDraw(g, eTop + eH + 4, W);
   if (x < W - 60 && used.length < 16) {                        // the room after the song: a piece dropped here takes the next empty place
     g.strokeStyle = "#2e313a"; g.lineWidth = 1; g.setLineDash([4, 4]); g.strokeRect(x + 6.5, 6.5, W - x - 14, H - 13); g.setLineDash([]);
     g.fillStyle = "#4a4e5a"; g.font = FONT(600, 11); g.fillText("+ drop a piece here", x + 16, H / 2 + 4);
@@ -2289,6 +2386,41 @@ function songLine() {                                         // the song as a t
     if (h) { const t = tl.v + " bars", tx = Math.min(W - 60, h[0] + h[1] + 6); g.font = FONT(700, 12); g.fillStyle = "#000000"; g.fillRect(tx - 3, top + lh * 2 - 2, g.measureText(t).width + 6, 18); g.fillStyle = COL.acc; g.fillText(t, tx, top + lh * 2 + 11); }
   }
 }
+function songMovesDraw(g, y0, W) {                           // the moves under the song: an effect's span from on to off, a fade's ramp in its part's colour
+  if (!moves.length || !songHit.length) return;
+  const bw = songGeo.bw, X = (pl, st) => { const h = songHit.find(([, , j]) => j === pl); return h ? h[0] + st / 16 * bw : null; }, endX = songHit[songHit.length - 1][0] + songHit[songHit.length - 1][1];
+  const base = moves.find((e) => e.k === "base") || { lo: 0, hi: 0 };
+  let lo = base.lo >>> 0, hi = base.hi >>> 0;
+  const open = {}, spans = [], moved = new Set();
+  for (const e of moves) if (e.k === "fx") for (let b = 0; b < 64; b++) { const a = b < 32 ? (e.lo >>> b) & 1 : (e.hi >>> (b - 32)) & 1, z = b < 32 ? (base.lo >>> b) & 1 : (base.hi >>> (b - 32)) & 1; if (a !== z) moved.add(b); }
+  for (let b = 0; b < 64; b++) if (moved.has(b) && (b < 32 ? (lo >>> b) & 1 : (hi >>> (b - 32)) & 1)) open[b] = songHit[0][0];   // (on from the start)
+  const isOn = (b) => (b < 32 ? (lo >>> b) & 1 : (hi >>> (b - 32)) & 1);
+  for (const e of moves) {
+    if (e.k !== "fx") continue;
+    const x = X(e.pl, e.s); if (x === null) continue;
+    const plo = lo, phi = hi; lo = e.lo >>> 0; hi = e.hi >>> 0;
+    for (let b = 0; b < 64; b++) {
+      const was = b < 32 ? (plo >>> b) & 1 : (phi >>> (b - 32)) & 1, now = isOn(b);
+      if (now && !was) open[b] = x;
+      if (!now && was && open[b] !== undefined) { spans.push([b, open[b], x]); delete open[b]; }
+    }
+  }
+  for (const b of Object.keys(open)) spans.push([+b, open[b], endX]);
+  for (let k = spans.length - 1; k >= 0; k--) if (!moved.has(spans[k][0])) spans.splice(k, 1);   // (only the effects the moves turn on or off)
+  spans.forEach(([b, x0, x1], k) => {
+    const row = k % 2, y = y0 + 2 + row * 10, c = fxd && fxd.names ? fxCol(b) : COL.acc;
+    g.fillStyle = hexA(c, 0.7); g.fillRect(x0, y, Math.max(3, x1 - x0), 8);
+    if (x1 - x0 > 40 && fxd && fxd.names) { g.fillStyle = "#0e0f12"; g.font = FONT(700, 8); g.fillText(fxd.names[b].toUpperCase(), x0 + 3, y + 7); }
+  });
+  for (const e of moves) {
+    if (e.k !== "fade") continue;
+    const x = X(e.pl, e.s); if (x === null) continue;
+    const k = PART_TRK.indexOf(e.trk), c = k >= 0 ? PARTS[k][1] : COL.ink, w = Math.max(6, e.bars * bw), y = y0 + 24, h = 18;
+    g.fillStyle = hexA(c, 0.55); g.beginPath();
+    if (e.dir) { g.moveTo(x, y + h); g.lineTo(x + w, y); g.lineTo(x + w, y + h); } else { g.moveTo(x, y); g.lineTo(x + w, y + h); g.lineTo(x, y + h); }
+    g.closePath(); g.fill();
+  }
+}
 function slAt(e) {                                            // a pointer on the timeline: where, and which block
   const r = $("songline").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
   return { x, y, hit: songHit.find(([x0, w]) => x >= x0 && x < x0 + w) };
@@ -2300,6 +2432,7 @@ function slKind(p) {                                          // what a press th
   if (!p.hit) return null;
   const [x0, , i] = p.hit;
   if (p.y < G.top) return p.x < x0 + 17 ? { kind: "play", i } : { kind: "move", i };
+  if (p.y >= G.eTop + G.eH) return null;                    // (the moves: drawn, not edited here)
   if (p.y >= G.eTop) return song.full2 ? { kind: "energy", i } : { kind: "pick", i };
   return { kind: "part", i, k: Math.max(0, Math.min(4, Math.floor((p.y - G.top) / G.lh))) };
 }
@@ -2505,6 +2638,14 @@ $("song").addEventListener("click", async (e) => {
   if (id === "slPlay" || id === "slFrom") return songPlay(id === "slFrom" ? setSel : -1);
   if (id === "slSend") return songSend();
   if (id === "slWav") return rec ? rec.stop() : songWav();
+  if (id === "mvRec") {
+    mvRec = !mvRec;
+    if (mvRec && !moves.some((e) => e.k === "base") && node) { const r = await fxAsk({}); if (r) { moves.unshift({ k: "base", lo: r.lo | 0, hi: r.hi | 0, pl: -1, s: -1 }); mvSave(); } }
+    songRender();
+    return say(mvRec ? "Recording moves: play the song, then tap effects in FX and fade parts on the DESK; each is kept where it happens and plays back with the song. Press again to stop recording." :
+      "Moves kept: " + moves.filter((e) => e.k !== "base").length + ". They play back each time the song comes to them (the studio only: the FM-1's song does not keep them).");
+  }
+  if (id === "mvClear") { if (!confirm("Forget all " + moves.length + " recorded moves?")) return; moves = []; mvSave(); songRender(); return say("The moves are cleared."); }
   if (id === "slPut") { if (!io) return; song.places[setSel] = cur.genre * 10 + cur.piece + 1; await songWrite("Place " + (setSel + 1) + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + ". It plays as saved: Save in the emulator keeps your edits."); }
   else if (id === "slClear") { for (const a of SONG_ARRS(song)) a[setSel] = 0; await songWrite(); }
   else if (id === "slLeft" || id === "slRight") {
@@ -2723,8 +2864,10 @@ PICS.lfo = (g, W, H, [Dp, Sh, Tg, Rt], col) => {
     g.strokeStyle = hexA(COL.ink, 0.25); g.beginPath(); g.moveTo(x, 18); g.lineTo(x, H - 8); g.stroke();
     g.fillStyle = COL.ink; g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill(); g.fillStyle = col; g.beginPath(); g.arc(x, y, 2.5, 0, 7); g.fill();
   }
-  const xq = pad + Math.min(w, w / Math.max(cyc, 0.5) / 4);
-  return [{ name: "Depth", x: xq, y: mid - amp, py: Dp, ay: [mid - 0.05 * (H / 2 - 18), mid - (H / 2 - 18)], click: Sh }];
+  const ax = [pad + 0.05 * w, pad + 0.95 * w], xr = ax[0] + pf(Rt) * (ax[1] - ax[0]);   // the point: sideways the rate (left fast, right slow), up the depth
+  g.font = FONT(700, 9); g.fillStyle = COL.ink; g.fillText(String(valText(Rt, parV(Rt))) + " · " + parV(Dp), Math.min(xr + 8, pad + w - 60), Math.max(26, mid - amp - 6));
+  g.fillStyle = "#555a66"; g.fillText("← FASTER   SLOWER →", pad + w - 104, H - 12);
+  return [{ name: "Rate · depth", x: xr, y: mid - amp, px: Rt, ax, py: Dp, ay: [mid - 0.05 * (H / 2 - 18), mid - (H / 2 - 18)], click: Sh }];
 };
 // the master bus: in against out (the compressor's ratio over its threshold, the make-up, the limiter's ceiling); its reduction now beside
 PICS.comp = (g, W, H, [Ra, Th, Mk, Ce], col) => {
