@@ -35,7 +35,20 @@
   button.small { font-size: .75rem; padding: .25em .6em; }
   .bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
   .bar .sp { flex: 1; }
-  #top { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  #top { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; position: sticky; top: 0; z-index: 30; box-shadow: 0 6px 14px rgba(0,0,0,.35); }
+  #top .tsep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+  .beats { display: inline-flex; gap: 3px; }
+  .beats i { width: 8px; height: 8px; border-radius: 2px; background: #2a2d35; }
+  .beats i.on { background: var(--acc); box-shadow: 0 0 6px var(--acc); }
+  .beats i.on:first-child { background: #fff; box-shadow: 0 0 6px #fff; }
+  .menu { position: relative; }
+  .menu summary { list-style: none; cursor: pointer; font: 600 .9rem "Chakra Petch", sans-serif; padding: .45em .9em; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); }
+  .menu summary::-webkit-details-marker { display: none; }
+  .menu[open] summary { border-color: var(--acc); }
+  .menu .pop { position: absolute; right: 0; top: calc(100% + 4px); display: flex; flex-direction: column; gap: 4px; min-width: 250px; padding: 8px;
+               background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 24px rgba(0,0,0,.5); z-index: 40; }
+  .menu .pop button { text-align: left; }
+  .menu .pop hr { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
   #pos { font: 600 .95rem "Chakra Petch", sans-serif; color: var(--acc); min-width: 11em; }
   #msg { min-height: 1.5em; color: var(--dim); margin: 6px 2px; font-size: .95rem; overflow-wrap: anywhere; }
   #msg.warn { color: var(--acc); }
@@ -76,8 +89,7 @@
   details li { margin: 3px 0; }
   .muted { color: var(--dim); }
   .lbl { font: 600 .72rem "Chakra Petch", sans-serif; color: var(--dim); letter-spacing: .08em; }
-  #top2 { margin-top: 6px; padding: 0 10px; }
-  #top2 select, #top2 input { font-size: .85rem; }
+  #top select, #top input { font-size: .85rem; }
   .views { display: flex; gap: 2px; margin: 0 0 6px; }
   .views button { border-radius: 6px 6px 0 0; border-bottom: 0; padding: .35em 1.2em; color: var(--dim); }
   .views button[aria-selected=true] { background: var(--panel); color: var(--acc); border-color: var(--line); }
@@ -114,6 +126,9 @@
   .fader b { position: absolute; left: -6px; right: -6px; height: 8px; margin-bottom: -4px; background: var(--ink); border-radius: 2px; }
   .strip .lv { text-align: center; font: 700 1.3rem "Chakra Petch", sans-serif; color: var(--c); }
   .strip .mute[aria-pressed=true] { background: #555a66; color: #fff; border-color: #6a6f7c; text-decoration: line-through; }
+  .strip .solo[aria-pressed=true] { background: var(--ink); color: #0e0f12; border-color: var(--ink); }
+  .strip .ms { display: inline-flex; gap: 3px; }
+  .strip.out .body, .strip.out .cap { opacity: .35; }
   .deskside { display: flex; flex-direction: column; gap: 8px; }
   .deskside .ctls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   canvas.pic { width: 100%; display: block; border-radius: 6px; margin: 0 0 8px; background: #121318; border: 1px solid var(--line); touch-action: none; }
@@ -149,31 +164,34 @@
     <select id="genre" aria-label="Genre"></select>
     <select id="piece" aria-label="Piece"></select>
     <button id="open">Open</button>
-    <button id="play" class="go" disabled>▶ Play / stop</button>
+    <span class="tsep"></span>
+    <button id="play" class="go" disabled title="Play / stop (Space)">▶ Play</button>
+    <span class="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     <span id="pos">off</span>
-    <span class="sp"></span>
-    <button id="load">Open a .piece or code</button>
-    <input type="file" id="file" accept=".piece" hidden>
-    <button id="midi" title="A MIDI file into the piece: drums to the patterns, the bass to its steps, a line to the acid or the pluck, the chords to the progression">MIDI file</button>
-    <input type="file" id="mfile" accept=".mid,.midi,.MID,audio/midi" hidden>
-    <button id="undo" hidden>Undo the import</button>
-    <!-- TRACK CODES (0.17.11, ui.c code_pack / code_unpack / ui_code_play): nine letters packing a track's genre, piece (its recipe), key, mode,
-         tempo and seed; the emulator starts one exactly as the FM-1's Code page does (amb_web.c web_st_code_play), the same notes. -->
-    <button id="tcode" title="Open a track code (the nine letters on the FM-1's Code page): the same track, the same notes">Track code</button>
-    <span id="tc" class="tag dice" title="The code of the track playing" hidden></span>
-    <button id="save" disabled>Download .piece</button>
-    <button id="code" disabled>Copy code</button>
-    <button id="send" disabled title="Opens the Library &amp; pieces page with this piece, to add it to your FM-1 over USB">Send to the FM-1</button>
-  </div>
-  <div class="bar" id="top2">
-    <span class="lbl">TEMPO</span><input type="number" id="qTempo" min="70" max="190" style="width:4.6em" aria-label="Tempo" disabled>
+    <span class="tsep"></span>
+    <span class="lbl">BPM</span><input type="number" id="qTempo" min="70" max="190" style="width:4.4em" aria-label="Tempo" disabled>
     <span class="lbl">KEY</span><select id="qRoot" aria-label="Root" disabled></select><select id="qMode" aria-label="Mode" disabled></select>
+    <span id="tc" class="tag dice" title="The code of the track playing: the same nine letters play the same track" hidden></span>
     <span class="sp"></span>
-    <button id="roll" disabled title="A new take: the engine plays its own parts anew (the dice lanes), the piece as it is">⟳ New take</button>
+    <button id="undo" hidden>Undo the import</button>
+    <button id="roll" disabled title="A new take: the engine plays its own parts anew (the DICE lanes), the piece as it is">⟳ New take</button>
     <button id="mine" disabled title="Keep what the engine plays now: its bass, acid and pluck lines and the chords it walked become the piece's own">Make it mine</button>
-    <button id="saveEmu" disabled title="Save the piece into its genre's bank in the emulator (as SAVE on the FM-1): it is kept in this browser, plays as saved in the set, and the Library &amp; pieces page can send it">Save in the emulator</button>
-    <button id="undoB" disabled title="Undo (Ctrl+Z)">↶ Undo</button>
-    <button id="redoB" disabled title="Redo (Ctrl+Shift+Z)">↷ Redo</button>
+    <button id="saveEmu" disabled title="Save the piece into its genre's bank (as SAVE on the FM-1): kept in this browser, played as saved in the song, sent with it">Save</button>
+    <button id="undoB" disabled title="Undo (Ctrl+Z)">↶</button>
+    <button id="redoB" disabled title="Redo (Ctrl+Shift+Z)">↷</button>
+    <details class="menu" id="fileMenu"><summary>File ▾</summary><div class="pop">
+      <!-- TRACK CODES (0.17.11, ui.c code_pack / code_unpack / ui_code_play): nine letters packing a track's genre, piece (its recipe), key, mode,
+           tempo and seed; the emulator starts one exactly as the FM-1's Code page does (amb_web.c web_st_code_play), the same notes. -->
+      <button id="load">Open a .piece or piece code…</button>
+      <button id="tcode" title="Open a track code (the nine letters on the FM-1's Code page): the same track, the same notes">Open a track code…</button>
+      <button id="midi" title="A MIDI file into the piece: drums to the patterns, the bass to its steps, a line to the acid or the pluck, the chords to the progression">Import a MIDI file…</button>
+      <hr>
+      <button id="save" disabled>Download the piece (.piece)</button>
+      <button id="code" disabled>Copy the piece code</button>
+      <button id="send" disabled title="Opens the Library &amp; pieces page with this piece, to add it to your FM-1 over USB">Send the piece to the FM-1</button>
+    </div></details>
+    <input type="file" id="file" accept=".piece" hidden>
+    <input type="file" id="mfile" accept=".mid,.midi,.MID,audio/midi" hidden>
   </div>
   <div id="msg"></div>
   <section class="card" id="imp" hidden>
@@ -584,6 +602,13 @@ function drawLoom() {
     else if (L.id === "drums") drawDrumLane(g, L, nb, X, SW);
     else drawLineLane(g, L, laneNotes(L.id, nb, tl).filter((n) => n.b >= w0 - 1 && n.b <= w0 + vis), X, SW);
     g.restore();
+  }
+  const outM = live ? live.trk || 0 : 0;
+  for (const L of layout) {                                   // a lane that is out now: greyed, said so
+    const m = LANE_TRK[L.id];
+    if (!m || (outM & m) !== m) continue;
+    g.fillStyle = "rgba(14,15,18,.62)"; g.fillRect(LX, L.top, RX - LX, L.h); g.fillRect(0, L.top, LX - 2, L.h);
+    g.fillStyle = "#8b8e98"; g.font = FONT(700, 11); g.fillText("MUTED", LX + 8, L.top + Math.min(L.h - 6, 18));
   }
   if (loomPos >= w0 && loomPos < w0 + vis) {                // the playhead
     const x = X(loomPos, 0);
@@ -1006,6 +1031,14 @@ $("open").addEventListener("click", async () => {
 });
 $("power").addEventListener("click", switchOn);
 $("play").addEventListener("click", () => node && press(BTN_PLAY));
+$("fileMenu").addEventListener("click", (e) => { if (e.target.closest(".pop button")) $("fileMenu").open = false; });
+document.addEventListener("click", (e) => { if ($("fileMenu").open && !e.target.closest("#fileMenu")) $("fileMenu").open = false; });
+setInterval(() => {                                           // the beat: four lights, the bar's first white; the Play button's word
+  const on = live && live.playing, q = on ? Math.floor((live.step || 0) / 4) : -1;
+  document.querySelectorAll("#top .beats i").forEach((el, k) => el.classList.toggle("on", k === q));
+  const t = on ? "■ Stop" : "▶ Play";
+  if ($("play").textContent !== t) $("play").textContent = t;
+}, 40);
 document.addEventListener("keydown", (e) => {                // Space: play and stop (in SONG: the song from its first place; a recording: stop it)
   if (e.code !== "Space" || !node || e.repeat || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
   e.preventDefault();
@@ -1361,11 +1394,26 @@ function deskStrips() {
     return { n, c, k: ["Pad", "Bass", "Acid", "Pluck", "Drums"].indexOf(t), lvl: lv ? lv.p : -1, pan: pn ? pn.p : -1, send: sd ? sd.p : -1, extra: extra.filter((x) => x[0] >= 0) };
   });
 }
-const muteMem = {};
+const LANE_TRK = { drums: 0x0F, bass: 0x10, acid: 0x20, pluck: 0x80, pad: 0x40 };
+const DESK_TRK = { PAD: 0x40, BASS: 0x10, ACID: 0x20, PLUCK: 0x80, DRUMS: 0x0F };   // (a strip's tracks: ui.c SL_PARTM)
+let deskSolo = 0;
+async function deskTrk(mute, solo) {
+  const r = await ask({ type: "st_trk", mute, solo });
+  if (!r.ok) say("This emulator build has no track mutes: rebuild it (web/emu/build_clang.sh).", true);
+}
+function deskMS() {                                           // M lit from what the engine has out (a song place's parts too), S from the solos
+  const out = live ? live.trk || 0 : 0;
+  document.querySelectorAll("#desk .mute[data-trk]").forEach((b) => { const m = +b.dataset.trk; b.setAttribute("aria-pressed", String((out & m) === m)); });
+  document.querySelectorAll("#desk .solo[data-trk]").forEach((b) => { const m = +b.dataset.trk; b.setAttribute("aria-pressed", String((deskSolo & m) === m)); });
+  document.querySelectorAll("#desk .strip").forEach((el) => { const b = el.querySelector(".mute[data-trk]"); if (!b) return; const m = +b.dataset.trk;
+    el.classList.toggle("out", (out & m) === m || (deskSolo && !(deskSolo & m))); });
+}
+setInterval(() => { if (view === "desk") deskMS(); }, 120);
 function deskRender() {
   if (view !== "desk" || !io) return;
   let h = deskStrips().map((st) => '<div class="strip" style="--c:' + st.c + '"><div class="cap"></div><h3>' + st.n +
-    (st.lvl >= 0 ? '<button class="small mute" data-p="' + st.lvl + '" title="Mute (the level to 0, and back)">M</button>' : "") + '</h3><div class="body">' +
+    (DESK_TRK[st.n] ? '<span class="ms"><button class="small mute" data-trk="' + DESK_TRK[st.n] + '" title="Mute: out now (as GLO and a key on the FM-1: not stored with the piece)">M</button>' +
+      '<button class="small solo" data-trk="' + DESK_TRK[st.n] + '" title="Solo: only the soloed parts play (not stored)">S</button></span>' : "") + '</h3><div class="body">' +
     (st.lvl >= 0 ? '<div class="fader" tabindex="0" role="slider" aria-label="' + st.n + ' level" data-p="' + st.lvl + '"><i></i><b></b></div><div class="lv"></div>' : "") +
     (st.k >= 0 ? '<div class="meter" data-k="' + st.k + '" title="What it plays now"><i></i></div>' : "") +
     (st.pan >= 0 ? ctlHTML(st.pan, "Pan", st.c) : "") + (st.send >= 0 ? ctlHTML(st.send, "Send", st.c) : "") + st.extra.map(([p, l]) => ctlHTML(p, l, st.c)).join("") + "</div></div>").join("");
@@ -1375,7 +1423,7 @@ function deskRender() {
   h += '<div class="deskside"><div class="sec"><h3>The stage</h3>' + picHTML("stereo", strips.flatMap((st) => [st.pan, st.send]), COL.acc, 170) + "</div>" + [...sp.sections, ...tg.sections].map((x) => {
     const ks = x.knobs.filter((k) => !skip.has(k.p));
     let pic = "";
-    if (x.name === "Space") pic = picHTML("space", [kk(/^Echo$/), kk(/^Echo time/), kk(/^Reverb$/), kk(/^Size/), kk(/^Damping/, /^Reverb/), kk(/^Predelay/, /^Reverb/)], COL.pad, 120);
+    if (x.name === "Space") pic = picHTML("space", [kk(/^Echo$/), kk(/^Echo time/), kk(/^Reverb$/), kk(/^Size/), kk(/^Damping/, /^Reverb/), kk(/^Predelay/, /^Reverb/)], COL.ink, 120);
     if (/^Master/.test(x.name)) pic = picHTML("comp", [kk(/^Ratio/), kk(/^Thresh/), kk(/^Make-up/), kk(/^Ceiling/)], COL.acc, 150);
     return ks.length ? '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + pic + '<div class="ctls">' + ks.map((k) => ctlHTML(k.p, k.label)).join("") + "</div></div>" : "";
   }).join("") + "</div>";
@@ -1383,11 +1431,12 @@ function deskRender() {
   syncCtls(); drawPics();
 }
 $("desk").addEventListener("click", (e) => {
-  const b = e.target.closest(".mute");
-  if (!b || !io) return;
-  const p = +b.dataset.p;
-  if (parV(p)) { muteMem[p] = parV(p); parSetV(p, 0); } else parSetV(p, muteMem[p] || P[p].def || 50);
-  changed();
+  const b = e.target.closest(".mute[data-trk], .solo[data-trk]");
+  if (!b || !node) return;
+  const m = +b.dataset.trk, out = live ? live.trk || 0 : 0;
+  if (b.classList.contains("mute")) deskTrk((out & m) === m ? out & ~m : out | m, deskSolo);
+  else { deskSolo = (deskSolo & m) === m ? deskSolo & ~m : deskSolo | m; deskTrk(out, deskSolo); }
+  setTimeout(deskMS, 150);
 });
 document.querySelector(".views").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-view]");

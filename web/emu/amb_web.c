@@ -156,6 +156,15 @@ __attribute__((used, visibility("default"))) int web_st_open(int g, int i)
     return web_st_read();
 }
 /* place s of the set list now (as the PRESETS knob does with the song on): its genre and piece, its parts; then st_io as web_st_open */
+/* the tracks muted and soloed (a bit a track, EN_TR_*), as the FM-1's GLO and keys: heard now, not stored; a song place's parts set them again */
+__attribute__((used, visibility("default"))) int web_st_trk(int mute, int solo)
+{
+    ui.trk_m = (uint8_t)mute;
+    ui.trk_s = (uint8_t)solo;
+    en_trk((uint32_t)mute, (uint32_t)solo);
+    return 1;
+}
+
 __attribute__((used, visibility("default"))) int web_st_go(int s)
 {
     if ((unsigned)s >= SL_N || !glob.sl[s] || ui.store_wait)
