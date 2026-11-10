@@ -65,7 +65,17 @@
   #start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
            background: rgba(14, 15, 18, .86); border-radius: 8px; text-align: center; padding: 1rem; }
   #start[hidden] { display: none; }
-  #start p { max-width: 36em; color: var(--dim); margin: 0; }
+  #start p { max-width: 36em; color: var(--dim); margin: 0; font-size: .85rem; }
+  #start .vibeq { font: 700 1.6rem "Chakra Petch", sans-serif; letter-spacing: .04em; margin: 0 0 4px; }
+  .vibes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: min(900px, 96%); }
+  @media (max-width: 760px) { .vibes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .vibe { padding: 16px 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #1d2026; text-align: center; transition: transform .12s, border-color .12s; }
+  .vibe:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--acc); }
+  .vibe b { display: block; font: 700 1.1rem "Chakra Petch", sans-serif; margin-bottom: 4px; }
+  .vibe span { font-size: .72rem; color: var(--dim); }
+  .vibe[data-vibe="calm"] { border-top: 3px solid var(--pluck); } .vibe[data-vibe="groovy"] { border-top: 3px solid var(--drum); }
+  .vibe[data-vibe="dark"] { border-top: 3px solid var(--pad); } .vibe[data-vibe="peak"] { border-top: 3px solid var(--bass); } .vibe[data-vibe="any"] { border-top: 3px solid var(--acid); }
+  .doors { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
   .lower { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 12px; margin-top: 12px; }
   @media (max-width: 980px) { .lower { grid-template-columns: 1fr; } }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
@@ -209,6 +219,16 @@
   .shapes button { padding: 3px 5px; line-height: 0; }
   .shapes svg { width: 30px; height: 16px; }
   .shapes button[aria-pressed=true] svg path { stroke: #0e0f12; }
+  .sec h3 .dice { float: right; padding: 0 .45em; font-size: .85rem; line-height: 1.4; }
+  .knob.locked::after { content: "🔒"; font-size: .6rem; position: absolute; margin: -2px 0 0 34px; }
+  .knob { position: relative; }
+  .knob.eleven .v { color: #ff5a5f; text-shadow: 0 0 8px rgba(255, 90, 95, .8); font-size: .95rem; }
+  .knob.eleven .dial { box-shadow: 0 0 14px rgba(255, 90, 95, .55); border-radius: 50%; }
+  .vibecard { border-color: var(--acc) !important; }
+  .vibecard .knob { width: 104px; }
+  .vibecard .knob .dial { width: 54px; height: 54px; }
+  .vibecard .knob .dial i { transform-origin: 50% 19px; height: 15px; }
+  #imp { width: 34px; height: 44px; image-rendering: pixelated; cursor: pointer; flex: none; }
   .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
   .chip { border-left: 3px solid var(--c, var(--line)) !important; cursor: grab; }
   .chip:active { cursor: grabbing; }
@@ -229,6 +249,7 @@
 <main>
   <header class="site"><a class="home" href="../">PERF-1</a><nav><a href="../emu/">Emulator</a><a href="../install/">Install</a><a href="../editor/">Editor</a><a href="./" aria-current="page">Studio</a><a href="../pieces/">Library &amp; pieces</a><a href="../manual/">Manual</a></nav></header>
   <div class="bar" id="top">
+    <canvas id="imp" width="23" height="30" title="The imp (the FM-1's). Click him."></canvas>
     <select id="genre" aria-label="Genre"></select>
     <select id="piece" aria-label="Piece"></select>
     <button id="open">Open</button>
@@ -283,7 +304,16 @@
     <div id="fx" hidden></div>
     <canvas id="scope" height="64" aria-label="What comes out: the waveform and the spectrum"></canvas>
     <div id="start">
-      <button id="power" class="go">Switch on</button>
+      <h2 class="vibeq">What do you feel like?</h2>
+      <div class="vibes">
+        <button class="vibe" data-vibe="calm"><b>Calm</b><span>lofi · trip-hop · amapiano · dub</span></button>
+        <button class="vibe" data-vibe="groovy"><b>Groovy</b><span>house · disco · funk · garage</span></button>
+        <button class="vibe" data-vibe="dark"><b>Dark</b><span>hypno · industrial · dark forest · electro</span></button>
+        <button class="vibe" data-vibe="peak"><b>Peak time</b><span>dnb · psytrance · dubstep · breaks</span></button>
+        <button class="vibe" data-vibe="any"><b>Surprise me</b><span>any of the nineteen</span></button>
+      </div>
+      <div class="doors"><span class="lbl">THEN</span><button class="door" data-door="jam" aria-pressed="true">Jam</button><button class="door" data-door="song" aria-pressed="false">Make a song</button><button class="door" data-door="sound" aria-pressed="false">Shape a sound</button>
+        <span class="muted">or</span><button id="power">Just switch on</button></div>
       <p>The studio reads and plays pieces through the emulator (the whole PERF-1 firmware, in this browser). It keeps its pieces where the Emulator page does, so a piece saved there is here too. Nothing reaches your FM-1 until you send it from the Library &amp; pieces page.</p>
     </div>
   </section>
@@ -1105,6 +1135,66 @@ $("open").addEventListener("click", async () => {
   await openPiece(cur.genre, cur.piece);
 });
 $("power").addEventListener("click", switchOn);
+/* the imp: the FM-1's mascot (ui.c MASCOT, draw_mascot, mascot_step): a hop on the beat (the head lags, the coils part as he rises, a squash on
+ * landing), a squash on the backbeat, a bigger jump at the top of each eight bars; asleep (eyes shut) when the music stops. Click him. */
+const IMP = ["..K............K.......", ".KHK..........KHK......", "..KHK........KHK.......", "..KhK.KKKKKK.KhK.......", "...KhKRRRRRRKhK........", "..KRLLRRRRRRRRRK.......",
+  ".KRLRKKRRRRKKRRRK......", ".KRRRYYRRRRYYRRRK......", ".KRRRKRRRRRRKRRRK......", ".KrrrKHKKKKHKrrrK...K..", "..KKKKKKKKKKKKKK...KRK.", "..KRLLRKKKKrrrrK..KRLRK",
+  "..KrrrrRLRRKKKK...KKKKK", "...KKKKrrrrRRRRK....T..", "..KRLLRKKKKrrrrK....T..", "..KrrrrRLRRKKKK.....T..", "...KKKKrrrrRRRRK...T...", "..KRLLRKKKKrrrrK..T....",
+  "..KrrrrRLRRKKKK...T....", "...KKKKrrrrRRRRKTT.....", "..KRLLRKKKKrrrrK.......", "..KrrrrRLRRKKKKK.......", "...KKKKKKKKKKKK........"];
+const IMP_COL = { K: "#8b8e98", T: "#8b8e98", H: "#f2e6c4", h: "#c4ad7e", Y: "#ffd447", R: "#e0344f", r: "#9c1d3a", L: "#ff8f8f" };
+const imp = { dh: 0, dhv: 0, lift: 0, lv: 0, t: 0, step: -1 };
+function impHop(big) { if (imp.lift <= 0) { imp.lv = big ? 52 : 36; imp.lift = 0.01; imp.dhv -= big ? 40 : 32; } }
+function impTick() {
+  const now = performance.now(), dt = Math.min(0.1, (now - (imp.t || now)) / 1000); imp.t = now;
+  const play = !!(live && live.playing), step = play ? live.step | 0 : -1;
+  if (play && step !== imp.step) {
+    const drums = live.lv ? (live.lv[4] || 0) > 10 : true;
+    if (step % 4 === 0 && drums) impHop(step === 0 && Math.floor((live.t || 0) / 16) % 8 === 0);
+    if (step % 8 === 4 && drums && imp.lift <= 0) imp.dhv -= 55;
+  }
+  imp.step = step;
+  if (!play) { imp.lift = imp.lv = 0; }
+  for (let k = 0; k < 4; k++) {
+    const h = dt * 0.25;
+    if (imp.lift > 0 || imp.lv > 0) { imp.lv -= 200 * h; imp.lift += imp.lv * h; if (imp.lift <= 0 && imp.lv < 0) { imp.dhv += imp.lv * 2.3; imp.lift = 0; imp.lv = 0; } }
+    const tg = imp.lift > 0 ? Math.abs(imp.lv) * 0.11 : 0;
+    imp.dhv += (-300 * (imp.dh - tg) - 10 * imp.dhv) * h; imp.dh += imp.dhv * h;
+  }
+  imp.dh = Math.max(-3, Math.min(4, imp.dh)); imp.lift = Math.max(0, Math.min(3, imp.lift));
+  const cv = $("imp"); if (!cv) return;
+  const g = cv.getContext("2d"); g.clearRect(0, 0, 23, 30);
+  for (let r = 0; r < 23; r++) {
+    const grp = r <= 10 ? 0 : Math.floor((r - 8) / 3), dy0 = Math.round(imp.lift + imp.dh * (4 - grp) * 0.25);
+    for (let c = 0; c < 23; c++) {
+      let ch = IMP[r][c]; if (ch === ".") continue;
+      if (ch === "Y" && !play) ch = "K";                       // (asleep)
+      const dy = grp > 0 && c < 16 ? Math.round(imp.lift + imp.dh * ((4 - grp) - Math.max(0, Math.min(1, (c - 2) / 13))) * 0.25) : dy0;
+      g.fillStyle = IMP_COL[ch]; g.fillRect(c, r - dy + 6, 1, 1);
+    }
+  }
+}
+setInterval(impTick, 33);
+const IMP_SAYS = ["These go to eleven.", "Imp approved.", "Louder. No, the other louder.", "Turn it up, it's a groovebox not a library.", "I live in the FM-1. Rent is one coil a month.",
+  "Hold a key in FX for a moment of chaos.", "Right-click a knob: I'll guard it 🔒.", "Every nine letters is a whole track. Write them down."];
+$("imp").addEventListener("click", () => { imp.lift = 0; impHop(true); say("👹 " + IMP_SAYS[Math.floor(Math.random() * IMP_SAYS.length)]); });
+const VIBE_GENRES = { calm: ["LOFI", "TRIPHOP", "AMAPI", "DUB", "REGGAE"], groovy: ["HOUSE", "DISCO", "FUNK", "GARAGE"], dark: ["HYPNO", "INDUS", "FOREST", "ELECTRO", "SYNTHWV"],
+  peak: ["DNB", "PSY", "DUBSTEP", "BREAKS", "TRAP"] };
+let startDoor = "jam";
+$("start").addEventListener("click", async (e) => {
+  const d = e.target.closest(".door");
+  if (d) { startDoor = d.dataset.door; document.querySelectorAll("#start .door").forEach((x) => x.setAttribute("aria-pressed", String(x === d))); return; }
+  const v = e.target.closest(".vibe");
+  if (!v || node) return;
+  const names = v.dataset.vibe === "any" ? N.genres : VIBE_GENRES[v.dataset.vibe], pool = N.genres.map((n, g) => (names.includes(n) ? g : -1)).filter((g) => g >= 0);
+  const g = pool[Math.floor(Math.random() * pool.length)], np = (N.pieces[g] || []).length || 10;
+  cur = { genre: g, piece: Math.floor(Math.random() * np) };
+  document.querySelectorAll("#start .vibe").forEach((x) => { x.disabled = true; });
+  await switchOn();
+  if (startDoor === "song") document.querySelector('.views button[data-view="song"]').click();
+  if (startDoor === "sound") { sel = "pluck"; document.querySelector('.edhead .views button[data-pane="sound"]').click(); document.querySelector("section.lower").scrollIntoView({ behavior: "smooth" }); }
+  say(v.querySelector("b").textContent + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + "." + (startDoor === "jam" ? " Tap New take for another, or click a lane to change it." :
+    startDoor === "song" ? " Drag pieces onto the song, then ▶ Play the song." : " Turn the VIBE knobs, or roll the dice on a card."));
+});
 $("play").addEventListener("click", () => node && press(BTN_PLAY));
 $("fileMenu").addEventListener("click", (e) => { if (e.target.closest(".pop button")) $("fileMenu").open = false; });
 document.addEventListener("click", (e) => { if ($("fileMenu").open && !e.target.closest("#fileMenu")) $("fileMenu").open = false; });
@@ -1342,6 +1432,7 @@ const parSetV = (p, v) => {
 };
 const valText = (p, v) => (meta(p).t ? (meta(p).t[v - meta(p).min] ?? String(v)) : String(v));
 const shortLabel = (l) => String(l).replace(/\s*\(.*\)\s*$/, "");
+const ELEVEN = new Set([46, 130, -4, -5]);                    // Drive, the master's Make-up, SCREAM's Drive and Scream: "these go to eleven"
 const isList = (p) => { const q = meta(p); return !!(q && q.t && q.t.length > 2); };
 function knobHTML(p, label, col, force) {                    // (a list stays a list unless forced; an LFO's shape is its pictures)
   const q = meta(p);
@@ -1368,7 +1459,12 @@ function syncCtls() {                                         // every control o
     const p = +el.dataset.p, v = parV(p), q = meta(p);
     if (el.classList.contains("list")) { const sl = el.querySelector("select"); if (document.activeElement !== sl && +sl.value !== v) sl.value = v; return; }
     el.querySelector(".v").textContent = valText(p, v);
-    if (el.classList.contains("knob")) el.querySelector(".dial").style.setProperty("--f", (v - q.min) / Math.max(1, q.max - q.min));
+    if (el.classList.contains("knob")) {
+      el.querySelector(".dial").style.setProperty("--f", (v - q.min) / Math.max(1, q.max - q.min));
+      const to11 = ELEVEN.has(p) && v >= q.max;                // (these go to eleven)
+      el.classList.toggle("eleven", to11); if (to11) el.querySelector(".v").textContent = "11";
+      el.classList.toggle("locked", locks.has(p));
+    }
     else el.querySelector("i").style.width = (100 * (v - q.min) / Math.max(1, q.max - q.min)) + "%";
     el.setAttribute("aria-valuenow", v);
   });
@@ -1439,7 +1535,7 @@ function soundRender() {
   if (!tab || !io) { $("sound").innerHTML = ""; return; }
   const plain = tab.sections.filter((x) => !/ lane$/.test(x.name)), lanes = tab.sections.filter((x) => / lane$/.test(x.name));
   const lfoRate = tab.name === "Pad" ? PE.P_PL_RATE : tab.name === "Bass" ? PE.P_DL_RATE : undefined;   // (its rate lives on the Mixer's page: here too)
-  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + picFor(tab.name, x, col) + '<div class="ctls kn">' + x.knobs.map((k) => knobHTML(k.p, k.label, col)).join("") +
+  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + diceBtn(x.knobs.map((k) => k.p)) + "</h3>" + picFor(tab.name, x, col) + '<div class="ctls kn">' + x.knobs.map((k) => knobHTML(k.p, k.label, col)).join("") +
     (x.name === "LFO" && lfoRate !== undefined ? knobHTML(lfoRate, "Rate", col, true) : "") + "</div></div>").join("");
   if (lanes.length) {                                         // the drums' six lanes: a row each
     const kp = (x, re) => (x.knobs.find((k) => re.test(k.label)) || {}).p;
@@ -1449,6 +1545,7 @@ function soundRender() {
   const fx = { pad: [-1], chords: [-1], bass: [-2, -4, -5, -6, -7], acid: [-3, -4, -5, -6, -7] }[sel];
   if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3><div class="ctls kn">' + fx.map((p) => knobHTML(p, null, col)).join("") + "</div></div>";
   if (sel === "pluck") h += dxHTML();
+  h = vibeHTML(col) + h;
   $("sound").innerHTML = h + '<p class="muted">Drag a knob up or down (Shift: finer), drag the handles on the pictures, turn the mouse wheel over a knob, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
   syncCtls(); drawPics();
   if (sel === "pluck") dxMount();
@@ -1837,6 +1934,7 @@ function xyDraw() {
   if (xyTouch) { const gr = g.createRadialGradient(x, y, 0, x, y, 60); gr.addColorStop(0, hexA(col, 0.45)); gr.addColorStop(1, hexA(col, 0)); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
   g.strokeStyle = hexA(COL.ink, 0.25); g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
   g.fillStyle = xyTouch ? COL.ink : col; g.beginPath(); g.arc(x, y, xyTouch ? 9 : 7, 0, 7); g.fill();
+  if (fa >= 0.999 && fb >= 0.999) { g.font = FONT(700, 64); g.fillStyle = hexA("#ff5a5f", 0.5); g.fillText("11", W - 92, 64); }   // (one louder)
   g.font = FONT(700, 10); g.fillStyle = COL.dim;
   g.fillText(A.c.label.toUpperCase() + " " + (A.c.t || A.c.v) + " →", 8, H - 6); g.save(); g.translate(12, H - 70); g.rotate(-Math.PI / 2); g.fillText(B.c.label.toUpperCase() + " " + (B.c.t || B.c.v) + " →", 0, 0); g.restore();
 }
@@ -2007,6 +2105,80 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-shp]"); if (!b || !io) return;
   setFromCtl(+b.dataset.shp, +b.dataset.v); syncCtls();
 });
+
+/* ======================================================================== vibe knobs, dice and locks: a part's sound in three plain moves, rolled near
+ * its defaults, a knob held still (right-click or Alt-click it: a lock) */
+const VIBES = {                                               // [left word, right word, [setting, weight], ...]: a turn moves each by its weight
+  pad: [["DARK", "BRIGHT", [9, 1], [11, 0.25]], ["CALM", "WILD", [17, 1], [11, 0.6], [127, 0.6]], ["DRY", "WET", [117, 1]]],
+  bass: [["DARK", "BRIGHT", [24, 1], [25, 0.3]], ["CALM", "WILD", [29, 1], [31, 0.8], [154, 0.6], [25, 0.3]], ["DRY", "WET", [118, 1]]],
+  acid: [["DARK", "BRIGHT", [34, 1], [36, 0.4]], ["CALM", "WILD", [35, 0.6], [38, 0.8], [44, 1], [41, 0.5]], ["DRY", "WET", [119, 1]]],
+  pluck: [["SHORT", "LONG", [102, 1]], ["CALM", "WILD", [100, 1], [158, 0.8], [156, 0.6]], ["DRY", "WET", [120, 1]]],
+  drums: [["TIGHT", "LOOSE", [163, 1], [47, 0.6], [161, 0.4]], ["CALM", "WILD", [46, 1], [162, 0.6], [161, 0.5]], ["DRY", "WET", [121, 1]]] };
+VIBES.chords = VIBES.pad;
+const vibePos = {};                                           // (where each lane's vibe knobs were left: they move from there)
+let locks = (() => { try { return new Set(JSON.parse(localStorage.getItem("perf1-studio-locks") || "[]")); } catch { return new Set(); } })();
+const lockSave = () => { try { localStorage.setItem("perf1-studio-locks", JSON.stringify([...locks])); } catch { /* (this page only) */ } };
+function vibeHTML(col) {
+  const vs = VIBES[sel]; if (!vs) return "";
+  const pos = vibePos[sel] || (vibePos[sel] = vs.map(() => 0.5));
+  return '<div class="sec vibecard"><h3>VIBE · ' + (LANES.find((l) => l.id === sel) || { name: sel }).name + diceBtn(Object.values(LANE_PARAMS()), "Roll this whole sound: new values near the defaults; locked knobs stay") +
+    '</h3><div class="ctls kn">' + vs.map(([a, b], k) => '<div class="knob vibek" tabindex="0" role="slider" aria-label="' + a + " to " + b + '" data-vk="' + k + '" title="' + a + " ↔ " + b + ': drag up or down; it turns several settings at once"><div class="dial" style="--f:' + pos[k] + ";--c:" + col + '"><i></i></div><span class="v">' + vibeText(k, pos[k]) + '</span><span class="kl">' + a + " ↔ " + b + "</span></div>").join("") +
+    '</div><p class="muted" style="margin:4px 0 0;font-size:.75rem">🎲 rolls a card (or the whole sound) · right-click a knob to lock it 🔒 · Ctrl+Z undoes</p></div>';
+}
+function vibeText(k, f) {
+  const [a, b] = VIBES[sel][k], d = Math.round((f - 0.5) * 200);
+  return f >= 0.999 && b === "WILD" ? "11" : d === 0 ? "·" : d < 0 ? a + " " + -d : b + " " + d;
+}
+const LANE_PARAMS = () => { const tab = D.tabs.find((t) => t.name === LANE_TAB[sel]); const o = {}; (tab ? tab.sections : []).forEach((x) => x.knobs.forEach((k) => { o[k.p] = k.p; })); return o; };
+function diceBtn(ps, title) { return '<button class="small dice" data-dice="' + ps.join(",") + '" title="' + (title || "Roll these: new values near the defaults; locked knobs stay") + '">🎲</button>'; }
+const NO_ROLL = new Set([0, 1, 2, 3, 98, PE.P_CM_SND, PE.P_TEMPO, PE.P_ROOT, PE.P_MODE].filter((x) => x !== undefined));   // (levels, the pluck's voice, tempo and key: never)
+function diceRoll(ps) {
+  let n = 0;
+  for (const p of ps) {
+    if (p < 0 || locks.has(p) || NO_ROLL.has(p)) continue;
+    const q = meta(p); if (!q) continue;
+    const lab = String(q.n || "");
+    if (/^(Octave|By hand|Pan|Length|Probability|Condition|Source|Range|Answer|Frozen|Mutates|Theme|MIDI|Tune|Links on|P>Clock|Time|Chain|Slice|Pool|Change|Every|Mode|Trigger|Voicing|Loop|Chord|Pattern|Kick|Snare|Hats|Perc|Rate|Style|Target)/.test(lab) && !(p === PE.P_PL_SHAPE || p === PE.P_DL_SHAPE)) continue;
+    const span = q.max - q.min, lists = q.t && q.t.length > 2;
+    const v = lists ? q.min + Math.floor(Math.random() * (span + 1)) : Math.round(Math.max(q.min, Math.min(q.max, (q.def ?? (q.min + span / 2)) + (Math.random() * 2 - 1) * 0.35 * span)));
+    if (parSetV(p, v)) { changedPar(p); n++; }
+  }
+  syncCtls(); drawPics();
+  return n;
+}
+let vibeDrag = null;
+document.addEventListener("pointerdown", (e) => {
+  const k = e.target.closest(".vibek"); if (!k || !io) return;
+  e.preventDefault(); k.setPointerCapture(e.pointerId);
+  const vk = +k.dataset.vk, [, , ...targets] = VIBES[sel][vk];
+  vibeDrag = { k, vk, y: e.clientY, f0: vibePos[sel][vk], base: targets.map(([p, w]) => [p, w, parV(p)]) };
+});
+document.addEventListener("pointermove", (e) => {
+  if (!vibeDrag) return;
+  const d = (vibeDrag.y - e.clientY) / 150 * (e.shiftKey ? 0.2 : 1), f = Math.max(0, Math.min(1, vibeDrag.f0 + d)), dd = f - vibeDrag.f0;
+  vibePos[sel][vibeDrag.vk] = f;
+  for (const [p, w, b] of vibeDrag.base) { if (locks.has(p)) continue; const q = meta(p); if (parSetV(p, Math.round(Math.max(q.min, Math.min(q.max, b + dd * w * (q.max - q.min)))))) changedPar(p); }
+  vibeDrag.k.querySelector(".dial").style.setProperty("--f", f);
+  vibeDrag.k.querySelector(".v").textContent = vibeText(vibeDrag.vk, f);
+  vibeDrag.k.classList.toggle("eleven", f >= 0.999 && VIBES[sel][vibeDrag.vk][1] === "WILD");
+});
+document.addEventListener("pointerup", () => { if (vibeDrag) { vibeDrag = null; syncCtls(); drawPics(); } });
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-dice]"); if (!b || !io) return;
+  const n = diceRoll(b.dataset.dice.split(",").map(Number));
+  say(n ? "🎲 " + n + " settings rolled" + (locks.size ? " (locked ones stayed)" : "") + ". Ctrl+Z if it was better before." : "Nothing to roll there (all locked, or settings dice leave alone).");
+});
+document.addEventListener("contextmenu", (e) => {               // a lock: right-click (or Alt-click) a knob
+  const k = e.target.closest(".knob[data-p]"); if (!k) return;
+  e.preventDefault(); lockToggle(k);
+});
+document.addEventListener("click", (e) => { if (!e.altKey) return; const k = e.target.closest(".knob[data-p]"); if (k) { e.preventDefault(); lockToggle(k); } }, true);
+function lockToggle(k) {
+  const p = +k.dataset.p;
+  if (locks.has(p)) locks.delete(p); else locks.add(p);
+  lockSave(); syncCtls();
+  say((locks.has(p) ? "🔒 Locked: " : "Unlocked: ") + (k.querySelector(".kl") ? k.querySelector(".kl").textContent : "it") + (locks.has(p) ? ". The dice and the vibe knobs leave it alone." : "."));
+}
 
 // the picture a section of a page gets (by its page and section, its knobs found by their labels), or none
 function picFor(tabName, x, col) {
