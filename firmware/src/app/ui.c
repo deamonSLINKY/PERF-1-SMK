@@ -3224,12 +3224,6 @@ static void button(int b)
     switch (b) {
     case B_FX: {
         const uint32_t now = plat_ms();
-        if (ui.fx_menu && !ui.fx_page && ui.fx_open_t && now - ui.fx_open_t < 350u) {   /* FX twice quickly: the settings of the effect you used last (the first page if none) */
-            ui.fx_open_t = 0;
-            ui.fx_page = ui.fx_lastpg ? ui.fx_lastpg : 1;
-            say(FXP[ui.fx_page - 1].name, "SETTINGS");
-            break;
-        }
         ui.fx_menu = (uint8_t)!ui.fx_menu;
         ui.fx_page = 0;                          /* (from an edit page too: closed) */
         ui.fx_open_t = ui.fx_menu ? (now ? now : 1u) : 0u;
@@ -3799,7 +3793,7 @@ static void midi_in(void)
 
 /* HELP CARDS (X0X's): hold one button alone for HELP_HOLD and a card says what it does. A key, a
  * turn or another button puts it away; letting go after its card does nothing else. The buttons whose
- * hold means something else (PLAY, SEL, SEQ, SAVE, FX) have no card. */
+ * hold means something else (PLAY, SEL, SEQ, SAVE, FX: the effects' settings) have no card. */
 static void help_tick(uint32_t btn, uint32_t keys)
 {
     uint32_t now = plat_ms();
@@ -3817,6 +3811,15 @@ static void help_tick(uint32_t btn, uint32_t keys)
         ui.fx_menu = 1;
         ui.fx_page = ST_ORDER[0];                /* the settings' walk (0.16.1: their own; the dial goes through them) */
         say("SETTINGS", "DIAL: NEXT PAGE");
+        return;
+    }
+    if (btn == 1u << B_FX && !(ui.btn_used & btn) && now - ui.down_t[B_FX] >= 500u && (int32_t)(ui.turn_t - ui.down_t[B_FX]) <= 0) {   /* FX held: the effects' settings, from anywhere (0.17.20, as HOME held is the unit's) */
+        ui.btn_used |= btn;                      /* its release now does nothing */
+        ui.fx_menu = 1;
+        ui.lock_mode = 0;
+        ui.fx_open_t = 0;
+        ui.fx_page = ui.fx_lastpg ? ui.fx_lastpg : FX_ORDER[0];   /* the effect you used last, else the first; the dial walks them */
+        say(FXP[ui.fx_page - 1].name, "DIAL: NEXT EFFECT");
         return;
     }
     for (i = 0; i < NB; i++)
@@ -6205,13 +6208,13 @@ static float filt_db(int t, int32_t x, float fc, float q, int two)
 }
 static void filt_curve(int t, float fc, float q, int two, int32_t h)   /* (worked out twice, its top then the trace: no array, RAM is short) */
 {
-    float top = 6.0f;
+    float top = 12.0f;                           /* (0.17.20: the pass band lower, about 60% up; the maker: "a little high") */
     int32_t x;
     for (x = 0; x < SC_W; x++) {
         const float m = filt_db(t, x, fc, q, two);
         top = m > top ? m : top;
     }
-    top += 3.0f;
+    top += 9.0f;
     for (x = 0; x < SC_W; x++)
         sc_y[x] = (uint8_t)(fm_clampf((filt_db(t, x, fc, q, two) + 36.0f) / (top + 36.0f), 0.0f, 1.0f) * (float)h);
 }

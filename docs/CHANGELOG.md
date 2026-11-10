@@ -26,6 +26,8 @@ The unit reports its version as `FM-1_7XXYYZZ` (0.13.0 is `FM-1_7001300`); the i
 
 ## Next (development builds from 0.17.1)
 
+- **Hold FX for the effects' settings (0.17.20).** Hold **FX** half a second, from any page, for the settings of the effect you used last (the first one if none); **SELECT** walks them, as holding **HOME** opens the unit's own. It replaces pressing FX twice quickly.
+- **Filter pictures lower (0.17.20).** The pass band sits about 60% up the picture instead of near the top, with more room above for the resonance.
 - **Filter pictures that show the type (0.17.19).** The Bass and Acid pages' filter pictures now draw the FILTERS type you chose, named in their title: the low-pass sloping down, the high-pass its mirror (with its corner where it sits), the band a peak, the notch a dip, the peak a bump, the 303 a steep ladder with its resonance. They are drawn in decibels, so the slopes show beside a resonant peak. The punch-in FILTER's page has a picture now too.
 - **Effects at the music's level (0.17.19).** Every effect measured on the host against the music without it (`tests/host/gfxlev.c`, a dozen seconds each):
   - **Talk** (6-11 dB under) and **Wah** (4-14 dB under) filtered the kick and the bass away with the rest; now everything below about 180 Hz passes them dry and what they filter is brought up: within 2 dB in eight genres.

@@ -313,7 +313,7 @@ short version.
 | **KNOB1**-**KNOB4** | The four values (a, b, c, d) of the page on screen. |
 | **OCT-** | Down an octave, to -3. On a voice's pages it moves that voice (pad, bass or acid; the pluck goes down to -2). On any other page it moves the whole song. In the sequencer it picks the previous drum. In the FX menu it turns every effect off. |
 | **OCT+** | Up an octave, to +3, the same way. In the sequencer it picks the next drum. |
-| **FX** | Opens and closes the effects menu. Press it twice quickly for the settings of the effect you used last. |
+| **FX** | Opens and closes the effects menu. Held: the settings of the effect you used last, from any page. |
 | **SEL** | Shift: hold it while you use another control (section 12). |
 | **ENV** | The Pad page. Again: Pad env, Pad LFO, Chords, Progression. With **SEL** held: takes the voice on screen off its automatic part so you play it by hand (again: hands it back). |
 | **LFO** | The Bass page. Again: Bass env, Bass LFO, Bass line, Bass steps. |
@@ -339,13 +339,13 @@ back to the page you were last on in that group.
 | Hold **SAVE** | 0.5 s | The drop, straight away on the next bar. |
 | Hold **SEL** + **SAVE** on Global | 1.5 s | Puts the piece back to factory. From 0.4 s a card says `KEEP HOLDING: FACTORY`. A plain **SAVE** on Global only stores. |
 | Hold **HOME** | 0.7 s | The settings pages (**SELECT** walks them). |
+| Hold **FX** | 0.5 s | The effects' settings, from the one you used last (**SELECT** walks them). |
 | Hold **GLO** | 0.4 s | The mix map. |
 | Hold **SEL** alone | 0.4 s | A card shows what shift does on this page. |
 | Hold **EDIT** | 0.4 s | The Progression page. |
 | Hold another button alone | 0.9 s | A card says what it does (**ENV**, **LFO**, **ARP**, **REC**, **OCT-**, **OCT+**). |
 | Tap an effect key | under 0.25 s | Latches the effect on. Hold it longer and it plays only while held. |
 | Hold a scene key | 0.6 s | Stores the scene. A tap recalls it. |
-| **FX**, **FX** | within 0.35 s | The settings of the effect you used last. |
 | **HOME**, **HOME** | within 0.45 s | The visualizers. |
 | **OCT-** + **OCT+** | 5 s | Update mode. |
 
@@ -1517,7 +1517,7 @@ While the Snips page is up, the keys play the snips, so you can try them out.
 Every effect that has settings has its own page, with a picture of what the effect is doing. You can get to a page in four ways:
 
 - In the FX menu, hold **SEL** and press a key. You get the page for that key's effect. If the effect has no settings, the screen says so.
-- Press **FX** twice quickly for the page of the effect you used last.
+- Hold **FX** (half a second), from any page, for the page of the effect you used last (the first one if you haven't used any).
 - Press **SEL** + **FX** to step through all the effects' pages, then back to the keys. Talk and Wah come right after the phaser and the flanger. (The unit's own settings, such as Auto DJ, SET and MIDI IN, are a separate walk: hold **HOME**, section 13.)
 - Once you're on a settings page, turn the **SELECT** dial to move to the next or previous one. It stops at the ends.
 
