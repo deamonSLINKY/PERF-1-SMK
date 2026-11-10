@@ -2184,6 +2184,35 @@ int main(void)
             CHECK(fabsf(lv[2] - lv[0]) < 0.02f * lv[0], "scream aimed at the other voice leaves the %s as it was (%.4f of it: echo and reverb off)",
                   V[v].name, (double)(lv[0] > 0.0f ? lv[2] / lv[0] : 0.0f));
         }
+        {   /* (0.17.19) TALK, WAH and RING MOD at the music's level (within 3 dB; they were 6-11, 4-14 and 3 dB under): the low end kept dry, makeup */
+            static const int FX3[4] = {-1, FX_TALK, FX_WAH, FX_RING};
+            float e[4];
+            int t3, f;
+            for (t3 = 0; t3 < 4; t3++) {
+                for (f = 0; f < EN_NFXS; f++)
+                    en_fxs(f, EN_FXS_DEF[f]);
+                en_init();
+                en_dj_sync(0);
+                en_test_reseed(7);
+                en_play(0);
+                en_genre(2);
+                en_trk(0, 0);
+                en_fx(FX3[t3] < 0 ? 0ull : 1ull << FX3[t3]);
+                en_regrow();
+                en_play(1);
+                run(2.0f);
+                sum2 = 0.0f;
+                bad = 0;
+                peak = 0.0f;
+                run(6.0f);
+                e[t3] = sum2;
+                CHECK(bad == 0, "effect %d: %d bad samples", FX3[t3], bad);
+            }
+            en_fx(0ull);
+            for (t3 = 1; t3 < 4; t3++)
+                CHECK(e[0] > 0.0f && e[t3] > 0.5f * e[0] && e[t3] < 2.0f * e[0], "effect %d at the music's level (%.2f of its energy)", FX3[t3],
+                      (double)(e[0] > 0.0f ? e[t3] / e[0] : 0.0f));
+        }
         {   /* (0.17.18) FILTERS > Bass High and Band: within 8 and 11 dB of Low (they were 19 and 17 dB under: a high-pass at a low-pass's corner) */
             float lt[3];
             int t, f;

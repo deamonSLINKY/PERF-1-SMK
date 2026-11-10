@@ -26,6 +26,12 @@ The unit reports its version as `FM-1_7XXYYZZ` (0.13.0 is `FM-1_7001300`); the i
 
 ## Next (development builds from 0.17.1)
 
+- **Filter pictures that show the type (0.17.19).** The Bass and Acid pages' filter pictures now draw the FILTERS type you chose, named in their title: the low-pass sloping down, the high-pass its mirror (with its corner where it sits), the band a peak, the notch a dip, the peak a bump, the 303 a steep ladder with its resonance. They are drawn in decibels, so the slopes show beside a resonant peak. The punch-in FILTER's page has a picture now too.
+- **Effects at the music's level (0.17.19).** Every effect measured on the host against the music without it (`tests/host/gfxlev.c`, a dozen seconds each):
+  - **Talk** (6-11 dB under) and **Wah** (4-14 dB under) filtered the kick and the bass away with the rest; now everything below about 180 Hz passes them dry and what they filter is brought up: within 2 dB in eight genres.
+  - **Ring mod** sat 3 dB under (a sine's level); now within 1 dB.
+  - **Rpt 1/32**, **Rpt 1/16T** and **Roll** looped the half of a sixteenth that had just ended, usually the tail after a hit (up to 16 dB under); a slice shorter than a sixteenth now starts on the sixteenth, on its hit (within 3-6 dB, often level).
+  - The ones that drop by design are left as they are: the mutes, Tape stop, Brake, High-pass and Riser (they take the low end away), and Rpt 1/16 on a sixteenth with nothing in it.
 - **The filters checked (0.17.18).** Every filter measured on the host (`tests/host/gfilt.c`: each type's response around its cutoff; `tests/host/gacid.c`: each voice's level by type). The filter cores were right; three things were not:
   - **High and Band on the bass and the pad** dropped the sound 17-19 dB (the bass all but vanished): a high-pass at the corner a low-pass uses cuts nearly everything. High's corner now sits lower on those two, and both types get back the level they lose: the bass's High is now 2-5 dB under Low, its Band 5-10; the pad's within 3 and 2-8.
   - **High as 24 dB** had its second stage above the corner (right for the low-pass); it now sits below, so the high-pass mirrors the low-pass on all three voices.

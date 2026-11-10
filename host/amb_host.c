@@ -1121,6 +1121,11 @@ int main(int argc, char **argv)
             autopilot = atoi(a);
         } else if (!strcmp(cmd, "splash")) {         /* splash MS: the next boot's RedtailWorks card */
             ui_splash_ms = (uint32_t)strtoul(a, 0, 10);
+        } else if (!strcmp(cmd, "fxpageset")) {      /* (0.17.19) fxpageset N: the effects' page N up (as the walk reaches it), for pictures */
+            ui.fx_page = (uint8_t)atoi(a);
+        } else if (!strcmp(cmd, "setfxs")) {         /* (0.17.19) setfxs N V: the effects' setting N (EN_FXS_*), as its page sets it */
+            ui.fxs[atoi(a)] = (uint8_t)atoi(b);
+            en_fxs(atoi(a), atoi(b));
         } else if (!strcmp(cmd, "setpar")) {         /* setpar N V: parameter N set as its knob sets it */
             ui_param_set(atoi(a), atoi(b));
         } else if (!strcmp(cmd, "oldimage")) {       /* the first genre's stored bank marked as written before the pluck's DX voices were thirty (the sounds renumber on the next load) */

@@ -6177,6 +6177,44 @@ static void scope_dot(float u, uint16_t col)     /* the dot at u (0..1 across) r
 static float scope_expo(float t, float k) { return fm_exp2f(-t * k); }
 
 /* the same, for the effects' edit pages: the effect drawn from its settings, moving where it moves */
+/* (0.17.19) a filter type's response at r = f / fc, as the engine's SVF sounds it (q = 1 / k): 0 low, 1 high, 2 band (1 at its centre), 3 notch,
+ * 4 peak (low less high), 5 the 303 (two poles resonant, two flat); two: the 24 dB types, a flat second stage (above the corner for the low-pass,
+ * below for the high-pass, as the voices run it) */
+static float filt_mag(int t, float r, float q, int two)
+{
+    const float a = 1.0f - r * r, d = fm_sqrtf(a * a + r * r / (q * q) + 1e-9f);
+    float m;
+    switch (t) {
+    case 1: m = r * r / d; break;
+    case 2: m = r / q / d; break;
+    case 3: m = fm_fabsf(a) / d; break;
+    case 4: m = (1.0f + r * r) / d; break;
+    default: m = 1.0f / d; break;
+    }
+    if ((two && t <= 1) || t == 5) {
+        const float r2 = t == 1 ? r * 1.2f : r * (1.0f / 1.2f), a2 = 1.0f - r2 * r2, d2 = fm_sqrtf(a2 * a2 + r2 * r2 * 1.44f + 1e-9f);
+        m *= t == 1 ? r2 * r2 / d2 : 1.0f / d2;
+    }
+    return m;
+}
+/* the response over 20 Hz .. 20 kHz into sc_y (h: the trace's height), in decibels: -36 dB at the foot, the top at +6 dB or the peak (with room),
+ * so a flat passband sits at the same height whatever the type and a slope shows beside a resonant peak */
+static float filt_db(int t, int32_t x, float fc, float q, int two)
+{
+    return 6.0206f * fm_log2f(filt_mag(t, 20.0f * fm_exp2f((float)x / (float)(SC_W - 1) * 10.0f) / fc, q, two) + 1e-6f);
+}
+static void filt_curve(int t, float fc, float q, int two, int32_t h)   /* (worked out twice, its top then the trace: no array, RAM is short) */
+{
+    float top = 6.0f;
+    int32_t x;
+    for (x = 0; x < SC_W; x++) {
+        const float m = filt_db(t, x, fc, q, two);
+        top = m > top ? m : top;
+    }
+    top += 3.0f;
+    for (x = 0; x < SC_W; x++)
+        sc_y[x] = (uint8_t)(fm_clampf((filt_db(t, x, fc, q, two) + 36.0f) / (top + 36.0f), 0.0f, 1.0f) * (float)h);
+}
 static int draw_fxscope(int p)
 {
     const float tk = (float)(scope_tick() % 64u) * (1.0f / 64.0f);
@@ -6314,6 +6352,13 @@ static int draw_fxscope(int p)
             cv_rect(SC_X + x, sc_oy + sc_oh - f2[x] - 1, 1, 2, col);
         return 1;
     }
+    case 27:                                     /* (0.17.19) the punch-in FILTER: its type at its cutoff and resonance */
+        if (FXP[p].bit != FX_TFILT)
+            return 0;
+        filt_curve(ui.fxs[EN_FXS_TF_TYPE] < 5 ? ui.fxs[EN_FXS_TF_TYPE] : 0, 40.0f * fm_exp2f((float)ui.fxs[EN_FXS_TF_CUT] * 0.0864f),
+                   1.0f / (2.0f - 0.0195f * (float)ui.fxs[EN_FXS_TF_RESO]), 0, H - 6);
+        scope_trace(col);
+        return 1;
     case 21:                                     /* wah: the band-pass at its lowest, and where the loudness will push it */
         for (x = 0; x < SC_W; x++) {
             const float k = 0.7f - 0.0058f * (float)ui.fxs[EN_FXS_WH_RESO], f = 20.0f * fm_exp2f((float)x / (float)(SC_W - 1) * 10.0f),
@@ -7116,19 +7161,26 @@ static void draw_scope(int kind)
         const int ac = kind == SCOPE_AFILT, cut = proj.par[ac ? P_AC_CUT : P_DR_CUT], res = proj.par[ac ? P_AC_RES : P_DR_RES],
                   env = ac ? proj.par[P_AC_ENV] : 0;
         int pass;
+        /* (0.17.19) drawn as its FILTERS type sounds: the high-pass's corner where the engine puts it (FT_FC: a quarter of the bass's, half the acid's) */
+        static const char *const FTN[6] = {"LOW", "HIGH", "BAND", "NOTCH", "PEAK", "303"};
+        const int ft = ui.fxs[ac ? EN_FXS_FT_ACID : EN_FXS_FT_BASS], t = (unsigned)ft < (ac ? 6u : 5u) ? ft : 0;
+        const float fcm = t == 1 ? (ac ? 0.5f : 0.25f) : 1.0f;
+        char tl[24];
+        int n = 0;
+        const char *a = ac ? "ACID FILTER: " : "BASS FILTER: ", *b = FTN[t];
+        while (*a)
+            tl[n++] = *a++;
+        while (*b)
+            tl[n++] = *b++;
+        tl[n] = 0;
         col = ac ? K_ACID : K_BASS;
-        title = ac ? "ACID FILTER" : "BASS FILTER";
         sub = ac ? "CUTOFF  RESO  ENV MOD (DIM: PEAK)" : "CUTOFF  RESO";
-        sc_title(title, col);
+        sc_title(tl, col);
         sc_foot(sub, K_DIM);
         for (pass = 0; pass < (ac && env > 4 ? 2 : 1); pass++) {
-            const float oct = 8.4f * (float)cut * 0.01f + (pass ? 4.0f * (float)env * 0.01f : 0.0f), fc = 60.0f * fm_exp2f(oct),
-                        q = 0.6f + (float)res * 0.09f, top = (q > 1.0f ? q : 1.0f) * 1.12f;
-            for (x = 0; x < SC_W; x++) {
-                const float f = 20.0f * fm_exp2f((float)x / (float)(SC_W - 1) * 10.0f), r = f / fc, a = 1.0f - r * r,
-                            m = 1.0f / fm_sqrtf(a * a + r * r / (q * q) + 1e-6f);
-                sc_y[x] = (uint8_t)(fm_clampf(m / top, 0.0f, 1.0f) * (float)(SC_H - 6));
-            }
+            const float oct = 8.4f * (float)cut * 0.01f + (pass ? 4.0f * (float)env * 0.01f : 0.0f), fc = 60.0f * fm_exp2f(oct) * fcm,
+                        q = 0.6f + (float)res * 0.09f;
+            filt_curve(t, fc, q, 1, SC_H - 6);
             scope_trace(pass == 0 && ac && env > 4 ? mix(K_BG, col, 7) : col);
         }
         return;

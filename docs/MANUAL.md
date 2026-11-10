@@ -1372,9 +1372,9 @@ The 27 keys run from `F3` to `G5`. On the screen they're laid out in three colum
 | A3 | Freeze | Grabs the sound and holds it as a steady drone, built from tiny repeated grains of it. |
 | A#3 | Gate pattern | The gate playing its own rhythm, which you set on the Gate page. |
 | B3 | Reverse swell | The last beat or so plays backwards once, getting louder as it goes. |
-| C4 | Talk | Makes the whole mix "talk" by sweeping it through the vowels A E I O U. |
+| C4 | Talk | Makes the whole mix "talk" by sweeping it through the vowels A E I O U. The kick and bass underneath stay as they are. |
 | C#4 | Phaser | A swirling, sweeping sound. |
-| D4 | Wah | An auto-wah: a filter that opens up as the music gets louder. |
+| D4 | Wah | An auto-wah: a filter that opens up as the music gets louder. The kick and bass underneath stay as they are. |
 | D#4 | Flanger | A jet-plane whoosh. |
 | E4 | Reverse | Plays the music backwards. |
 | F4 | Tape stop | The music slows down and stops, like a tape machine switched off. |

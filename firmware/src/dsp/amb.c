@@ -5015,6 +5015,10 @@ static float vin_m, roll_t, riser_amt, wash_e;   /* vinyl in; the roll's time he
 static float sw_m, sw_s[2][2], sw_c[4], sw_s2[2][2], sw_c2[4], sw_lt, sw_lf, sw_k1, sw_k2;   /* (0.17.18: the corner's target and its gliding place, log2 Hz; the two ks) */
 static uint32_t sw_cnt;
 static float tk_m, tk_c[2][4], tk_s[2][2][2], wh_m, wh_c[4], wh_s[2][2], wh_env;   /* talk (two formants a channel), wah */
+static float tk_lo[2], wh_lo[2];                 /* (0.17.19) their low ends, kept dry (a one-pole at ~180 Hz) */
+#define XO_A 0.0253f                             /* that one-pole's step: 1 - e^(-2 pi 180 / 44100) */
+#define TK_G 2.2f                                /* TALK's makeup on what it filters (the host: -6..-11 dB before) */
+#define WH_G 1.6f                                /* WAH's (-4..-14 dB before) */
 static uint32_t wh_cnt;   /* (the second: the resonant spike, for the band-pass) */
 static float rm_m, rm_ph, rm_inc, rm_wet;   /* the ring mod: its fade, phase, step and share */   /* the sweep: its fade, its two filters' states, its coefficients */
 static float rl_gain = 1.0f, tp_wd, tp_fd, tp_drive = 1.5f, tp_idrive = 1.0f / 1.5f, fl_inv = 1.0f, tp_k = 0.55f, rs_inv, rs_filt, rs_wash, rs_echo;   /* the roll's swell; the tape's; the riser's */
@@ -5065,7 +5069,11 @@ static void rpt_engage(int r)                   /* the slice that just ended, lo
     bmode = BM_RPT;
     brate = r;
     bm_len = len;
-    bm_start = rb_w - (uint32_t)(len * 0.5f + 0.5f), bm_sm = bm_start % RB_N;
+    {   /* (0.17.19) a slice shorter than a sixteenth starts where the last sixteenth did, on its hit: the half that just ended was its tail (1/32 sat
+         * 4-16 dB under the music) */
+        const float back = len < step_len && step_len * 0.5f < (float)(RB_N - 8) ? step_len : len;
+        bm_start = rb_w - (uint32_t)(back * 0.5f + 0.5f), bm_sm = bm_start % RB_N;
+    }
     bm_off = 0.0f;
     bm_tgt = 1.0f;
     rp_gain = 1.0f;
@@ -6294,15 +6302,17 @@ static inline void fx_master(float *pl, float *pr)   /* one sample of the master
         float in[2] = {l, r}, o[2];
         int c, f;
         for (c = 0; c < 2; c++) {
-            float y = 0.0f;
+            float y = 0.0f, hi;
+            tk_lo[c] = fm_flush(tk_lo[c] + XO_A * (in[c] - tk_lo[c]));   /* (0.17.19) the kick and the bass stay as they are */
+            hi = in[c] - tk_lo[c];
             for (f = 0; f < 2; f++) {
                 float *s = tk_s[c][f];
-                const float *cc = tk_c[f], v3 = in[c] - s[1], v1 = cc[0] * s[0] + cc[1] * v3, v2 = s[1] + cc[1] * s[0] + cc[2] * v3;
+                const float *cc = tk_c[f], v3 = hi - s[1], v1 = cc[0] * s[0] + cc[1] * v3, v2 = s[1] + cc[1] * s[0] + cc[2] * v3;
                 s[0] = fm_flush(2.0f * v1 - s[0]);
                 s[1] = fm_flush(2.0f * v2 - s[1]);
                 y += cc[3] * v1 * (f ? 0.7f : 1.0f);
             }
-            o[c] = y * 1.8f;
+            o[c] = y * 1.8f * TK_G + tk_lo[c];
         }
         l += (o[0] - l) * w;
         r += (o[1] - r) * w;
@@ -6317,11 +6327,15 @@ static inline void fx_master(float *pl, float *pr)   /* one sample of the master
             svf_coefs(wh_c, 280.0f * fm_exp2f(4.0f * (float)fxs_v[EN_FXS_WH_RANGE] * 0.01f * e), 0.7f - 0.0058f * (float)fxs_v[EN_FXS_WH_RESO]);
         }
         for (c = 0; c < 2; c++) {
-            float *s = wh_s[c];
-            const float v3 = in[c] - s[1], v1 = wh_c[0] * s[0] + wh_c[1] * v3, v2 = s[1] + wh_c[1] * s[0] + wh_c[2] * v3;
-            s[0] = fm_flush(2.0f * v1 - s[0]);
-            s[1] = fm_flush(2.0f * v2 - s[1]);
-            o[c] = wh_c[3] * v1 * 2.0f;
+            float *s = wh_s[c], hi;
+            wh_lo[c] = fm_flush(wh_lo[c] + XO_A * (in[c] - wh_lo[c]));   /* (0.17.19) the low end dry, the wah on the rest */
+            hi = in[c] - wh_lo[c];
+            {
+                const float v3 = hi - s[1], v1 = wh_c[0] * s[0] + wh_c[1] * v3, v2 = s[1] + wh_c[1] * s[0] + wh_c[2] * v3;
+                s[0] = fm_flush(2.0f * v1 - s[0]);
+                s[1] = fm_flush(2.0f * v2 - s[1]);
+                o[c] = wh_c[3] * v1 * 2.0f * WH_G + wh_lo[c];
+            }
         }
         l += (o[0] - l) * w;
         r += (o[1] - r) * w;
@@ -6406,6 +6420,7 @@ static inline void fx_master(float *pl, float *pr)   /* one sample of the master
         rm_ph += rm_inc;
         rm_ph -= (float)(int)rm_ph;
         s = fm_sin_turns(rm_ph);
+        s *= 1.414f;                            /* (0.17.19) a sine's RMS is 0.71: the ring mod sat 3 dB under the music (the host, eight genres) */
         l += (l * s - l) * rm_m * rm_wet;
         r += (r * s - r) * rm_m * rm_wet;
     }
