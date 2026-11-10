@@ -537,7 +537,7 @@ function parseLive(b) {
            bsHist: sl(16, 16), bsPos: s8(b[32]), acLen: b[33] || 16, acPos: b[34], acGate: u16(35), acAcc: u16(37), acSlide: u16(39),
            acOff: sl(41, 16), acOct: sl(57, 16), cmRung: sl(73, 16), cmLvl: sl(89, 16), cmPos: b[105], laneSrc: sl(106, 6), playing: b[112],
            genre: b[113], piece: b[114], chordN: b[115], lanePos: sl(116, 6), pool: u16(122), root: b[124], blMode: b[125],
-           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0, slPos: b.length > 136 ? b[135] : 255, slBar: b.length > 136 ? b[136] : 255, trk: b.length > 137 ? b[137] : 0, rest: b.length > 138 ? b[138] : 0 };
+           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0, slPos: b.length > 136 ? b[135] : 255, slBar: b.length > 136 ? b[136] : 255, trk: b.length > 137 ? b[137] : 0, rest: b.length > 138 ? b[138] : 0, padf: b.length > 139 ? b[139] : 1 };
 }
 let hist = {}, slotT = 0, slotNow = -2, lastBar = -1;
 function resetHistory() { hist = {}; slotT = 0; slotNow = -2; lastBar = -1; }
@@ -1529,6 +1529,8 @@ document.addEventListener("change", (e) => {
 
 /* ---- the SOUND pane: the lane's own page on the FM-1, every knob (params.json's tabs: the unit's pages, as ui.c has them) */
 const LANE_TAB = { chords: "Pad", pad: "Pad", bass: "Bass", acid: "Acid", pluck: "Pluck", drums: "Drums" };
+let padfShown = 1;
+setInterval(() => { if (pane === "sound" && (sel === "pad" || sel === "chords") && live && live.padf !== padfShown) soundRender(); }, 400);   // (the pad's sound changed: filter or none)
 function soundRender() {
   if (pane !== "sound") return;
   const tab = D.tabs.find((t) => t.name === LANE_TAB[sel]), col = (LANES.find((l) => l.id === sel) || {}).col;
@@ -1543,7 +1545,11 @@ function soundRender() {
       lanes.map((x) => "<tr><th>" + x.name.replace(/ lane$/, "").toUpperCase() + "</th>" + x.knobs.map((k) => "<td>" + ctlHTML(k.p, k.label, col) + "</td>").join("") + "</tr>").join("") + "</table></div>";
   }
   const fx = { pad: [-1], chords: [-1], bass: [-2, -4, -5, -6, -7], acid: [-3, -4, -5, -6, -7] }[sel];
-  if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3><div class="ctls kn">' + fx.map((p) => knobHTML(p, null, col)).join("") + "</div></div>";
+  const noPadFilt = fx && fx[0] === -1 && live && live.padf === 0;   // (0.17.18: the pad's filter is on its saw sounds only)
+  padfShown = live ? live.padf : 1;
+  if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3>' +
+    (noPadFilt ? '<p class="muted" style="margin:0 0 6px;font-size:.8rem">NO FILTER on this pad sound: its filter is on the saw sounds (Strings, Dub, Trance, Poly, Rave, Brass, Fat, Pluck). The setting is kept for when you pick one.</p>' : "") +
+    '<div class="ctls kn"' + (noPadFilt ? ' style="opacity:.4"' : "") + ">" + fx.map((p) => knobHTML(p, null, col)).join("") + "</div></div>";
   if (sel === "pluck") h += dxHTML();
   h = vibeHTML(col) + h;
   $("sound").innerHTML = h + '<p class="muted">Drag a knob up or down (Shift: finer), drag the handles on the pictures, turn the mouse wheel over a knob, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
@@ -2960,10 +2966,11 @@ PICS.env3 = (g, W, H, [T, A, Dc, Am], col) => {
 PICS.filt = (g, W, H, [C, Q, Ty, Em], col) => {
   const pad = 12, w = W - 2 * pad, top = 22, base = H - 14, xc = pad + pf(C) * w, q = pf(Q), type = Number.isFinite(Ty) ? parV(Ty) : 0;
   const ydb = (db) => top + (14 - Math.max(-36, Math.min(14, db))) / 50 * (base - top);
-  const resp = (d) => {                                        // d: octaves from the cutoff (about); dB
-    const bump = q * 13 * Math.exp(-Math.pow(d * 2.6, 2));
+  const hpOff = type === 1 ? Math.log2({ "-1": 0.4, "-2": 0.25, "-3": 0.5 }[String(Ty)] || 1) : 0;   // (0.17.18 FT_FC: High's corner below the cutoff)
+  const resp = (d0) => {                                       // d: octaves from the cutoff (about); dB
+    const d = d0 - hpOff, bump = q * 13 * Math.exp(-Math.pow(d * 2.6, 2));
     switch (type) {
-      case 1: return (d < 0 ? d * 22 : 0) + bump;
+      case 1: return (d < 0 ? d * 24 : 0) + bump;              // (24 dB, its second stage mirrored below the corner)
       case 2: return -Math.abs(d) * 16 + bump * 1.2;
       case 3: return -34 * Math.exp(-Math.pow(d * 3.2 / (0.4 + q), 2));
       case 4: return bump * 1.15 + 1;
@@ -2975,7 +2982,7 @@ PICS.filt = (g, W, H, [C, Q, Ty, Em], col) => {
   for (let x = pad; x <= pad + w; x += 2) pts.push([x, ydb(resp((x - xc) / w * 7))]);
   curve(g, pts, col, base);
   g.strokeStyle = "#3a3e4a"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(pad, ydb(0)); g.lineTo(pad + w, ydb(0)); g.stroke(); g.setLineDash([]);
-  label(g, (["LOW-PASS", "HIGH-PASS", "BAND-PASS", "NOTCH", "PEAK", "303 LADDER"][type] || "") + "  ·  LOW ← FREQUENCY → HIGH", pad, 14);
+  label(g, (["LOW-PASS", "HIGH-PASS (ITS CORNER AT ×" + Math.pow(2, hpOff).toFixed(2).replace(/0$/, "") + " THE CUTOFF)", "BAND-PASS", "NOTCH", "PEAK", "303 LADDER"][type] || "") + "  ·  LOW ← FREQUENCY → HIGH", pad, 14);
   const hs = [{ name: "Cutoff · resonance", x: xc, y: ydb(resp(0)), px: C, ax: [pad, pad + w], py: Q, ay: [ydb(0), ydb(13)] }];
   if (Number.isFinite(Em)) {                                   // the envelope opens it this far on each note
     const xe = xc + pf(Em) * w * 0.45, ye = base - 10;
