@@ -573,13 +573,13 @@ and Drift, or **EDIT**). The **Chords** page (**ENV** four times) sets what kind
 | Dub | The same minor 9 shape on every chord, whatever the scale says. These are the parallel chord stabs of dub techno. |
 | Fourths | The scale's notes stacked in fourths (shown as A4ths on the home chord of a minor key), an m11 sound. Where the scale's next fourth would be a tritone it takes the note below, as in the "So What" chord. Deep, hollow and modal. |
 
-**Filter types.** The pad's saw sounds, the bass and the acid each run through a resonant filter, low-pass as
+**Filter types.** The pad's saw sounds (Strings, Dub, Trance, Poly, Rave, Brass, Fat, Pluck: on the others the page says NO FILTER), the bass and the acid each run through a resonant filter, low-pass as
 standard. The **FILTERS** settings page (hold **HOME**, then turn **SELECT** past MIDI IN) changes each one's type:
 
 | Type | Sounds like |
 |---|---|
 | Low | As before: the top rolled off, Cutoff closes it down. |
-| High | The bottom taken away: thin, airy, good for a build or a lead that cuts through. |
+| High | The bottom taken away: thin, airy, good for a build or a lead that cuts through. On the bass and the pad its corner sits lower than the low-pass's, so it thins them rather than taking them away. |
 | Band | Only a band around the cutoff: nasal, telephone-like, great with resonance. |
 | Notch | A gap at the cutoff: hollow and phasey as the cutoff moves. |
 | Peak | The cutoff's band boosted against the rest: a vowel-like bite. |

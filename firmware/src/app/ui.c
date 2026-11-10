@@ -1238,7 +1238,7 @@ static void fxp_text(int k, char *b)
     else if (FXP_CTL(k).kind == KN_TGT || FXP_CTL(k).kind == KN_PTGT)
         s = GX_TGT[v].name;
     else if (FXP_CTL(k).kind == KN_NAME)
-        s = FXP_CTL(k).names[v];
+        s = FXP_CTL(k).idx == EN_FXS_FT_PAD && !en_pad_filtered() ? "NO FILTER" : FXP_CTL(k).names[v];   /* (0.17.18) the pad's sound has none */
     if (s) {
         int n = 0;
         while (*s && n < 9)

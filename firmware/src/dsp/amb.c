@@ -1425,6 +1425,7 @@ static int pad_stabs(void)                      /* Comp: Hold never stabs, a rhy
     return c == 1 ? 0 : c >= 2 ? 1 : PAD_SOUND[pad_snd()].stabs;
 }
 static int pad_osc(void) { return PAD_SOUND[pad_snd()].osc; }
+int en_pad_filtered(void) { const int o = pad_osc(); return o == PO_STRINGS || o == PO_SUPER || o == PO_PWM; }   /* (0.17.18) the pad's sound has the filter (its saw sounds) */
 static uint8_t stabs_were;                      /* the pad was stabbing (to start the breaths again after) */
 
 void en_style_sounds(int16_t *p)                /* a stored style (1..4): its kit and sounds, as it sounded */
@@ -1592,6 +1593,13 @@ static inline float svf_mm(float x, const float *c, float *s, int t)   /* the mu
  * sixth type is the 303 ladder (FT_303, 0.17.17) */
 #define FT_TWO(t) ((t) <= 1)
 #define FT_303 5
+/* (0.17.18, the filter check) each type's place and level against the low-pass's, a voice (pad, bass, acid): High's corner moved down (the voices' cutoffs
+ * sit low for a low-pass, a high-pass there left a few dB of the bass: -19 dB), its second stage below it rather than above (a 24 dB high-pass mirrors
+ * the low); Band given back the level it loses (unity only at its centre). Measured on the host (tests/host/gacid.c, V=bass|pad, five genres): the bass's
+ * High 2-5 dB under Low (was 19), its Band 5-10 (was 17; its saturation holds it); the pad's within 3 and 2-8 (was 18). */
+static const float FT_FC[3][5] = {{1.0f, 0.4f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.25f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.5f, 1.0f, 1.0f, 1.0f}};
+static const float FT_G[3][5] = {{1.0f, 2.3f, 4.5f, 1.0f, 1.0f}, {1.0f, 3.0f, 5.5f, 1.0f, 1.0f}, {1.0f, 1.2f, 1.6f, 1.0f, 1.0f}};
+#define FT_IX(t) ((unsigned)(t) < 5u ? (t) : 0)
 
 static void midi(uint32_t st, uint32_t d1, uint32_t d2);
 /* the pad's MIDI notes are queued, and sent by the first core once the pad's render is done (MIDI out is not for the other core to call) */
@@ -5004,7 +5012,8 @@ static int crush_n;
 static float tp_buf[2][MOD_N], fl_buf[2][MOD_N];
 static uint32_t mod_w;
 static float vin_m, roll_t, riser_amt, wash_e;   /* vinyl in; the roll's time held (beats); the build; the wash's total */
-static float sw_m, sw_s[2][2], sw_c[4], sw_s2[2][2], sw_c2[4];
+static float sw_m, sw_s[2][2], sw_c[4], sw_s2[2][2], sw_c2[4], sw_lt, sw_lf, sw_k1, sw_k2;   /* (0.17.18: the corner's target and its gliding place, log2 Hz; the two ks) */
+static uint32_t sw_cnt;
 static float tk_m, tk_c[2][4], tk_s[2][2][2], wh_m, wh_c[4], wh_s[2][2], wh_env;   /* talk (two formants a channel), wah */
 static uint32_t wh_cnt;   /* (the second: the resonant spike, for the band-pass) */
 static float rm_m, rm_ph, rm_inc, rm_wet;   /* the ring mod: its fade, phase, step and share */   /* the sweep: its fade, its two filters' states, its coefficients */
@@ -5709,13 +5718,12 @@ static void fx_control(uint32_t n)              /* once a chunk: what the held e
             const uint32_t per = SWP[(int)fm_clampf((float)fxs_v[EN_FXS_SW_RATE], 0.0f, 6.0f)];
             const float ph = ((float)((sixteenth - 1u) % per) * step_len + (float)step_t) / ((float)per * step_len),
                         tri = ph < 0.5f ? ph * 2.0f : 2.0f - ph * 2.0f;
-            const float fc = 120.0f * fm_exp2f((float)fxs_v[EN_FXS_SW_DEPTH] * 0.07f * tri);
-            if (fxs_v[EN_FXS_SW_TYPE] == 2) {            /* band-pass: a wide base (always), and the resonance a narrow spike on top of it */
-                svf_coefs(sw_c, fc, 1.0f);
-                svf_coefs(sw_c2, fc, 1.4f - 0.0128f * (float)fxs_v[EN_FXS_SW_RESO]);
-            } else {
-                svf_coefs(sw_c, fc, 1.4f - 0.0128f * (float)fxs_v[EN_FXS_SW_RESO]);
-            }
+            const float kr = 1.4f - 0.0128f * (float)fxs_v[EN_FXS_SW_RESO];
+            sw_lt = 6.9069f + (float)fxs_v[EN_FXS_SW_DEPTH] * 0.07f * tri;   /* log2 of the corner: 120 Hz up by the depth (the sample loop glides to it) */
+            sw_k1 = fxs_v[EN_FXS_SW_TYPE] == 2 ? 1.0f : kr;   /* band-pass: a wide base (always), and the resonance a narrow spike on top of it */
+            sw_k2 = kr;
+            if (sw_m <= 0.03f || sw_lf <= 0.0f)  /* (coming in: from where it is asked, no glide up from nothing) */
+                sw_lf = sw_lt;
         }
         tk_m += ((float)(uint32_t)(m >> FX_TALK & 1u) - tk_m) * sm;           /* TALK: a vowel filter across everything, sweeping A E I O U with the tempo */
         tk_m = tk_m < 0.002f && !(m >> FX_TALK & 1u) ? 0.0f : tk_m;
@@ -6254,6 +6262,12 @@ static inline void fx_master(float *pl, float *pr)   /* one sample of the master
     }
     if (sw_m > 0.0f) {                          /* the sweep: low-, high- or band-pass, its corner moving with the tempo */
         const int type = (int)fm_clampf((float)fxs_v[EN_FXS_SW_TYPE], 0.0f, 2.0f);
+        if (!(sw_cnt++ & 15u)) {                /* (0.17.18) every 16 samples the corner a step nearer the control's (about 3 ms behind it) */
+            const float fc = fm_exp2f(sw_lf += (sw_lt - sw_lf) * 0.125f);
+            svf_coefs(sw_c, fc, sw_k1);
+            if (type == 2)
+                svf_coefs(sw_c2, fc, sw_k2);
+        }
         const float k = sw_c[3];
         float in[2] = {l, r}, o[2];
         int c;
@@ -6731,9 +6745,9 @@ static void render_pad(uint32_t n)
                 idx = (0.04f + 0.1f * bright * 0.01f + 0.1f * br) * (1.0f + 0.4f * arcm);
                 if (saw) {                       /* the saw sounds' filter: a resonant low-pass that opens with the breath or the stab and closes after it, a Prophet's
                                                   * sweep (two poles resonant, two flat: 24 dB); its states are the formants' (a saw sound has none) */
-                    const float fcv = 300.0f * PAD_SOUND[pad_snd()].fc * fm_exp2f(3.3f * br + 0.02f * bright + 1.5f * pad_filt + 0.5f * arcm);
+                    const float fcv = 300.0f * PAD_SOUND[pad_snd()].fc * fm_exp2f(3.3f * br + 0.02f * bright + 1.5f * pad_filt + 0.5f * arcm) * FT_FC[0][FT_IX(ft_pad)];
                     svf_coefs(v->c1, fcv, 0.5f);
-                    svf_coefs(v->c2, fcv * 1.3f, 1.0f);
+                    svf_coefs(v->c2, ft_pad == 1 ? fcv * (1.0f / 1.3f) : fcv * 1.3f, 1.0f);
                 }
             }
             amp += (tgt - amp) * ar;
@@ -6811,7 +6825,7 @@ static void render_pad(uint32_t n)
                 v2 = s3 + v->c2[1] * s2 + v->c2[2] * v3;
                 s2 = 2.0f * v1 - s2;
                 s3 = 2.0f * v2 - s3;
-                x = (FT_TWO(ft_pad) ? svf_pick(y1, v1, v2, v->c2[3], ft_pad) : y1) * 1.1f;
+                x = (FT_TWO(ft_pad) ? svf_pick(y1, v1, v2, v->c2[3], ft_pad) : y1) * 1.1f * FT_G[0][FT_IX(ft_pad)];
                 p2 += v->inc[2];
                 if (p2 >= 1.0f)
                     p2 -= 1.0f;
@@ -6903,8 +6917,9 @@ static void render_bass(uint32_t n)
                   2.0f * fm_maxf(brk, 0.0f) - 1.6f * fm_minf(brk, 0.0f) - 0.35f * bass_duck * pulse_vol +
                   4.0f * (float)par[P_LK_KICK] * 0.01f * lk_kick;   /* the links: the kick opens it */
             fc = fm_clampf(f * 2.0f * fm_exp2f(oct), 45.0f, 9000.0f);
+            fc *= FT_FC[1][FT_IX(ft_bass)];
             svf_coefs(bass.c1, fc, k1);
-            svf_coefs(bass.c2, fc * 1.3f, k2);
+            svf_coefs(bass.c2, ft_bass == 1 ? fc * (1.0f / 1.3f) : fc * 1.3f, k2);
         }
         switch (osc) {
         case DO_REESE:                          /* two saws far apart: a slow phasing growl */
@@ -6980,6 +6995,7 @@ static void render_bass(uint32_t n)
         x = svf_mm(x * sqin, bass.c1, &bass.s[0], ft_bass);
         if (FT_TWO(ft_bass))
             x = svf_mm(x, bass.c2, &bass.s[2], ft_bass);
+        x *= FT_G[1][FT_IX(ft_bass)];
         amp += (tgt - amp) * rate;
         if (bl_on) {                            /* the line's note: 4 ms attack, a slow fall while it holds, 30 ms release after */
             if (bl_up) {
@@ -7152,7 +7168,7 @@ static void render_acid(uint32_t n)
                 acid.c1[3] = 1.0f / (1.0f + k * G2 * G2);
             } else {
                 svf_coefs(acid.c1, fc, k1 * (1.0f - 0.8f * wow));
-                svf_coefs(acid.c2, fc * 1.15f, k2);
+                svf_coefs(acid.c2, ft_acid == 1 ? fc * (1.0f / 1.15f) : fc * 1.15f, k2);
             }
             sratio = 1.6f + 2.6f * acid.env;    /* Sync: the slave's pitch, swept by the envelope */
             acid.lph += 32.0f * 0.35f / EN_SR;  /* PWM: its width, 0.35 Hz */
@@ -7339,6 +7355,7 @@ static void render_acid(uint32_t n)
             y = fm_tanhf(y * (1.6f + 1.5f * res) * adrv * sqg) / fm_minf(adrv, 1.3f);   /* the squelch: driven between the two (Drive and Wow: harder) */
             if (FT_TWO(ft_acid))
                 y = svf_mm(y, acid.c2, &acid.s[2], ft_acid);
+            y *= FT_G[2][FT_IX(ft_acid)];
         }
         amp += (acid.amp_t - amp) * 0.006f;     /* ~4 ms edges */
         acid_o[j] = y * amp * vel * g * TG(TR_ACID, j);   /* (the sends: 0.15 and 0.35 of it) */

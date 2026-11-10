@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     static int32_t buf[512];
     int16_t par[P_NPARAMS];
     uint16_t pool, pats[EN_NPAT][EN_NLANE];
-    int p, l, i;
+    int p, l, i, trk = EN_TR_ACID;
     long b, nb = (long)secs * 44100 / 256;
     double s2 = 0.0, d2 = 0.0, pk = 0.0, prev = 0.0, cpu;
     clock_t t0;
@@ -38,14 +38,19 @@ int main(int argc, char **argv)
     for (p = 0; p < EN_NPAT; p++)
         for (l = 0; l < EN_NLANE; l++)
             en_pats[p][l] = pats[p][l];
-    en_fxs(EN_FXS_FT_ACID, type);
+    {   /* V=bass or V=pad: that voice's filter type and its track alone (the acid's by default) */
+        const char *vv = getenv("V");
+        const int bs = vv && vv[0] == 'b', pd = vv && vv[0] == 'p';
+        en_fxs(bs ? EN_FXS_FT_BASS : pd ? EN_FXS_FT_PAD : EN_FXS_FT_ACID, type);
+        trk = bs ? EN_TR_DRONE : pd ? EN_TR_PAD : EN_TR_ACID;
+    }
     if (getenv("SQ")) {                          /* SCREAM all the way */
         en_fxs(EN_FXS_SQ_DRIVE, 100);
         en_fxs(EN_FXS_SQ_AMT, 100);
         en_fxs(EN_FXS_SQ_WOW, 100);
         en_fxs(EN_FXS_SQ_TGT, 0);
     }
-    en_trk(0, 1u << EN_TR_ACID);
+    en_trk(0, 1u << trk);
     en_play(1);
     if (w) {
         fputs("RIFF", w);
