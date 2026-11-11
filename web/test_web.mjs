@@ -145,6 +145,22 @@ async function updater() {
   ok(OUR_LOADER({ text: "ota-SMK-37 Elite_900" }) && OUR_LOADER({ text: "ota-MKE-P37_700" }) && !OUR_LOADER({ text: "ota-SMK-37 Elite_016" }),
     "fm1ota.js: our loader under the Elite / MKE-P37 name is ours, the stock ones are not");
   const smk = { finalIdentity: "SMK-37 Pro_900", loader: "ota-SMK-37 Pro_900" };
+  {   /* the SMK page from M-Vave's firmware: step 1, then stop in update mode (stopAtLoader); a second press resumes it */
+    const stockSmk = new FakeFM1(image, { ...smk, identity: "SMK-37 Pro_016", name: "SMK-37 Pro Midi" });
+    const st1 = [];
+    const stopAt = (id) => (id.text.split("_")[1] || "")[0] !== "7";
+    const r1 = await new Updater(stockSmk.access).install(image, "SMK-37 Pro_900", (k) => st1.push(k), false, { stopAtLoader: stopAt });
+    ok(r1 === "loader" && st1.includes("verify") && st1.at(-1) === "loader" && !st1.includes("write"),
+      "fm1ota.js: stopAtLoader: from M-Vave's firmware, step 1 then stop in update mode");
+    await new Promise((r) => setTimeout(r, 500));
+    const up2 = new Updater(stockSmk.access), ota = await up2.find((id) => /^ota-/i.test(id.model));
+    ota.link.close();
+    const r2 = await up2.resume(image, null, { package: "SMK-37 Pro_900" });
+    ok(ota.id.text === "ota-SMK-37 Pro_900" && r2 === true && stockSmk.bad === 0, "fm1ota.js: stopAtLoader: the next press finds update mode and finishes");
+    const fromOurs = new FakeFM1(image, { ...smk, identity: "SMK-37 Pro_7001720", name: "PERF-1 SMK" });
+    const r3 = await new Updater(fromOurs.access).install(image, "SMK-37 Pro_900", null, false, { stopAtLoader: stopAt });
+    ok(r3 === "SMK-37 Pro_900", "fm1ota.js: stopAtLoader: from PERF-1 SMK the install goes straight through");
+  }
   const elite = new FakeFM1(image, { ...smk, identity: "SMK-37 Elite_016", name: "SMK-37 Elite" });
   const e7 = await new Updater(elite.access).install(image, "SMK-37 Pro_900").then(() => null, (x) => x);
   ok(e7 && e7.code === "model" && elite.served === 0, "fm1ota.js: an Elite and a Pro package: refused without anyModel");

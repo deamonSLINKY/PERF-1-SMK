@@ -217,7 +217,10 @@ export class Updater {
 
   // full install: running firmware -> loader -> new firmware. anyModel: the package may be for another model of the
   // same keyboard (an SMK-37 Elite package on a unit that reports SMK-37 Pro); never an FM-1 one on an SMK, nor back
-  async install(image, product, onStep, anyModel = false) {
+  // opts.stopAtLoader(id): true for the running firmware's identity -> stop once it is in update mode (returns "loader"):
+  // the SMK page coming from M-Vave's firmware, where the keyboard's USB identity changes under the browser and Chrome froze
+  // looking for the loader (the maker's and Steven's units, 2026-11-11); a fresh page then finds update mode and resumes
+  async install(image, product, onStep, anyModel = false, opts = {}) {
     const step = onStep || (() => {});
     const dev = await this.find((id) => !IS_OTA(id));
     if (!dev) throw fail("notfound", "FM-1 not found (USB cable, and no other app using it?)");
@@ -233,6 +236,7 @@ export class Updater {
     const jumped = !s1.finished && s1.lost && s1.served === 0;
     if (!s1.finished && !jumped) throw fail(s1.lost ? "lost" : "stopped", `the device ${s1.lost ? "was disconnected" : "stopped"} after ${s1.served} requests: nothing was written`);
     step("loader");
+    if (opts.stopAtLoader && opts.stopAtLoader(dev.id)) return "loader";
     await sleep(3000);
     const ota = await this.waitFor(IS_OTA, jumped ? 15000 : 30000);
     if (jumped && !(ota && OUR_LOADER(ota.id) && sameKeyboard(ota.id.model.replace(/^ota-/i, ""), dev.id.model))) {
