@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PERF-1 SMK controls</title>
+<title>PERF-1 SMK controls (BETA test build)</title>
 <style>
 :root { --ground: #130a0e; --card: #211219; --ink: #f6ece0; --muted: #bba79a; --rule: #4a2a35; --red: #e0344f; --pink: #ff8f8f; color-scheme: dark; }
 body { margin: 0; background: var(--ground); color: var(--ink); font: 400 16px/1.6 system-ui, sans-serif; }
@@ -13,9 +13,13 @@ th, td { border-bottom: 1px solid var(--rule); padding: 5px 9px; text-align: lef
 th { color: var(--muted); font-size: 13px; }
 code { font: 14px ui-monospace, Consolas, monospace; background: var(--card); padding: 0 4px; border-radius: 3px; }
 pre { background: var(--card); padding: 10px; overflow-x: auto; }
-</style></head><body><main>
+.beta { background: repeating-linear-gradient(-45deg, #ffd447 0 14px, #1a0c03 14px 28px); padding: 6px 0; }
+.beta p { margin: 0 auto; max-width: 860px; background: #1a0c03; color: #ffd447; font-weight: 700; letter-spacing: .06em;
+  text-align: center; padding: 6px 12px; text-transform: uppercase; font-size: 15px; }
+</style></head><body><div class="beta"><p>Beta test build &middot; not a release &middot; controls may change</p></div><main>
 <p><a href="../">&larr; Install</a></p>
-<h1>PERF-1 SMK: PERF-1 on the M-VAVE SMK-37 Pro</h1>
+<h1>PERF-1 SMK: PERF-1 on the M-VAVE SMK-37 Pro (BETA)</h1>
+<p><b>Beta test builds, not a release:</b> the controls below may change between builds.</p>
 <p>PERF-1 on the SMK-37 Pro: the same firmware, the same pages and the same manual, with the SMK's keys, pads, faders and wheels added. SMK-37 board layer by genkigenki (fm1-to-smk37, fm1-amb's smk37 branch).</p>
 <h2>The controls</h2>
 <div class=tbl><table><tr><th>SMK-37</th><th>PERF-1</th></tr><tr><td>K1</td><td>MASTER</td></tr><tr><td>K2 / K3 / K4</td><td>SELECT / ALGORITHM / PRESETS</td></tr><tr><td>K5 .. K8</td><td>KNOB 1 .. 4</td></tr><tr><td>PATCH, CHORD, ARP, NOTE REPEAT, SEQ, FX, GLOBE, PARA, BT</td><td>HOME, ENV, ARP, LFO, SEQ, FX, GLO, EDIT, SAVE</td></tr><tr><td>SEQ PLAY / SEQ REC</td><td>PLAY / REC</td></tr><tr><td>SCALE</td><td>SEL (shift)</td></tr><tr><td>OCTAVE- / OCTAVE+</td><td>OCT- / OCT+</td></tr><tr><td>All 37 keys</td><td>notes, with velocity, on every page: Jam, a voice by hand, the page's voice; on Global, the scale</td></tr><tr><td>KNOB BANK</td><td>the pads' mode: PERFORM, MIX, CHORDS, NOTES, FOLLOW (lit when not PERFORM)</td></tr><tr><td>FADER BANK</td><td>the faders' bank: A, B, C (lit when not A)</td></tr><tr><td>&lt; / &gt;</td><td>the pads' page (keys 17-27, MIX's scenes) or, in NOTES, the voice</td></tr><tr><td>Faders 1-4</td><td>the bank's four (a fader takes over once it moves)</td></tr><tr><td>Pitch wheel</td><td>bend, two semitones, on the voice the keys play (not the pad)</td></tr><tr><td>Mod wheel</td><td>vibrato on the voice the keys play, up to half a semitone</td></tr></table></div>
