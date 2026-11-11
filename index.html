@@ -71,15 +71,19 @@
   </div>
 
   <h2>Install</h2>
+  <div class="card warn">
+    <p><b>First installs are paused.</b> A tester's SMK-37 Pro didn't start after installing from M-Vave's firmware, and we
+      want to find out why before anyone else tries. Until then the button below won't install over M-Vave's firmware: it
+      checks first and sends nothing. Keyboards already on PERF-1 SMK can still update, and a keyboard waiting in PERF-1 SMK's
+      update mode can still finish, or go back to M-Vave's firmware below.</p>
+  </div>
   <div class="card">
     <ol class="small">
       <li>Close M-UPGRADE and any music software that uses the keyboard's MIDI.</li>
       <li>Connect the SMK-37 Pro with a data USB cable, switch it on, and press Install. Allow MIDI when the browser asks.</li>
       <li>The keyboard restarts into its update mode, the bar fills, and it starts PERF-1 SMK (about a minute). Don't unplug it.</li>
     </ol>
-    <p class="small"><b>Coming from M-Vave's firmware</b> (the first install), it takes two presses: the first puts the keyboard
-      in its update mode and the page says so; then <b>reload this page</b> and press Install the beta again to finish. If the
-      page ever stops responding, close the browser completely, switch the keyboard off and on, open the page again and press
+    <p class="small">If the page ever stops responding, close the browser completely, switch the keyboard off and on, open the page again and press
       Install: the keyboard stays in update mode until an install finishes, so nothing is lost.</p>
     <p><button id="go" disabled>Install the beta</button></p>
     <progress id="bar" max="100" value="0"></progress>
@@ -657,10 +661,19 @@ const ERR = {
   noreturn: "Written, but the keyboard didn't come back: switch it off and on.",
   mismatch: "Installed, but the keyboard reports ",
   badreq: "The keyboard asked for something odd, so the page stopped: ",
+  paused: "Paused: this keyboard runs M-Vave's firmware, and first installs are paused for now (see the note above). Nothing was sent to it.",
 };
 
 /* ---- the install */
 let image = null, writing = false;
+/* true when the keyboard runs M-Vave's firmware (its version not 7xx, PERF-1 SMK's): nothing is sent to it */
+async function fromStock(up) {
+  const dev = await up.find((id) => !/^ota-/i.test(id.model));
+  if (!dev) return false;                        /* (install() says it wasn't found) */
+  dev.link.close();
+  log("found " + dev.id.text);
+  return (dev.id.text.split("_")[1] || "")[0] !== "7";
+}
 async function run(img, product, isStock) {
   let midi, ok = false;
   try { midi = await midiAccess(); } catch (e) { say("MIDI (SysEx) access was not allowed: allow MIDI in the site settings and press again."); return false; }
@@ -687,6 +700,10 @@ async function run(img, product, isStock) {
       ota.link.close();
       ok = await up.resume(img, step, isStock ? { product } : { package: product });
       say(ok ? (isStock ? "Done: M-Vave's firmware is back." : "Done: PERF-1 SMK is on.") : ERR.stopped);
+    } else if (!isStock && await fromStock(up)) {
+      /* PAUSED 2026-11-11: a tester's SMK-37 Pro didn't start after a first install from M-Vave's 016 (the write finished,
+         the keyboard never came back on USB). No first installs until we know why; updates over PERF-1 SMK still go */
+      say(ERR.paused);
     } else {
       /* from M-Vave's firmware (not 7xx): step 1, then stop. The keyboard's USB identity changes as it goes into update mode,
          and Chrome froze looking for it (2026-11-11, two units); a reloaded page finds update mode and finishes from there */
