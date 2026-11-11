@@ -119,6 +119,12 @@ class Link {
     return this.q.shift() || null;
   }
   close() { this.input.onmidimessage = null; }
+  // close() and let the OS ports go at once: before a device restarts (it leaves USB and comes back as another), so the browser
+  // holds no open port while it is gone (Chrome locked up through M-Vave's SMK firmware restarting into the loader, 2026-11-11)
+  release() {
+    this.close();
+    for (const p of [this.input, this.output]) try { if (p.close) p.close().catch(() => {}); } catch (_) { /* gone already */ }
+  }
 }
 
 async function ask(link, query, ms) {
@@ -231,7 +237,7 @@ export class Updater {
     dev.link.send(UPGRADE);
     await sleep(2000);
     const s1 = await this.serve(dev.link, image, 0xE0000000, 8000, (n) => step("verify", n));
-    dev.link.close();
+    dev.link.release();                          /* (before it restarts into the loader) */
     // some firmwares restart into their loader at once, without step 1: such a loader (ours, of this keyboard) goes on
     const jumped = !s1.finished && s1.lost && s1.served === 0;
     if (!s1.finished && !jumped) throw fail(s1.lost ? "lost" : "stopped", `the device ${s1.lost ? "was disconnected" : "stopped"} after ${s1.served} requests: nothing was written`);
@@ -262,7 +268,7 @@ export class Updater {
     ota.link.send(UPGRADE);
     await sleep(2000);
     const s2 = await this.serve(ota.link, image, 0xF0000000, 180000, (n) => step("write", n));
-    ota.link.close();
+    ota.link.release();                          /* (before it restarts into the new firmware) */
     return s2;
   }
 
