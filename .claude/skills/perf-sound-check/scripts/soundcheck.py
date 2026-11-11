@@ -454,8 +454,12 @@ def read_midi(path):
                 events.append((tick, "on", ch, a[0], a[1]))
             elif kind == 0x80 or (kind == 0x90 and a[1] == 0):
                 events.append((tick, "off", ch, a[0]))
+            elif kind == 0xB0 and a[0] in (120, 123):   # all notes (or sound) off: every note sounding on the channel ends
+                events.append((tick, "alloff", ch))
         pos = end
-    events.sort(key=lambda e: (e[0], 0 if e[1] in ("tempo", "timesig") else (1 if e[1] == "off" else 2)))
+    # by tick, the file's own order kept within a tick (a stable sort): a drum's note-on and its note-off on the same
+    # tick pair up (sorting offs first left one note per drum open), and a re-struck note's off-then-on stays in order
+    events.sort(key=lambda e: (e[0], 0 if e[1] in ("tempo", "timesig") else 1))
     # ticks to seconds through the tempo map
     tempo, last_tick, last_s, out, tempos = 500000, 0, 0.0, [], []
     for e in events:
@@ -473,6 +477,10 @@ def read_midi(path):
         elif e[1] == "off" and open_.get((e[2], e[3])):
             t0, vel = open_[(e[2], e[3])].pop(0)
             notes.append({"t": t0, "dur": e[0] - t0, "ch": e[2], "pitch": e[3], "vel": vel})
+        elif e[1] == "alloff":
+            for key in [k for k in open_ if k[0] == e[2]]:
+                for t0, vel in open_.pop(key):
+                    notes.append({"t": t0, "dur": e[0] - t0, "ch": e[2], "pitch": key[1], "vel": vel})
     stuck = sum(len(v) for v in open_.values())
     return notes, (tempos[0] if tempos else 120.0), stuck
 
