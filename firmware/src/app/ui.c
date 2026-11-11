@@ -9129,7 +9129,11 @@ static void draw_hyp(void)
     text_c(120, 86, &FONT_S, "GENERATIVE  //  LIVE", K_TEXT);
     cv_blit(0, 6);
     cv_begin(240, 52, K_BG);                     /* (a canvas is at most 144 rows) */
+#if BOARD_SMK37
+    text_c(120, 0, &FONT_XS, EN_VERSION[0] == 'D' ? "SMK-37  //  BETA TEST BUILD" : "SMK-37 BETA  //  " EN_VERSION, RGB(255, 212, 71));   /* (the SMK's test builds say so) */
+#else
     text_c(120, 0, &FONT_XS, EN_VERSION[0] == 'D' ? "FM-1 CUSTOM FIRMWARE" : "FM-1 CUSTOM FIRMWARE  //  " EN_VERSION, K_TEXT);
+#endif
     text_c(120, 16, &FONT_XS, "BY DEAMONSLINKY", RGB(255, 143, 143));
     text_c(120, 32, &FONT_XS, "BASED ON HYP-1 BY REDTAILWORKS", K_DIM);
     cv_blit(0, 120);

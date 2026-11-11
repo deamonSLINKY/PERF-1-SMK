@@ -1,4 +1,6 @@
-# PERF-1 SMK: PERF-1 on the M-VAVE SMK-37 Pro
+# PERF-1 SMK: PERF-1 on the M-VAVE SMK-37 Pro (BETA)
+
+**Beta test builds, not a release:** the controls below may change between builds.
 
 PERF-1 on the SMK-37 Pro: the same firmware, the same pages and the same manual, with the SMK's keys, pads, faders and
 wheels added. SMK-37 board layer by genkigenki (fm1-to-smk37, fm1-amb's smk37 branch).

@@ -1,6 +1,10 @@
 # PERF-1
 
-> **PERF-1 SMK (test builds): PERF-1 on the M-Vave SMK-37 Pro.** Install it from <https://deamonslinky.github.io/PERF-1-SMK/>
+> [!WARNING]
+> **BETA TEST BUILDS, NOT A RELEASE.** PERF-1 SMK is being tested: things may change or break between builds, and saved
+> pieces may not carry over. Install it only if you're happy to test and report.
+
+> **PERF-1 SMK (beta): PERF-1 on the M-Vave SMK-37 Pro.** Install the beta from <https://deamonslinky.github.io/PERF-1-SMK/>
 > (Chrome or Edge on a computer; M-Vave's own firmware can always go back on from the same page or with M-UPGRADE).
 > The SMK's controls, the FOLLOWERS (drones on the chord) and CALL AND RESPONSE: [docs/SMK37.md](docs/SMK37.md).
 > Report what you find in this repository's Issues, with the page's Live status CSV. This branch is PERF-1's

@@ -81,7 +81,7 @@ def md_to_html(md):
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PERF-1 SMK controls</title>
+<title>PERF-1 SMK controls (BETA test build)</title>
 <style>
 :root {{ --ground: #130a0e; --card: #211219; --ink: #f6ece0; --muted: #bba79a; --rule: #4a2a35; --red: #e0344f; --pink: #ff8f8f; color-scheme: dark; }}
 body {{ margin: 0; background: var(--ground); color: var(--ink); font: 400 16px/1.6 system-ui, sans-serif; }}
@@ -94,7 +94,10 @@ th, td {{ border-bottom: 1px solid var(--rule); padding: 5px 9px; text-align: le
 th {{ color: var(--muted); font-size: 13px; }}
 code {{ font: 14px ui-monospace, Consolas, monospace; background: var(--card); padding: 0 4px; border-radius: 3px; }}
 pre {{ background: var(--card); padding: 10px; overflow-x: auto; }}
-</style></head><body><main>
+.beta {{ background: repeating-linear-gradient(-45deg, #ffd447 0 14px, #1a0c03 14px 28px); padding: 6px 0; }}
+.beta p {{ margin: 0 auto; max-width: 860px; background: #1a0c03; color: #ffd447; font-weight: 700; letter-spacing: .06em;
+  text-align: center; padding: 6px 12px; text-transform: uppercase; font-size: 15px; }}
+</style></head><body><div class="beta"><p>Beta test build &middot; not a release &middot; controls may change</p></div><main>
 <p><a href="../">&larr; Install</a></p>
 {body}
 </main></body></html>
