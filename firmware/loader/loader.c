@@ -93,6 +93,18 @@ void ldr_main(void)
 {
     fm1_wdt_arm(0x0D);                              /* ~8 s, fed by ldr_poll */
     fm1_time_init();
+#if BOARD_SMK37
+    {   /* off USB for 2 s first: M-Vave's SMK firmware restarts into this loader without a clean unplug, and Windows' MIDI
+         * service then hung (Chrome froze, M-UPGRADE and Python saw "KS driver did not complete cancelled I/O": 2026-11-08,
+         * 2026-11-11), the new device coming 25 ms after the old one. A plain unplug first lets Windows let go of the old */
+        int i;
+        fm1_usb_reset();                            /* pads detached */
+        for (i = 0; i < 20; i++) {
+            fm1_wdt_feed();
+            fm1_delay_ms(100);
+        }
+    }
+#endif
     usb_start();
     for (;;) {
         ldr_poll();
