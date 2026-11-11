@@ -25,6 +25,13 @@ The host simulator (`host/amb_host.c`, driven by `.amb` scenario scripts in `tes
 the tests; the tree may already have WAV tools (look for `wavstat`, `gpeak`, `--wav`, `render` in `host/`,
 `tools/` and `tests/run_tests.sh`). Read how a scenario writes a WAV before inventing anything. You need, per render:
 
+> **In this tree (found 2026-11-10, 0.17.20):** `tests/host/gsound.c` renders a piece to a float WAV and its MIDI out
+> (format 0, 480 PPQ, note-offs and CC 123 at the end), seed 7, FORM Song, effects at their defaults. Build and run in WSL:
+> `gcc -O2 -ffp-contract=off -std=c99 -DEN_HOST -Ifirmware/src/dsp -o build/audit/gsound tests/host/gsound.c firmware/src/dsp/amb.c -lm`,
+> then `build/audit/gsound <genre 0-18> <piece 1-10> 64 build/soundcheck/<ver>/g<genre>_<piece>`. The genre map is
+> `tools/soundcheck_genres.json`. On Windows run this script with `python -P` (numpy is a user install; `-I` hides it).
+> MIDI channels: 1 pad, 2 pluck, 3 bass (the "drone" in amb.c), 4 acid, 10 drums.
+
 - a **stereo WAV** at the engine's rate (16-bit, 24-bit or float all work), long enough to hear a section change:
   **64 bars** is a good default (about 2 minutes at 128 BPM). Short clips (< 3 s) give no loudness reading.
 - the **MIDI out** of the same run as a `.mid` file, if the simulator can write one. It's the ground truth for
