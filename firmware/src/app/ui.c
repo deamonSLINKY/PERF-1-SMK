@@ -7677,7 +7677,7 @@ static void console_voice(int v)
             console_sliver(ORDER[i], 188 + (j++) * 13);
     if (v == LK_PAD) {                           /* the pad: its voices on two octaves of keys, the chord's notes named */
         static const uint8_t WK[7] = {0, 2, 4, 5, 7, 9, 11};
-        static const int8_t BK[12] = {-1, 0, -1, 1, -1, -1, 2, -1, 3, -1, 4, -1};   /* a black key: after white key n of the octave */
+        static const int8_t BK[12] = {-1, 0, -1, 1, -1, -1, 3, -1, 4, -1, 5, -1};   /* a black key: after white key n of the octave */
         int lo = 127, base, o, held[4] = {0}, nh = 0;
         for (k = 0; k < EN_NPAD; k++)
             lo = en_pad_note[k] < lo ? en_pad_note[k] : lo;
