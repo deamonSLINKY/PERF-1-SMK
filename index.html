@@ -86,6 +86,7 @@
     <p id="status"></p>
     <p id="step2" hidden><button class="alt" onclick="location.reload()">Reload the page</button></p>
     <div id="log"></div>
+    <p><button id="logcopy" class="alt" hidden>Copy the log</button></p>
   </div>
 
   <h2>Live status (for a bug report)</h2>
@@ -395,6 +396,12 @@ class Link {
     return this.q.shift() || null;
   }
   close() { this.input.onmidimessage = null; }
+  // close() and let the OS ports go at once: before a device restarts (it leaves USB and comes back as another), so the browser
+  // holds no open port while it is gone (Chrome locked up through M-Vave's SMK firmware restarting into the loader, 2026-11-11)
+  release() {
+    this.close();
+    for (const p of [this.input, this.output]) try { if (p.close) p.close().catch(() => {}); } catch (_) { /* gone already */ }
+  }
 }
 
 async function ask(link, query, ms) {
@@ -507,7 +514,7 @@ class Updater {
     dev.link.send(UPGRADE);
     await sleep(2000);
     const s1 = await this.serve(dev.link, image, 0xE0000000, 8000, (n) => step("verify", n));
-    dev.link.close();
+    dev.link.release();                          /* (before it restarts into the loader) */
     // some firmwares restart into their loader at once, without step 1: such a loader (ours, of this keyboard) goes on
     const jumped = !s1.finished && s1.lost && s1.served === 0;
     if (!s1.finished && !jumped) throw fail(s1.lost ? "lost" : "stopped", `the device ${s1.lost ? "was disconnected" : "stopped"} after ${s1.served} requests: nothing was written`);
@@ -538,7 +545,7 @@ class Updater {
     ota.link.send(UPGRADE);
     await sleep(2000);
     const s2 = await this.serve(ota.link, image, 0xF0000000, 180000, (n) => step("write", n));
-    ota.link.close();
+    ota.link.release();                          /* (before it restarts into the new firmware) */
     return s2;
   }
 
@@ -620,7 +627,20 @@ function idleRelease(busy, onRelease, ms = 4000) {
 
 const meta = {"version": "0.17.20-smk11", "product": "SMK-37 Pro_7001720", "pkg": "firmware/perf1-smk-0.17.20-smk11.fwsc", "repo": "https://github.com/deamonSLINKY/PERF-1-SMK"};
 const $ = (id) => document.getElementById(id);
-const log = (t) => { const e = $("log"); e.textContent += t + "\n"; e.scrollTop = e.scrollHeight; };
+/* the log is also kept in the browser as it goes (a trace), so if the browser ever locks up the next visit shows how far it got */
+const TRACE = "perf1smk_trace";
+const traceGet = () => { try { return JSON.parse(localStorage.getItem(TRACE) || "[]"); } catch (_) { return []; } };
+const traceAdd = (t) => { const m = /^(write|verify) (\d+)/.exec(t); if (m && +m[2] % 50 && +m[2] > 3) return;   /* (the progress: every 50th) */
+  try { const a = traceGet(); a.push(new Date().toISOString().slice(11, 19) + " " + t); localStorage.setItem(TRACE, JSON.stringify(a.slice(-300))); } catch (_) {} };
+const log = (t) => { const e = $("log"); e.textContent += t + "\n"; e.scrollTop = e.scrollHeight; traceAdd(t); };
+{   /* the last run's trace, if it didn't finish */
+  const last = traceGet();
+  if (last.length && !/^\S+ (done|end) /.test(last[last.length - 1])) {
+    $("log").textContent = "Last time (it stopped here; send this if it was a problem):\n" + last.map((x) => "  " + x).join("\n") + "\n\n";
+    $("logcopy").hidden = false;
+  }
+}
+$("logcopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("log").textContent); $("logcopy").textContent = "Copied"; } catch (_) {} });
 const say = (t) => { $("status").textContent = t; };
 $("ver").textContent = "This page installs PERF-1 SMK " + meta.version + " (" + meta.product + "), a beta test build.";
 $("repo").href = meta.repo;
@@ -646,6 +666,8 @@ async function run(img, product, isStock) {
   try { midi = await midiAccess(); } catch (e) { say("MIDI (SysEx) access was not allowed: allow MIDI in the site settings and press again."); return false; }
   await stStop();
   releasePort();
+  try { localStorage.removeItem(TRACE); } catch (_) {}
+  log("start " + (isStock ? "M-Vave's " : "PERF-1 SMK ") + product + " · " + navigator.userAgent.replace(/^.*?(Chrome|Edg)\//, "$1/").slice(0, 40));
   writing = true;
   $("go").disabled = $("skgo").disabled = true;
   try {
@@ -682,6 +704,8 @@ async function run(img, product, isStock) {
     log(String(e && e.stack || e));
   }
   writing = false;
+  log("end " + (ok ? "ok" : "not finished: " + $("status").textContent));
+  $("logcopy").hidden = false;
   idleTouch();
   $("go").disabled = !image;
   $("skgo").disabled = !stock;
