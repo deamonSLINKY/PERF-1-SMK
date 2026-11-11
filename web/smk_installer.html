@@ -1,0 +1,271 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only
+     PERF-1 SMK (deamonSLINKY): the test installer for the M-Vave SMK-37 Pro. The install, the resume and the return to
+     M-Vave's firmware are web/fm1ota.js and web/fm1pkg.js (Felucca's, by Leo Kuroshita; the SMK-37 range by M. Geisler,
+     genkigenki/makkuro); tools/make_smk_site.py inlines them and the package's metadata at the two markers below. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PERF-1 SMK installer</title>
+<style>
+  :root { --ground: #130a0e; --card: #211219; --card-2: #2e1822; --ink: #f6ece0; --muted: #bba79a; --rule: #4a2a35;
+          --red: #e0344f; --pink: #ff8f8f; --gold: #ffd447; --rust: #9c1d3a; --horn: #f2e6c4; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font: 400 17px/1.6 system-ui, "Helvetica Neue", Arial, sans-serif; }
+  main { max-width: 820px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 0 0 1.2rem; display: flex; align-items: center; gap: .7rem; }
+  h1::before { content: ""; width: 34px; height: 5px; background: linear-gradient(90deg, var(--gold) 0 38%, var(--red) 38%); }
+  h2 { font-size: 1.05rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin: 2.2rem 0 .8rem;
+       padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--pink); }
+  p { margin: 0 0 14px; } ol, ul { margin: 0 0 14px; padding-left: 22px; }
+  a { color: var(--ink); text-decoration-color: var(--red); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  a:hover { color: var(--pink); }
+  button { font: 700 1rem system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; background: var(--red); color: #fff;
+           border: 1px solid var(--pink); border-radius: 8px; padding: .55em 1.6em; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--gold); border-color: var(--gold); color: #1a0c03; }
+  button.alt { background: var(--card-2); border-color: var(--rule); color: var(--ink); }
+  button:disabled { opacity: .35; cursor: default; }
+  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; margin: 0 0 1rem; }
+  .card.warn { border-color: var(--rust); }
+  .small { color: var(--muted); font-size: 15px; }
+  #status, #ststatus, #skstatus { min-height: 1.6em; color: var(--pink); margin: 12px 0 0; }
+  progress { width: 100%; height: 6px; margin-top: 14px; accent-color: var(--gold); }
+  #log { height: 11em; overflow-y: auto; overscroll-behavior: contain; margin: 14px 0 0; padding: .5em .8em; border: 1px solid var(--rule);
+         border-radius: 6px; background: var(--card); color: var(--muted); font: 12px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+  .grid div { background: var(--ground); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 10px; }
+  .grid b { display: block; font-size: 1.25rem; color: var(--horn); }
+  .grid span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .grid .hot b { color: var(--gold); } .grid .bad b { color: var(--pink); }
+  input[type=file] { font: inherit; font-size: 14px; color: var(--muted); max-width: 100%; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  code { font: 14px ui-monospace, Consolas, monospace; background: var(--card-2); padding: 0 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>PERF-1 SMK</h1>
+  <div class="card">
+    <p>PERF-1, the generative live-performance groovebox, on the M-Vave <b>SMK-37 Pro</b>: the same engine and pages as PERF-1
+      on the FM-1, with the SMK's 37 keys, 16 pads, faders, knobs and wheels. This page installs it over USB from Chrome or Edge
+      on a computer.</p>
+    <p id="ver" class="small"></p>
+    <p class="small"><a href="controls/">The controls</a> · <a id="repo" href="#">Source and issues</a></p>
+  </div>
+  <div class="card warn">
+    <p class="small"><b>A test build.</b> It installs the way M-Vave's own updates do and leaves the keyboard's start-up code
+      and its factory calibration alone, so M-Vave's firmware can always go back on (below, or with M-UPGRADE). Before the
+      first install, download M-Vave's SMK-37 Pro firmware <b>016</b> from
+      <a href="https://www.m-vave.com/download" target="_blank" rel="noopener">m-vave.com/download</a> (PC Firmware) and keep it.</p>
+    <p class="small">This build is for the <b>SMK-37 Pro</b>. An SMK-37 Elite or MKE-P37 needs its own build: the page refuses
+      it and nothing is written. Ask for yours on the issues page.</p>
+  </div>
+
+  <h2>Install</h2>
+  <div class="card">
+    <ol class="small">
+      <li>Close M-UPGRADE and any music software that uses the keyboard's MIDI.</li>
+      <li>Connect the SMK-37 Pro with a data USB cable, switch it on, and press Install. Allow MIDI when the browser asks.</li>
+      <li>The keyboard restarts into its update mode, the bar fills, and it starts PERF-1 SMK (about a minute). Don't unplug it.</li>
+    </ol>
+    <p><button id="go" disabled>Install</button></p>
+    <progress id="bar" max="100" value="0"></progress>
+    <p id="status"></p>
+    <div id="log"></div>
+  </div>
+
+  <h2>Live status (for a bug report)</h2>
+  <div class="card">
+    <p class="small">How hard PERF-1 is working while it plays: CPU, the audio's late or lost blocks (xruns), the slowest block.
+      Press Start, play for a few minutes, then Save CSV and attach the file to an issue.</p>
+    <p class="row"><button id="stgo" class="alt">Start</button> <button id="stsave" class="alt" disabled>Save CSV</button></p>
+    <div class="grid" id="stgrid"></div>
+    <p id="ststatus"></p>
+  </div>
+
+  <h2>Back to M-Vave's firmware</h2>
+  <div class="card">
+    <p class="small">Puts M-Vave's own SMK-37 firmware back, from PERF-1 SMK, over the same cable. Choose the official file
+      (SMK-37 Pro 016 from m-vave.com); the page checks it before anything is written. Pieces saved in PERF-1 SMK are lost.
+      M-UPGRADE works for this too.</p>
+    <p><input type="file" id="skfile" accept=".fwsc"></p>
+    <p><button id="skgo" class="alt" disabled>Install M-Vave's firmware</button></p>
+    <p id="skstatus"></p>
+  </div>
+
+  <p class="small">PERF-1 by deamonSLINKY, GPL-3.0-only. A fork of HYP-1 (RedtailWorks) and AMB-1 (Charles Vestal) on Felucca's
+    platform layer (Leo Kuroshita); the SMK-37 board layer and this page's update code for the SMK-37 range by M. Geisler
+    (genkigenki); the FM engine after Dexed / MSFA. The source of this build is on the source page above.</p>
+</main>
+<script type="module">
+/*LIB*/
+const meta = /*META*/;
+const $ = (id) => document.getElementById(id);
+const log = (t) => { const e = $("log"); e.textContent += t + "\n"; e.scrollTop = e.scrollHeight; };
+const say = (t) => { $("status").textContent = t; };
+$("ver").textContent = "This page installs PERF-1 SMK " + meta.version + " (" + meta.product + ").";
+$("repo").href = meta.repo;
+
+const ERR = {
+  notfound: "The SMK-37 wasn't found. Check the USB cable (a data cable), close M-UPGRADE and other MIDI apps, and press Install again.",
+  model: "The keyboard is not an SMK-37 Pro (or not this package's model): nothing was written. ",
+  other: "This keyboard runs another SMK firmware with its own updater (Felucca SMK, Sloop SMK, Melodee SMK, Doom): it can't be installed over from here. Nothing was written.",
+  foreign: "The keyboard is in the update mode of another firmware: nothing was written. Finish that update with its own updater: ",
+  stopped: "It stopped part way. Press Install again (it carries on from where it was).",
+  lost: "The USB connection was lost. Replug the cable and press Install again.",
+  noloader: "The keyboard's update mode didn't appear. Replug the USB cable and press Install again (it stays in update mode until it's done).",
+  noreturn: "Written, but the keyboard didn't come back: switch it off and on.",
+  mismatch: "Installed, but the keyboard reports ",
+  badreq: "The keyboard asked for something odd, so the page stopped: ",
+};
+
+/* ---- the install */
+let image = null, writing = false;
+async function run(img, product, isStock) {
+  let midi, ok = false;
+  try { midi = await midiAccess(); } catch (e) { say("MIDI (SysEx) access was not allowed: allow MIDI in the site settings and press again."); return false; }
+  await stStop();
+  releasePort();
+  writing = true;
+  $("go").disabled = $("skgo").disabled = true;
+  try {
+    const up = new Updater(midi, log);
+    const total = 74 + 1167;
+    const step = (k, a) => {
+      log(`${k} ${a ?? ""}`);
+      if (k === "start") say("Asking the keyboard to restart into its update mode…");
+      if (k === "verify") { say("Checking…"); $("bar").value = (a / total) * 100; }
+      if (k === "loader") say("In update mode.");
+      if (k === "write") { say("Writing…"); $("bar").value = ((74 + a) / total) * 100; }
+      if (k === "reboot") say("Restarting…");
+      if (k === "done") { $("bar").value = 100; say(isStock ? "Done: M-Vave's firmware is back." : "Done: PERF-1 SMK is on."); }
+    };
+    const ota = await up.find((id) => /^ota-/i.test(id.model));
+    if (ota) {                                   /* already in update mode (a stopped install): carry on */
+      ota.link.close();
+      ok = await up.resume(img, step, isStock ? { product } : { package: product });
+      say(ok ? (isStock ? "Done: M-Vave's firmware is back." : "Done: PERF-1 SMK is on.") : ERR.stopped);
+    } else {
+      await up.install(img, product, step);
+      ok = true;
+    }
+  } catch (e) {
+    if (isStock && e && e.code === "mismatch") { $("bar").value = 100; say("Done: M-Vave's firmware is back."); ok = true; }   /* stock names itself its own way */
+    else if (e && e.code && ERR[e.code]) say(ERR[e.code] + (e.code === "other" ? "" : e.detail || ""));
+    else say("Error: " + (e && e.message));
+    log(String(e && e.stack || e));
+  }
+  writing = false;
+  idleTouch();
+  $("go").disabled = !image;
+  $("skgo").disabled = !stock;
+  return ok;
+}
+$("go").addEventListener("click", () => run(image, meta.product, false));
+window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault(); e.returnValue = "An install is running."; } });
+(async () => {
+  if (!navigator.requestMIDIAccess) { say("This browser has no Web MIDI: use Chrome or Edge on a computer."); return; }
+  try {
+    const r = await fetch(meta.pkg);
+    if (!r.ok) throw new Error(`${meta.pkg}: HTTP ${r.status}`);
+    const pkg = new Uint8Array(await r.arrayBuffer());
+    if (productOf(pkg) !== meta.product) { say("The package on this page is damaged: tell me on the issues page."); return; }
+    image = logicalImage(pkg);
+    say("Ready: PERF-1 SMK " + meta.version + ".");
+    $("go").disabled = false;
+  } catch (e) { say("The package didn't load: " + e.message); }
+})();
+
+/* ---- back to M-Vave's firmware: the official file, checked (fm1pkg.js identifyStockPackage) */
+let stock = null;
+$("skfile").addEventListener("change", async (e) => {
+  stock = null;
+  $("skgo").disabled = true;
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  try {
+    const k = await identifyStockPackage(new Uint8Array(await f.arrayBuffer()));
+    if (!/^SMK-37 Pro$/i.test(k.model)) { $("skstatus").textContent = "That is M-Vave's firmware for the " + k.model + ", not the SMK-37 Pro."; return; }
+    stock = { image: k.image, product: k.product };
+    $("skstatus").textContent = "That is M-Vave's " + k.product + (k.known ? "" : " (a version this page doesn't know yet, but it checks out)") + ". Press the button.";
+    $("skgo").disabled = writing;
+  } catch (err) { $("skstatus").textContent = err.message; }
+});
+$("skgo").addEventListener("click", () => {
+  if (stock && confirm("This installs M-Vave's " + stock.product + ". Pieces saved in PERF-1 SMK will be lost. Go on?")) run(stock.image, stock.product, true);
+});
+
+/* ---- the live status: PERF-1 sends a frame four times a second while the page asks (every 3 s); the CSV has the FM-1 log's columns */
+const FIELDS = ["seq", "ms", "cpu", "cpu1", "core2", "xruns", "late", "max_us", "last_us", "nested", "shed", "playing", "stores", "store_us", "crashes",
+  "renders", "ui_frames", "budget_us", "gap_us", "ui_us", "genre", "piece", "p_clear", "p_bassacid", "p_pluck", "w_pad", "p_merge", "p_drums",
+  "p_echo", "w_rev", "p_master", "chunks", "isr_in", "isr_out", "batt", "stk_main", "stk_irq", "stk_c1u", "stk_c1s", "midi_last"];
+const GENRES = ["HYPNO", "LOFI", "HOUSE", "DUBSTEP", "DUB", "DNB", "BREAKS", "GARAGE", "ELECTRO", "TRAP", "DISCO", "FUNK", "REGGAE", "SYNTHWAVE", "AMAPIANO", "TRIPHOP", "INDUS", "PSY", "FOREST"];
+const LABELS = ["CPU core 1", "CPU core 2", "xruns / late", "slowest block", "load easing", "playing", "saves", "screen frames"];
+let port = null, stTimer = null, frames = [];
+async function openPort() {
+  if (port && port.inp.state !== "disconnected" && port.out.state !== "disconnected") return port;
+  const midi = await midiAccess();
+  const pick = (m) => [...m.values()].find((x) => /perf-1 smk|smk-37/i.test(x.name) && !/ota|update|midiin[23]|midiout[23]/i.test(x.name) && x.state !== "disconnected");
+  const inp = pick(midi.inputs), out = pick(midi.outputs);
+  if (!inp || !out) throw new Error("PERF-1 SMK wasn't found: check the cable and close other MIDI apps.");
+  port = { inp, out };
+  inp.onmidimessage = (ev) => {
+    const d = ev.data;
+    idleTouch();
+    if (d[0] === 0xF0 && d[1] === 0x7D && d[2] === 0x50 && d[3] === 0x46) onStatus(d);
+  };
+  return port;
+}
+function releasePort() { if (port) { try { port.inp.onmidimessage = null; port.inp.close(); port.out.close(); } catch (_) {} port = null; } }
+function onStatus(d) {
+  const raw = unpack7(Array.from(d.slice(4, d.length - 1)));
+  const dv = new DataView(new Uint8Array(raw).buffer), n = Math.min(FIELDS.length, raw.length >> 2), w = {};
+  if (n < 22) return;
+  for (let i = 0; i < FIELDS.length; i++) w[FIELDS[i]] = i < n ? dv.getUint32(i * 4, true) : 0;
+  w.t = Date.now();
+  frames.push(w);
+  $("ststatus").textContent = frames.length + " frames";
+  $("stsave").disabled = false;
+  const pct = (w.max_us * 100) / (w.budget_us || 1);
+  const items = [[w.cpu + "%", w.cpu > 85 ? "bad" : w.cpu > 72 ? "hot" : ""], [w.cpu1 + "%", w.cpu1 > 70 ? "hot" : ""],
+    [w.xruns + " / " + w.late, w.xruns ? "bad" : w.late ? "hot" : ""], [(w.max_us / 1000).toFixed(1) + " ms", pct > 95 ? "bad" : pct > 85 ? "hot" : ""],
+    [(w.shed & 255) ? "level " + (w.shed & 255) : "-", (w.shed & 255) ? "hot" : ""], [(GENRES[w.genre] || w.genre) + " " + (w.piece + 1), ""],
+    [String(w.stores), ""], [String(w.ui_frames), ""]];
+  const g = $("stgrid");
+  g.textContent = "";
+  items.forEach((it, i) => {
+    const c = document.createElement("div"), b = document.createElement("b"), s = document.createElement("span");
+    c.className = it[1]; b.textContent = it[0]; s.textContent = LABELS[i];
+    c.append(b, s); g.append(c);
+  });
+}
+async function stStop() {
+  clearInterval(stTimer); stTimer = null;
+  if (port) { try { port.out.send([0xF0, 0x7D, 0x50, 0x46, 0x00, 0xF7]); } catch (_) {} }
+  $("stgo").textContent = "Start";
+}
+$("stgo").addEventListener("click", async () => {
+  if (stTimer) { await stStop(); return; }
+  try {
+    const p = await openPort();
+    frames = [];
+    const arm = () => { try { p.out.send([0xF0, 0x7D, 0x50, 0x46, 0x01, 0xF7]); } catch (_) { stStop(); } };
+    arm();
+    stTimer = setInterval(arm, 3000);
+    $("stgo").textContent = "Stop";
+    $("ststatus").textContent = "Waiting for the keyboard…";
+  } catch (err) { $("ststatus").textContent = err.message; }
+});
+$("stsave").addEventListener("click", () => {
+  const rows = ["t," + FIELDS.join(",")].concat(frames.map((w) => ((w.t - frames[0].t) / 1000).toFixed(2) + "," + FIELDS.map((f) => w[f]).join(",")));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([rows.join("\n") + "\n"], { type: "text/csv" }));
+  a.download = "perf1smk_status_" + new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19) + ".csv";
+  a.click();
+});
+/* the keyboard's port is let go after 4 s quiet, so M-UPGRADE or music software can open it with the page left open */
+idleRelease(() => writing || !!stTimer, () => { port = null; log("MIDI port released"); });
+</script>
+</body>
+</html>
