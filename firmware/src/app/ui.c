@@ -3752,6 +3752,9 @@ static int32_t in_enc(int role)
 
 /* MIDI in (USB and the TRS jack): on the channel chosen (MIDI IN page; all by default), notes add or remove their note from the scale
  * (channel 1 only, as before), or with PADS play PERF (pads_in); clock and start / stop drive the grid */
+#ifdef EN_CALL
+static int call_in(uint32_t st, uint32_t n, uint32_t v);   /* (smk_pads.c) a note on the Call channel: 1, taken */
+#endif
 static void midi_in(void)
 {
     uint32_t pkt;
@@ -3764,6 +3767,10 @@ static void midi_in(void)
         }
         if (st < 0xF0u && mm_apply(st, n, v))   /* the player's map first (0.16.11) */
             continue;
+#ifdef EN_CALL
+        if (st < 0xF0u && call_in(st, n, v))    /* then a call (a player's guitar, over MIDI) */
+            continue;
+#endif
         if (st == 0xF8u || st == 0xFAu || st == 0xFBu || st == 0xFCu)
             en_clock(st == 0xF8u ? EN_CLK_TICK : st == 0xFAu ? EN_CLK_START : st == 0xFBu ? EN_CLK_CONTINUE : EN_CLK_STOP);
         else if ((st & 0xF0u) == 0xB0u && n == 64u && ch_ok) {   /* CC 64 (a sustain pedal, an editor's button): REC's Freeze while it is down, in any mode (0.16.6) */
@@ -9195,6 +9202,9 @@ void ui_init(void)
     voices_load();                               /* and the player's DX7 voices */
     mm_load();                                   /* and their MIDI map (0.16.11) */
     en_pedal(glob.sl_rsv[2] & 3);                /* and the pedal (0.16.21: the global record's last spare byte) */
+#ifdef EN_CALL
+    call_load();                                 /* and the Call settings (the set list's spare byte, glob.sl_x[0]) */
+#endif
     ui_fx_apply();                               /* the piece's FILTERS and SCREAM over the settings' (0.16.28) */
 #ifdef EN_FOLLOW
     ui_fol_apply();                              /* and its FOLLOWERS */

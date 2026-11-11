@@ -235,6 +235,7 @@ void en_trk(uint32_t mute, uint32_t solo);     /* the tracks' mutes and solos, a
 void en_pedal(int bits);                        /* PEDAL (0.16.21): bit 0 the bass, bit 1 the pad hold the key's root / chord under the harmony */
 #if defined(BOARD_SMK37) && BOARD_SMK37 && !defined(EN_FOLLOW)   /* (fm1_cc.h defines it 0 on the FM-1) */
 #define EN_FOLLOW 1                             /* FOLLOWERS: the SMK's first (Steven's issue #3); the FM-1 later */
+#define EN_CALL 1                               /* and CALL AND RESPONSE (app/smk_pads.c: notes on the Call channel are a player's calls) */
 #endif
 #ifdef EN_FOLLOW
 /* FOLLOWERS: the pad's four voices as drones on the chord: F1 the root, F2 the third, F3 the fifth, F4 a colour. Each on or off; each moves
@@ -242,7 +243,11 @@ void en_pedal(int bits);                        /* PEDAL (0.16.21): bit 0 the ba
  * the key's root, the cadence). Colour: the octave, 7th, 9th, 6th or sus4; Evolve changes it every few chords, in the scale. Style: Swell
  * (sustained, breathing slowly), Pulse (the notes again at Rate, an e-bow's slow attack), Drift (eight bars of each). Register: an octave
  * down, as is, up (F1 from C2); Glide: 0 .. 2 s between notes. The pad stops comping while they are on. */
-enum { EN_FOL_ON, EN_FOL_MOVE, EN_FOL_COLOUR, EN_FOL_EVOLVE, EN_FOL_REG, EN_FOL_GLIDE, EN_FOL_STYLE, EN_FOL_RATE, EN_NFOL };
+enum { EN_FOL_ON, EN_FOL_MOVE, EN_FOL_COLOUR, EN_FOL_EVOLVE, EN_FOL_REG, EN_FOL_GLIDE, EN_FOL_STYLE, EN_FOL_RATE,
+       EN_FOL_CALLPC,                           /* a call's note (pitch class + 1; 0 none): F4 sounds it for the rest of the chord (Harmony) */
+       EN_FOL_SWELL,                            /* a call: the followers swell, up over a beat, back over two (Swell) */
+       EN_FOL_DUCK,                             /* the pluck and the acid turned down by v % while a call plays (Leave room) */
+       EN_NFOL };
 enum { EN_FM_FOLLOW, EN_FM_COMMON, EN_FM_HOLD, EN_NFM };   /* a voice's Move (2 bits a voice in EN_FOL_MOVE) */
 #define EN_FOL_NCOL 5                           /* the colours: octave, 7th, 9th, 6th, sus4 */
 #define EN_FOL_NSTYLE 3                         /* Swell, Pulse, Drift */
@@ -252,6 +257,8 @@ extern volatile uint8_t en_fol_col;             /* the colour sounding now (Evol
 #ifdef EN_HOST
 int en_fol_level(int i);
 int en_fol_on(void);
+int en_fol_cpc(void);
+int en_fol_duck(void);
 #endif
 #endif
 uint32_t en_trk_heard(void);

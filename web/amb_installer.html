@@ -778,7 +778,7 @@ async function run(img, product, isStock) {   /* true when it finished */
     const ota = await up.find((id) => /^ota-/i.test(id.model));
     if (ota) {
       ota.link.close();
-      ok = await up.resume(img, step);
+      ok = await up.resume(img, step, isStock ? { product } : { package: product });   /* (the SMK layer's fm1ota.js writes nothing without an identity to match) */
       sayK(ok ? (isStock ? "stockdone" : "done") : "stopped");
     } else {
       await up.install(img, product, step);

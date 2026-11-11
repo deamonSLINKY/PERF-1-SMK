@@ -1432,7 +1432,9 @@ static struct {
     uint8_t col, nchg;                          /* the colour now (Evolve's), chords since it changed */
     float ph;                                   /* the pulse's place (stopped: its own) */
     uint32_t rng;
-} fol = {0, EN_FM_HOLD | EN_FM_COMMON << 2 | EN_FM_COMMON << 4 | EN_FM_COMMON << 6, 1, 1, 1, 40, 0, 1, 1, 0, 0.0f, 0x9E3779B9u};
+    uint8_t cpc, swon;                          /* a call's note for F4 (pc + 1), a swell under way */
+    float sw, duck_t, duck;                     /* the swell's place (beats); the duck asked for and as it is (0 none .. 1) */
+} fol = {0, EN_FM_HOLD | EN_FM_COMMON << 2 | EN_FM_COMMON << 4 | EN_FM_COMMON << 6, 1, 1, 1, 40, 0, 1, 1, 0, 0.0f, 0x9E3779B9u, 0, 0, 0.0f, 0.0f, 0.0f};
 static float fol_out[EN_NPAD], fol_g[EN_NPAD];   /* a voice's level now; its on / off, smoothed */
 volatile uint8_t en_fol_col = 1;
 #define FOL_ON (fol.on & 0x80u)
@@ -1870,7 +1872,7 @@ static void fol_coefs(pad_t *v, int i)
 {
     static const uint8_t PL[EN_FOL_NRATE] = {4, 2, 3, 1};   /* the pulse in sixteenths */
     const float k = 32.0f / EN_SR, L = (float)PL[fol.rate % EN_FOL_NRATE];
-    const int on = fol.on >> i & 1, st = fol.style == 2 ? (int)(sixteenth / 128u & 1u) : fol.style;
+    const int on = (fol.on >> i & 1) || (i == 3 && fol.cpc), st = fol.style == 2 ? (int)(sixteenth / 128u & 1u) : fol.style;
     const int tn = (int)(v->target + 0.5f);
     float g = fol_g[i], lv;
     v->hand = 0;
@@ -1920,6 +1922,11 @@ static void fol_coefs(pad_t *v, int i)
         lv = p < 0.33f ? 0.5f - 0.5f * fm_cosf(FM_PI * p / 0.33f) : 0.15f + 0.85f * (0.5f + 0.5f * fm_cosf(FM_PI * (p - 0.33f) / 0.67f));
     } else {
         lv = 0.8f + 0.2f * fm_sinf(FM_TWO_PI * v->t);
+    }
+    if (fol.swon) {                              /* a call's swell: up over a beat, back over two (the saw sounds' filter opens with it) */
+        if (i == 0 && (fol.sw += 32.0f / (4.0f * fm_maxf(step_len, 1000.0f))) >= 3.0f)
+            fol.swon = 0;
+        lv *= 1.0f + 0.6f * (fol.sw < 1.0f ? fol.sw : 1.0f - 0.5f * (fol.sw - 1.0f));
     }
     fol_out[i] = g * lv;
 }
@@ -2098,6 +2105,8 @@ static void fol_targets(int *to)                /* the followers' notes: F1 in C
         lo -= 12;
     fol_roles(deg, steps, r);
     fol_roles(0, steps_nat, h);
+    if (fol.cpc)                                 /* Harmony: the call's note, F4's for the rest of the chord */
+        r[3] = h[3] = fol.cpc - 1;
     for (i = 0; i < EN_NPAD; i++) {
         const int mv = fol.move >> (2 * i) & 3, from = (int)(pad[i].target + 0.5f);
         int pc = mv == EN_FM_HOLD ? h[i] : r[i];
@@ -2517,6 +2526,7 @@ static void chord_to(int i)                     /* the chord moves to degree i *
     hist[hist_n < 8 ? hist_n++ : 7] = (uint8_t)i;
     dom_apply();
 #ifdef EN_FOLLOW
+    fol.cpc = 0;                                 /* (a call's note: for the chord it came on) */
     if (FOL_ON && fol.evolve && ++fol.nchg >= (fol.evolve == 1 ? 4u : 2u)) {   /* Evolve: a new colour every four (slow) or two chords */
         static const uint8_t NEXT[EN_FOL_NCOL][3] = {{1, 2, 3}, {2, 3, 0}, {1, 3, 4}, {1, 2, 0}, {1, 2, 0}};   /* where each goes: 7ths and 9ths most */
         fol.rng ^= fol.rng << 13;
@@ -3323,6 +3333,9 @@ static float hb_bend, hb_mod, hb_ph, hb_semi, hb_pf = 1.0f;
 
 static void hb_tick(uint32_t n)
 {
+#ifdef EN_FOLLOW
+    fol.duck += (fol.duck_t - fol.duck) * fm_minf((float)n / (0.08f * EN_SR), 1.0f);   /* (Leave room: 80 ms in and out) */
+#endif
     hb_ph += 5.5f * (float)n * (1.0f / EN_SR);
     if (hb_ph >= 1.0f)
         hb_ph -= 1.0f;
@@ -5160,6 +5173,8 @@ uint32_t en_trk_heard(void) { return trk_mute; }
 #if defined(EN_FOLLOW) && defined(EN_HOST)
 int en_fol_level(int i) { return (int)(fol_out[i % EN_NPAD] * 100.0f); }   /* the tests: a follower's level now, 0..100 */
 int en_fol_on(void) { return fol.on; }
+int en_fol_cpc(void) { return fol.cpc; }
+int en_fol_duck(void) { return (int)(fol.duck * 100.0f + 0.5f); }
 #endif
 int en_bass_held(void) { return (int)(bass.gtarget + 0.5f); }         /* the bass's held note, and a pad voice's: for the tests (0.16.21) */
 int en_pad_held(int i) { return (int)(pad[i % EN_NPAD].target + 0.5f); }        /* the mutes the engine has (a test reads it: 0.16.12) */
@@ -6714,6 +6729,9 @@ static void drain(void)
             case EN_FOL_GLIDE: fol.glide = (uint8_t)(b > 100 ? 100 : b); break;
             case EN_FOL_STYLE: fol.style = (uint8_t)(b % EN_FOL_NSTYLE); break;
             case EN_FOL_RATE: fol.rate = (uint8_t)(b % EN_FOL_NRATE); break;
+            case EN_FOL_CALLPC: fol.cpc = (uint8_t)(b > 12 ? 0 : b); break;
+            case EN_FOL_SWELL: fol.swon = 1; fol.sw = 0.0f; break;
+            case EN_FOL_DUCK: fol.duck_t = (float)(b > 100 ? 100 : b) * 0.01f; break;
             }
             pad_retarget();
             break;
@@ -7308,7 +7326,11 @@ static void render_cm(uint32_t n)
 {
     const int sn = par[P_CM_SND] < 0 ? 0 : par[P_CM_SND] >= CM_NPLAIN ? CM_NPLAIN - 1 : par[P_CM_SND];
     const cm_snd_t *S = &CM_SOUND[sn];
+#ifdef EN_FOLLOW
+    const float g = cm_vol * 0.5f * S->g * (1.0f - fol.duck), pfc = HB(EN_V_PLUCK) ? hb_pf : 1.0f;   /* (a keyboard's bend; a call's duck) */
+#else
     const float g = cm_vol * 0.5f * S->g, pfc = HB(EN_V_PLUCK) ? hb_pf : 1.0f;   /* (a keyboard's bend) */
+#endif
     float lvl = 0.0f;
     int v;
     uint32_t j;
@@ -7358,7 +7380,11 @@ static void render_acid(uint32_t n)
     const int sq = fxs_v[EN_FXS_SQ_TGT] != 1;    /* SCREAM on the acid (its Target: 0 the acid, 2 both); at 0 each factor below is exactly 1 */
     const float sqd = sq ? (float)fxs_v[EN_FXS_SQ_DRIVE] * 0.01f : 0.0f, sqa = sq ? (float)fxs_v[EN_FXS_SQ_AMT] * 0.01f : 0.0f,
                 sqw = sq ? (float)fxs_v[EN_FXS_SQ_WOW] * 0.01f : 0.0f;
+#ifdef EN_FOLLOW
+    const float g = acid_vol * (1.0f - fol.duck) * 0.75f * AS->g / (1.0f + 0.5f * sqd + 0.4f * sqa), adrv = AS->drive, res = (float)par[P_AC_RES] * 0.01f,
+#else
     const float g = acid_vol * 0.75f * AS->g / (1.0f + 0.5f * sqd + 0.4f * sqa), adrv = AS->drive, res = (float)par[P_AC_RES] * 0.01f,
+#endif
                 envmod = (float)par[P_AC_ENV] * 0.06f, accamt = (float)par[P_AC_ACC] * 0.01f, base = (float)par[P_AC_CUT] * 0.066f + lfo_acut,
                 k1 = (1.45f - 1.38f * res) * (1.0f - 0.93f * sqa) * (1.0f - 0.85f * lfo_ares),   /* Scream: the resonance to about Q 200; an LFO on it */
                 k2 = 1.2f * (1.0f - 0.75f * sqa), sqin = 1.0f + 3.0f * sqd,   /* the second stage follows (it held the peak down); Drive: harder into the filter */

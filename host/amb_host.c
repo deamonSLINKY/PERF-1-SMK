@@ -753,6 +753,18 @@ static int expect(const char *what, const char *val)
     else if (!strcmp(what, "folcol"))             /* the colour sounding */
         got = en_fol_col;
 #endif
+#ifdef EN_CALL
+    else if (!strcmp(what, "folcpc"))             /* a call's note as F4's (pc + 1, 0 none) */
+        got = en_fol_cpc();
+    else if (!strcmp(what, "folduck"))            /* the pluck and acid's duck now, % */
+        got = en_fol_duck();
+    else if (!strcmp(what, "callset"))            /* the Call settings byte */
+        got = glob.sl_x[0];
+    else if (!strcmp(what, "callact"))            /* a call under way */
+        got = cr.active;
+    else if (!strcmp(what, "callecho"))           /* notes echoed so far */
+        got = (int)cr.echoed;
+#endif
     else if (!strncmp(what, "padmidi", 7))        /* padmidiN: pad voice N's note (MIDI) */
         got = en_pad_held(atoi(what + 7));
     else if (!strncmp(what, "padheld", 7))        /* padheldN: pad voice N's note, its pitch class */

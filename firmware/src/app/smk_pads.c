@@ -18,6 +18,7 @@
  *           FOLLOWERS on / off, Style (Swell, Pulse, Drift), Colour (octave, 7th, 9th, 6th, sus4), Evolve (off, slow, faster).
  *           Bottom row: the Progression page's fills 1-8 (the circle's five, Steven's first three); > fills 9-11, then Move of
  *           F2-F4 (Common, Follow, Hold), F1 (Hold the key's root, Follow), Register, Glide, Rate. Kept with the piece (SAVE).
+ *           > again: CALL AND RESPONSE: Call on / off, its channel, Answer (Harmony, Echo, Steer, Swell), Leave room.
  * The pads light in the layout's colour, white while held; MIX shows the mutes (red) and solos (white).
  *
  * FADERS. FADER BANK: A levels (drums, bass, acid, pad), B the four FX knobs (filter, crush, throw, wash), C shape (motion,
@@ -91,6 +92,220 @@ static void sp_notes_off(void)                    /* NOTES: the pads held let go
             if (n >= 0)
                 pads_in(0, n, 0);
         }
+}
+
+/* ---- CALL AND RESPONSE (Steven's issue #3: his guitar, through a Bento's MIDI out, calls; PERF answers) ------------------
+ * Notes on the Call channel are calls: they play no voice. A call starts with its first note and ends a beat after the last
+ * note let go. Answer: Harmony, the note (snapped to the scale) is F4's for the rest of the chord (the followers sound it);
+ * Echo, the call played back on the acid in key from the next beat, up a fifth, an octave up, mirrored or reversed in turn;
+ * Steer, a call moves the chord one step round the circle (a fifth down), a call on the key's root takes it home; Swell,
+ * each note swells the followers. Leave room: the pluck and acid 40% down while a call plays. The settings are the
+ * player's, kept in the set list's spare byte (glob.sl_x[0]): bits 0-3 the channel (0 = channel 2), 4 on, 5-6 Answer,
+ * 7 Leave room. */
+enum { CA_HARMONY, CA_ECHO, CA_STEER, CA_SWELL, CA_N };
+#define CR_MAX 16
+static struct {
+    uint8_t n, held, active, ewait, ekind, eplay;
+    uint8_t note[CR_MAX], vel[CR_MAX], eout[CR_MAX];
+    uint16_t at[CR_MAX], len[CR_MAX];
+    uint16_t eon, edone;                          /* the echo's notes sounding, and played */
+    uint32_t t0, last, et0, ebar, echoed;         /* (echoed: notes echoed since power-on, for the tests) */
+} cr;
+static int call_ch(void) { return (int)((glob.sl_x[0] + 1u) & 15u); }   /* the channel, 0-based */
+static int call_on(void) { return glob.sl_x[0] >> 4 & 1u; }
+static int call_ans(void) { return glob.sl_x[0] >> 5 & 3u; }
+static void call_load(void) { en_follow(EN_FOL_CALLPC, 0); en_follow(EN_FOL_DUCK, 0); }
+static uint32_t call_beat_ms(void) { const int t = proj.par[P_TEMPO]; return 60000u / (uint32_t)(t > 20 ? t : 120); }
+static int call_snap(int n)                       /* the nearest note in the scale */
+{
+    static const int8_t D[7] = {0, -1, 1, -2, 2, -3, 3};
+    const uint32_t pool = proj.pool | 1u;
+    int k;
+    for (k = 0; k < 7; k++) {
+        const int m = n + D[k], rel = ((m - proj.par[P_ROOT]) % 12 + 12) % 12;
+        if (pool >> rel & 1u)
+            return m;
+    }
+    return n;
+}
+static void call_echo_stop(void)
+{
+    int k;
+    for (k = 0; k < CR_MAX; k++)
+        if (cr.eon >> k & 1u)
+            en_note(EN_V_ACID, cr.eout[k], 0);
+    cr.eon = 0;
+    cr.eplay = cr.ewait = 0;
+}
+static void call_steer(int first)                 /* a step round the circle, or home */
+{
+    int st[12], m = en_scale(proj.pool, st), k, d = 0;
+    const int root = proj.par[P_ROOT];
+    if (m > 7)
+        m = 7;
+    for (k = 0; k < m; k++)
+        if ((root + st[k]) % 12 == en_chord_root)
+            d = k;
+    d = first % 12 == root % 12 ? 0 : m == 7 ? (d + 3) % 7 : (d + 1) % m;
+    en_chord_deg(d);
+}
+static int call_in(uint32_t st, uint32_t n, uint32_t v)
+{
+    const uint32_t ty = st & 0xF0u, now = plat_ms();
+    int k;
+    if (!call_on() || (int)(st & 15u) != call_ch() || (ty != 0x90u && ty != 0x80u))
+        return 0;
+    if (ty == 0x90u && v) {
+        const int a = call_ans();
+        if (!cr.active) {                         /* a new call: the echo gives way */
+            call_echo_stop();
+            cr.active = 1;
+            cr.n = 0;
+            cr.t0 = now;
+            if (glob.sl_x[0] >> 7 & 1u)
+                en_follow(EN_FOL_DUCK, 40);
+            if (a == CA_STEER)
+                call_steer((int)n);
+        }
+        if (cr.n < CR_MAX) {
+            cr.note[cr.n] = (uint8_t)n;
+            cr.vel[cr.n] = (uint8_t)(v < 40u ? 40u : v);
+            cr.at[cr.n] = (uint16_t)(now - cr.t0 > 60000u ? 60000u : now - cr.t0);
+            cr.len[cr.n] = 0xFFFFu;              /* (held) */
+            cr.n++;
+        }
+        cr.held++;
+        if (a == CA_HARMONY)
+            en_follow(EN_FOL_CALLPC, call_snap((int)n) % 12 + 1);
+        else if (a == CA_SWELL)
+            en_follow(EN_FOL_SWELL, 1);
+    } else {
+        for (k = cr.n - 1; k >= 0; k--)
+            if (cr.note[k] == n && cr.len[k] == 0xFFFFu) {
+                cr.len[k] = (uint16_t)(now - cr.t0 - cr.at[k] > 60000u ? 60000u : now - cr.t0 - cr.at[k]);
+                break;
+            }
+        if (cr.held)
+            cr.held--;
+    }
+    cr.last = now;
+    return 1;
+}
+static void call_tick(void)
+{
+    const uint32_t now = plat_ms(), beat = call_beat_ms();
+    int k;
+    if (cr.active && !cr.held && now - cr.last > beat) {   /* the call is over: a beat with nothing held */
+        cr.active = 0;
+        en_follow(EN_FOL_DUCK, 0);
+        if (call_ans() == CA_ECHO && cr.n) {
+            for (k = 0; k < cr.n; k++)
+                if (cr.len[k] == 0xFFFFu)
+                    cr.len[k] = (uint16_t)beat;
+            cr.ewait = 1;
+            cr.ebar = en_bars;
+        }
+    }
+    if (cr.ewait && (!en_playing || (en_bars != cr.ebar && en_bars % 4u == 0u))) {   /* the echo starts on the next beat */
+        const int first = cr.note[0];
+        uint32_t total = 0;
+        cr.ewait = 0;
+        cr.eplay = 1;
+        cr.et0 = now;
+        cr.eon = cr.edone = 0;
+        for (k = 0; k < cr.n; k++) {
+            int m = cr.note[k];
+            if (cr.at[k] + cr.len[k] > total)
+                total = cr.at[k] + cr.len[k];
+            m = cr.ekind == 0 ? call_snap(m + 7) : cr.ekind == 1 ? m + 12 : cr.ekind == 2 ? call_snap(2 * first - m) : m;
+            while (m < 36)
+                m += 12;
+            while (m > 84)
+                m -= 12;
+            cr.eout[k] = (uint8_t)m;
+        }
+        if (cr.ekind == 3)                        /* reversed: the last note first */
+            for (k = 0; k < cr.n; k++) {
+                const uint32_t e = cr.at[k] + cr.len[k];
+                cr.at[k] = (uint16_t)(total - e);
+            }
+        cr.ekind = (uint8_t)((cr.ekind + 1) % 4u);
+    }
+    if (cr.eplay) {
+        const uint32_t t = now - cr.et0;
+        for (k = 0; k < cr.n; k++) {
+            const uint32_t on = cr.at[k], off = on + (cr.len[k] < 60u ? 60u : cr.len[k] > beat ? beat : cr.len[k]);
+            if (!(cr.edone >> k & 1u) && t >= on) {
+                en_note_v(EN_V_ACID, cr.eout[k], cr.vel[k]);
+                cr.eon |= (uint16_t)(1u << k);
+                cr.edone |= (uint16_t)(1u << k);
+                cr.echoed++;
+            }
+            if (cr.eon >> k & 1u && t >= off) {
+                en_note(EN_V_ACID, cr.eout[k], 0);
+                cr.eon &= (uint16_t)~(1u << k);
+            }
+        }
+        if (cr.edone == (uint16_t)((1u << cr.n) - 1u) && !cr.eon)
+            cr.eplay = 0;
+    }
+}
+static void call_pad(uint32_t p)                  /* FOLLOW's third page, the bottom row */
+{
+    static const char *const AN[CA_N] = {"HARMONY", "ECHO", "STEER", "SWELL"};
+    static char b[8];
+    uint8_t *x = &glob.sl_x[0];
+    switch (p) {
+    case 8:
+        *x ^= 0x10;
+        if (!call_on()) {
+            call_echo_stop();
+            cr.active = 0;
+            en_follow(EN_FOL_CALLPC, 0);
+            en_follow(EN_FOL_DUCK, 0);
+        }
+        b[0] = 'C', b[1] = 'H', b[2] = ' ', b[3] = (char)(call_ch() + 1 >= 10 ? '1' : '0' + call_ch() + 1);
+        b[4] = call_ch() + 1 >= 10 ? (char)('0' + call_ch() + 1 - 10) : 0, b[5] = 0;
+        say(call_on() ? "CALL: ON" : "CALL: OFF", call_on() ? b : "");
+        break;
+    case 9:
+        *x = (uint8_t)((*x & 0xF0u) | ((*x & 15u) + 1u) % 16u);
+        b[0] = 'C', b[1] = 'H', b[2] = ' ', b[3] = (char)(call_ch() + 1 >= 10 ? '1' : '0' + call_ch() + 1);
+        b[4] = call_ch() + 1 >= 10 ? (char)('0' + call_ch() + 1 - 10) : 0, b[5] = 0;
+        say("CALL CHANNEL", b);
+        break;
+    case 10:
+        *x = (uint8_t)((*x & ~0x60u) | (uint32_t)((call_ans() + 1) % CA_N) << 5);
+        en_follow(EN_FOL_CALLPC, 0);
+        say("ANSWER", AN[call_ans()]);
+        break;
+    case 11:
+        *x ^= 0x80;
+        if (!(*x & 0x80u))
+            en_follow(EN_FOL_DUCK, 0);
+        say("LEAVE ROOM", *x & 0x80u ? "ON" : "OFF");
+        break;
+    default:
+        return;
+    }
+    project_globals();
+}
+static void call_led(uint32_t p, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    static const uint8_t AC[CA_N][3] = {{0, 70, 110}, {110, 60, 0}, {110, 0, 50}, {60, 110, 0}};
+    *r = *g = *b = 0;
+    if (p == 8u) {
+        if (cr.active)
+            *r = *g = *b = 200;
+        else
+            *g = call_on() ? 140 : 10, *r = call_on() ? 0 : 30;
+    } else if (p == 9u) {
+        *r = 40, *g = 40, *b = 40;
+    } else if (p == 10u) {
+        *r = AC[call_ans()][0], *g = AC[call_ans()][1], *b = AC[call_ans()][2];
+    } else if (p == 11u) {
+        *r = glob.sl_x[0] & 0x80u ? 100 : 15, *g = glob.sl_x[0] & 0x80u ? 60 : 10;
+    }
 }
 
 /* ---- FOLLOW: the followers' settings (a piece's: project.c keeps them) ------------------------------------------------ */
@@ -172,6 +387,10 @@ static void sfol_pad(uint32_t p)                  /* a FOLLOW pad pressed */
         say("EVOLVE", EV[v]);
         return;
     }
+    if (sp.page == 2) {                           /* the bottom row, third page: call and response */
+        call_pad(p);
+        return;
+    }
     if (!sp.page) {                               /* the bottom row: fills 1-8 */
         pg_fill((int)p - 8);
         return;
@@ -234,6 +453,10 @@ static void sfol_led(uint32_t p, uint8_t *r, uint8_t *g, uint8_t *b)
         *r = act ? 0 : 40, *g = act ? 140 : 0, *b = 0;
         return;
     }
+    if (p >= 8u && sp.page == 2) {
+        call_led(p, r, g, b);
+        return;
+    }
     if (p >= 8u && (!sp.page || p < 11u)) {       /* the fills */
         *r = 70, *g = 30, *b = 0;
         return;
@@ -248,7 +471,8 @@ static void sp_leds(int lay, uint32_t held)
 {
     uint32_t p;
     const uint8_t sec = (uint8_t)(en_sec | en_frozen << 2 | ui.dj_on << 3) ^
-                        (uint8_t)(lay == SP_FOLLOW ? sfol[0] * 3u + sfol[1] * 5u + sfol[2] * 7u + sfol[3] + sfol[4] * 11u : 0u);
+                        (uint8_t)(lay == SP_FOLLOW ? sfol[0] * 3u + sfol[1] * 5u + sfol[2] * 7u + sfol[3] + sfol[4] * 11u +
+                                                     glob.sl_x[0] * 13u + cr.active * 17u : 0u);
     if (held == sp.led_held && lay == sp.led_lay && sp.page == sp.led_page && ui.trk_m == sp.led_m && ui.trk_s == sp.led_s &&
         sec == sp.led_sec)
         return;                                  /* (only on a change: padled_flush sends nothing then either) */
@@ -333,8 +557,9 @@ static uint32_t smk_bkeys(void)
             sp.page = (uint8_t)right;
             say("PADS", lay == SP_MIX ? (right ? "SCENES, DJ" : "MUTES, SOLOS") : right ? "KEYS 17-27" : "KEYS 1-16");
         } else if (lay == SP_FOLLOW) {
-            sp.page = (uint8_t)right;
-            say("PADS: FOLLOW", right ? "FILLS 9-11, MOVE .." : "FILLS 1-8");
+            static const char *const PG[3] = {"FILLS 1-8", "FILLS 9-11, MOVE ..", "CALL AND RESPONSE"};
+            sp.page = (uint8_t)(right ? (sp.page < 2u ? sp.page + 1u : 2u) : sp.page ? sp.page - 1u : 0u);
+            say("PADS: FOLLOW", PG[sp.page]);
         } else if (lay == SP_NOTES) {
             static const char *const VN[3] = {"PLUCK", "BASS", "ACID"};
             sp_notes_off();
@@ -392,6 +617,7 @@ static void smk_controls(void)
     static uint32_t sb_prev;
     int i;
     int32_t pb, mw, ev;
+    call_tick();                                  /* a call ending, its echo */
     if ((sb & 3u) != 3u && (sb & ~sb_prev) >> SB_FADER_BANK & 1u) {  /* FADER BANK: the next bank; each fader waits to be moved */
         static const char *const BN[3] = {"A: LEVELS", "B: FX", "C: SHAPE"};
         sf.bank = (uint8_t)((sf.bank + 1) % 3u);

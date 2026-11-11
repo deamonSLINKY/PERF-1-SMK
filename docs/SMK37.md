@@ -43,6 +43,7 @@ Everywhere else, the mode KNOB BANK picks:
 | NOTES | the pluck in key (`>` the bass, the acid), the eight higher tones | the eight lowest tones |
 | FOLLOW | F1 root, F2 third, F3 fifth, F4 colour (each on / off), FOLLOWERS on / off, Style, Colour, Evolve | the fills: ii V I, vi ii V I, iii vi ii V I, I vi ii V, the whole circle, I IV V V, I I IV vi, I IV I V |
 | FOLLOW, `>` | (the same) | fills I iii IV vi, I vi IV, IV V IV I; Move of F2-F4, F1 hold / follow, Register, Glide, Pulse rate |
+| FOLLOW, `>` `>` | (the same) | CALL on / off, its channel, Answer, Leave room |
 
 The pads light in the mode's colour, white while held; MIX shows the mutes red and the solos white. Velocity 30 at the
 softest (the SMK's factory pad curve starts high).
@@ -65,6 +66,25 @@ sustained. The pad stops playing its own chords while they are on; FOLLOWERS off
 The pad's level (fader A4), its sound (PADTONE), attack and release (Pad env) and every effect act on them. The bottom row's
 fills write the progression and it plays at once. Kept with the piece: SAVE stores them, another piece has its own.
 
+## CALL AND RESPONSE (FOLLOW pads, third page)
+
+Another instrument calls and PERF answers (Steven's idea, issue #3: a guitar through a 1010music Bento, whose MIDI out
+sends a note for each phrase, or a keyboard). Notes on the **Call channel** (channel 2 at first; the pad next to CALL
+steps it 1-16) are calls: they play no PERF voice. A call starts with its first note and ends a beat after the last one
+is let go. Connect the other instrument over USB (the Bento as a USB host, with the SMK on its USB port) or through a
+computer.
+
+| Answer | What PERF does |
+|---|---|
+| **Harmony** (the first) | each called note, snapped to the scale, becomes F4's for the rest of the chord: the followers harmonise the call (F4 sounds it even when it's off) |
+| **Echo** | when the call is over, the acid plays it back in key from the next beat: up a fifth, then an octave up, mirrored, reversed, in turn. A new call stops it |
+| **Steer** | each call moves the chord a fifth down round the circle (I IV vii iii vi ii V I); a call starting on the key's root takes it home |
+| **Swell** | each called note swells the followers: up over a beat, back over two |
+
+**Leave room** (on or off): while a call plays, the pluck and the acid go 40% down, so the call sits on top. Harmony and
+Swell act on the followers, so turn those on too. The Call settings are the player's (not the piece's) and come back
+after a power-on.
+
 ## The faders
 
 | Bank | 1 | 2 | 3 | 4 |
@@ -80,4 +100,7 @@ for update mode, hold OCTAVE- + OCTAVE+ for 5 s.
 
 ## Install and the way back
 
-See `SMK37-HWTEST.md`. KNOB BANK held at power-on opens the hardware test (KNOB BANK + FADER BANK for 2 s leaves it).
+Install from the PERF-1 SMK page (Chrome or Edge on a computer, a data USB cable, M-UPGRADE closed). The way back to
+M-Vave's firmware: the same page with M-Vave's SMK-37 Pro 016 file (m-vave.com, PC Firmware), or M-UPGRADE. Installs
+leave the keyboard's start-up code and its factory key, pad and wheel calibration alone. KNOB BANK held at power-on opens
+the hardware test (KNOB BANK + FADER BANK for 2 s leaves it); the bench plan is `SMK37-HWTEST.md` in the source.

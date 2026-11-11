@@ -1,0 +1,92 @@
+# PERF-1 SMK: CALL AND RESPONSE (Steven's issue #3: his guitar, through a Bento's MIDI out, calls; PERF answers). Notes on the
+# Call channel (channel 2 by default) are calls: they play nothing, and the Answer says what PERF does. Piece as pedal.amb:
+# A minor (A B C D E F G), followers on.
+seed 0
+wait 3000
+sbtn KNOB_BANK
+sbtn KNOB_BANK
+sbtn KNOB_BANK
+sbtn KNOB_BANK
+pad 4
+wait 200
+expect folon 135
+# FOLLOW's third page: call and response. Off at first: a note on channel 2 is not a call
+sbtn RIGHT
+sbtn RIGHT
+expect callset 0
+midi 91 40 64
+wait 100
+expect callact 0
+midi 81 40 0
+# Call on, Leave room on: HARMONY (the default). A call's E4 is F4's note: F4 sounds while F1-F3 stay
+pad 8
+pad 11
+wait 100
+expect callset 144
+midi 91 40 64
+wait 300
+expect callact 1
+expect folcpc 5
+expect padheld3 4
+expect folduck >30
+# a Bb (not in A minor) snaps to the scale: A (a half step down is tried first)
+midi 81 40 0
+midi 91 46 64
+wait 300
+expect folcpc 10
+midi 81 46 0
+# a beat with nothing held: the call is over, the duck lets go
+wait 1500
+expect callact 0
+expect folduck <5
+# ECHO: two notes, played back on the acid from the next beat, up a fifth
+pad 10
+expect callset 176
+midi 91 45 64
+wait 250
+midi 81 45 0
+midi 91 48 64
+wait 250
+midi 81 48 0
+wait 2500
+expect callecho 2
+# a new call while nothing echoes: the echo again, an octave up (the next kind)
+midi 91 45 64
+wait 250
+midi 81 45 0
+wait 2500
+expect callecho 3
+# STEER: a call moves the chord a fifth down; a call on A (the key's root) takes it home
+pad 10
+expect callset 208
+midi 91 47 64
+wait 200
+midi 81 47 0
+wait 1500
+expect chordroot 2
+midi 91 4C 64
+wait 200
+midi 81 4C 0
+wait 1500
+expect chordroot 7
+midi 91 45 64
+wait 200
+midi 81 45 0
+wait 1500
+expect chordroot 9
+# SWELL: a call swells the followers over their level
+pad 10
+expect callset 240
+wait 3000
+midi 91 45 64
+wait 400
+expect follvl1 >95
+midi 81 45 0
+# off: the channel is a channel again; the settings stay (the set list's spare byte) through a reboot
+pad 8
+expect callset 224
+tap PLAY
+wait 5000
+reboot
+wait 3000
+expect callset 224
