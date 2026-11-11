@@ -152,6 +152,162 @@ __attribute__((used, visibility("default"))) int web_st_open(int g, int i)
         genre_fx(g);
     }
     set_piece(i);
+    ui.sl_pos = (uint8_t)sl_find();             /* (the set list's place of the piece now, as at power on: PLAY plays its parts) */
+    return web_st_read();
+}
+/* place s of the set list now (as the PRESETS knob does with the song on): its genre and piece, its parts; then st_io as web_st_open */
+/* ---- the DX7 voice editor (web/studio, the pluck's SOUND): the player's voice slots read and written as the FM-1's SysEx does (main_fm1.c
+ * dx_service: en_user_voice, ui_voices_changed), and the thirty built-in DX sounds to start from (fm6.inc's sources, copied here: FM_MAP, the
+ * Melodee voice -> 155-byte voice of fm6_rom_patch) */
+#ifndef FP_OP
+#define FP_OP 21u
+#endif
+typedef struct {
+    uint8_t op[6][FP_OP];
+    uint8_t pr[4], pl[4], alg, fb, oks, lfs, lfd, lpmd, lamd, lfks, lfw, lpms, trnsp;
+    char name[11];
+} fm6_rom_t;
+#include "../../firmware/src/dsp/fm6_patches.h"
+#include "../../firmware/src/dsp/fm6_rom.h"
+#include "../../firmware/src/dsp/fm6_dy.h"
+static const uint8_t ST_FM_MAP[EN_NFMFACT] = {0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};   /* (fm6.inc FM_MAP) */
+static uint8_t st_vox[160];
+__attribute__((used, visibility("default"))) uint8_t *web_st_vox(void) { return st_vox; }
+__attribute__((used, visibility("default"))) int web_st_vox_n(void) { return en_user_count(); }
+/* slot's voice (128 packed bytes) into st_vox; 0: no such slot */
+__attribute__((used, visibility("default"))) int web_st_vox_get(int slot)
+{
+    if ((unsigned)slot >= (unsigned)en_user_count())
+        return 0;
+    memcpy(st_vox, en_user_get(slot), 128);
+    return 1;
+}
+/* st_vox (128 packed bytes) into slot (past the loaded ones: the next free); keep: the FM-1 writes its voices to flash a moment later, as after SysEx.
+ * The slot it went to; -1 not taken (the engine has not taken the last one yet: try again a moment later) */
+__attribute__((used, visibility("default"))) int web_st_vox_put(int slot, int keep)
+{
+    if (slot < 0 || slot > en_user_next())
+        slot = en_user_next();
+    ui.act_t = plat_ms();
+    if (!en_user_voice(slot, st_vox))
+        return -1;
+    if (keep)
+        ui_voices_changed(1, 3);
+    return slot;
+}
+/* the pluck's built-in DX sound idx (0..29) of the set in use into st_vox: 1 as 128 packed bytes, 2 as the 155-byte voice; 0 none */
+__attribute__((used, visibility("default"))) int web_st_vox_dx(int idx)
+{
+    const fm6_rom_t *r;
+    int n, i, src;
+    if ((unsigned)idx >= EN_NFMFACT)
+        return 0;
+    if (en_fm_dy) {
+        memcpy(st_vox, FM6_DY[idx], 128);
+        return 1;
+    }
+    src = ST_FM_MAP[idx];
+    if (src < FM6_NFACTORY) {
+        memcpy(st_vox, FM6_FACTORY[src], 128);
+        return 1;
+    }
+    r = &FM6_ROM[src - FM6_NFACTORY];
+    for (n = 1; n <= 6; n++)
+        for (i = 0; i < (int)FP_OP; i++)
+            st_vox[(6 - n) * FP_OP + i] = r->op[n - 1][i];
+    for (i = 0; i < 4; i++) {
+        st_vox[126 + i] = r->pr[i];
+        st_vox[130 + i] = r->pl[i];
+    }
+    st_vox[134] = r->alg; st_vox[135] = r->fb; st_vox[136] = r->oks; st_vox[137] = r->lfs; st_vox[138] = r->lfd; st_vox[139] = r->lpmd;
+    st_vox[140] = r->lamd; st_vox[141] = r->lfks; st_vox[142] = r->lfw; st_vox[143] = r->lpms; st_vox[144] = r->trnsp;
+    for (i = 0; i < 10; i++)
+        st_vox[145 + i] = (uint8_t)(r->name[i] ? r->name[i] : ' ');
+    return 2;
+}
+
+/* ---- the FX menu (web/studio's FX view): the effects latched (ui.fx_lock, as a tap on the FX menu's key latches one: the UI sends the mask every frame),
+ * the menu's keys (KEY_FX), the effects' names, and their pages (ui.c FXP: a name, the effect, four settings with their ranges and the text the unit
+ * shows), read and set as the FX menu's knobs do (fxp_get, fxp_set: the player's settings, kept a moment after, not a piece's) */
+__attribute__((used, visibility("default"))) int web_st_fx_lock(int set, int lo, int hi)
+{
+    if (set) {
+        ui.fx_lock = (uint64_t)(uint32_t)hi << 32 | (uint32_t)lo;
+        ui.act_t = plat_ms();
+    }
+    return (int)(uint32_t)ui.fx_lock;
+}
+__attribute__((used, visibility("default"))) int web_st_fx_lock_hi(void) { return (int)(uint32_t)(ui.fx_lock >> 32); }
+__attribute__((used, visibility("default"))) int web_st_fx_nkeys(void) { return NKEYS; }
+__attribute__((used, visibility("default"))) int web_st_fx_key(int bank, int key) { return (unsigned)bank < 4u && (unsigned)key < (unsigned)NKEYS ? KEY_FX[bank][key] : FX_NONE; }
+__attribute__((used, visibility("default"))) const char *web_st_fx_name(int bit) { return (unsigned)bit < EN_NFX && EN_FX_NAME[bit] ? EN_FX_NAME[bit] : ""; }
+__attribute__((used, visibility("default"))) int web_st_fx_page(int bit) { return fx_page_of(bit) - 1; }
+__attribute__((used, visibility("default"))) int web_st_fxp_n(void) { return NFXP; }
+/* page p's: what 0 its effect (63: none, the UI's settings), 1 heard only while held; control i's: 2 its kind (-1 none), 3 lowest, 4 highest, 5 value */
+__attribute__((used, visibility("default"))) int web_st_fxp_num(int p, int i, int what)
+{
+    int lo, hi;
+    const int k = K_FXP + p * 4 + (i & 3);
+    if ((unsigned)p >= NFXP)
+        return 0;
+    if (what == 0)
+        return FXP[p].bit;
+    if (what == 1)
+        return FXP[p].hold;
+    if (FXP[p].c[i & 3].kind == KN_NONE)
+        return -1;
+    if (what == 2)
+        return FXP[p].c[i & 3].kind;
+    fxp_range(k, &lo, &hi);
+    return what == 3 ? lo : what == 4 ? hi : fxp_get(k);
+}
+static char st_fxt[32];
+/* page p's name (what 0), control i's label (1) or its value as the unit shows it (2) */
+__attribute__((used, visibility("default"))) const char *web_st_fxp_str(int p, int i, int what)
+{
+    if ((unsigned)p >= NFXP)
+        return "";
+    if (what == 0)
+        return FXP[p].name;
+    if (what == 1)
+        return FXP[p].c[i & 3].label;
+    st_fxt[0] = 0;
+    if (FXP[p].c[i & 3].kind != KN_NONE)
+        fxp_text(K_FXP + p * 4 + (i & 3), st_fxt);
+    return st_fxt;
+}
+__attribute__((used, visibility("default"))) int web_st_fxp_set(int p, int i, int v)
+{
+    if ((unsigned)p >= NFXP || FXP[p].c[i & 3].kind == KN_NONE)
+        return 0;
+    ui.act_t = plat_ms();                        /* (as a knob turned: the settings' store waits until it is left alone) */
+    fxp_set(K_FXP + p * 4 + (i & 3), v);
+    return fxp_get(K_FXP + p * 4 + (i & 3));
+}
+/* a parameter set as the FM-1's knob sets it (the Editor's px_service way), without the studio's copy of the piece: a fade's steps */
+__attribute__((used, visibility("default"))) int web_st_par(int p, int v)
+{
+    ui_param_set(p, v);
+    return ui_param_get(p);
+}
+
+/* the tracks muted and soloed (a bit a track, EN_TR_*), as the FM-1's GLO and keys: heard now, not stored; a song place's parts set them again */
+__attribute__((used, visibility("default"))) int web_st_trk(int mute, int solo)
+{
+    ui.trk_m = (uint8_t)mute;
+    ui.trk_s = (uint8_t)solo;
+    en_trk((uint32_t)mute, (uint32_t)solo);
+    return 1;
+}
+
+__attribute__((used, visibility("default"))) int web_st_go(int s)
+{
+    if ((unsigned)s >= SL_N || !glob.sl[s] || ui.store_wait)
+        return 0;
+    ui.sl_q = 0;
+    sl_go(s);
+    if (glob.sl_on)
+        sl_parts(s);
     return web_st_read();
 }
 /* st_io into the playing piece, as if its settings, steps and lines had been changed on the panel (the track goes on) */
@@ -179,6 +335,7 @@ __attribute__((used, visibility("default"))) int web_st_put(void)
     take(i);
     ui.key_on = 0;
     project_apply();
+    ui.act_t = plat_ms();
     proj.edited |= (uint16_t)(1u << i);
     return ok;
 }
@@ -224,6 +381,12 @@ __attribute__((used, visibility("default"))) uint8_t *web_st_live(void)
         const uint32_t bb = sl_bar_now() - sl_b0;
         b[135] = (uint8_t)ui.sl_pos;
         b[136] = (uint8_t)(en_playing ? (bb > 254u ? 254u : bb) : 255u);
+        b[137] = (uint8_t)en_trk_heard();       /* the tracks muted now (a place's parts out, or GLO's mutes) */
+        {
+            extern int en_host_arrm(void);
+            b[138] = (uint8_t)en_host_arrm();   /* (0.17.16) the tracks Form Song's arrangement rests now (not mutes: they come back by themselves) */
+            b[139] = (uint8_t)en_pad_filtered();   /* (0.17.18) the pad's sound has a filter (its saw sounds) */
+        }
     }
     return b;
 }
@@ -277,8 +440,9 @@ __attribute__((used, visibility("default"))) int web_st_save(void)
     return 1;
 }
 /* the set list (glob): sixteen places (genre * 10 + piece + 1, 0 empty) and Play; (0.17.13, song mode) each place's bars (0 Auto) and the parts it leaves
- * out, and the end (0 Loop, 1 Once). st_sl: places 0..15, Play 16, bars 17..32, parts 33..48, end 49; write 1: into glob (and the flash), then read back */
-#define ST_SLN (SL_N * 3 + 2)
+ * out, and the end (0 Loop, 1 Once); (0.17.14) each place's pattern (0 the piece's, 1..6) and energy (0 as is, else mood + 1). st_sl: places 0..15,
+ * Play 16, bars 17..32, parts 33..48, end 49, patterns 50..65, energy 66..81; write 1: into glob (and the flash), then read back */
+#define ST_SLN (SL_N * 5 + 2)
 static uint8_t st_sl[ST_SLN];
 __attribute__((used, visibility("default"))) uint8_t *web_st_sl(void) { return st_sl; }
 __attribute__((used, visibility("default"))) int web_st_sl_len(void) { return ST_SLN; }
@@ -290,16 +454,29 @@ __attribute__((used, visibility("default"))) void web_st_set(int write)
             glob.sl[k] = st_sl[k] <= EN_NGENRE * NPIECES ? st_sl[k] : 0;
             glob.sl_bars[k] = st_sl[SL_N + 1 + k];
             glob.sl_mute[k] = (uint8_t)(st_sl[2 * SL_N + 1 + k] & 31u);
+            glob.sl_pat[k] = st_sl[3 * SL_N + 2 + k] <= EN_NPAT ? st_sl[3 * SL_N + 2 + k] : 0;
+            glob.sl_mood[k] = st_sl[4 * SL_N + 2 + k] <= 101 ? st_sl[4 * SL_N + 2 + k] : 0;
         }
         glob.sl_on = st_sl[SL_N] ? 1 : 0;
         glob.sl_end = st_sl[3 * SL_N + 1] ? 1 : 0;
         project_globals();
         project_flush_globals();
+        ui.sl_pos = (uint8_t)sl_find();         /* (as the unit's Play knob: the place of the piece playing, its bars from here; its parts heard at once) */
+        ui.sl_q = 0;
+        sl_b0 = sl_bar_now();
+        if (sl_play() && ui.sl_pos < SL_N)
+            sl_parts(ui.sl_pos);
+        else if (!glob.sl_on) {
+            ui.trk_m = 0;                       /* (the song off: every part back) */
+            en_trk(0, 0);
+        }
     }
     for (k = 0; k < SL_N; k++) {
         st_sl[k] = glob.sl[k];
         st_sl[SL_N + 1 + k] = glob.sl_bars[k];
         st_sl[2 * SL_N + 1 + k] = glob.sl_mute[k];
+        st_sl[3 * SL_N + 2 + k] = glob.sl_pat[k];
+        st_sl[4 * SL_N + 2 + k] = glob.sl_mood[k];
     }
     st_sl[SL_N] = glob.sl_on;
     st_sl[3 * SL_N + 1] = glob.sl_end;

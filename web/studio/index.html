@@ -35,7 +35,28 @@
   button.small { font-size: .75rem; padding: .25em .6em; }
   .bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
   .bar .sp { flex: 1; }
-  #top { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  #top { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; position: sticky; top: 0; z-index: 30; box-shadow: 0 6px 14px rgba(0,0,0,.35); }
+  #top .tsep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+  #top { gap: .35rem; }
+  #top select { max-width: 8.5em; }
+  @media (min-width: 1250px) { #top { flex-wrap: nowrap; } #top #pos, #top #tc { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } #top .sp { min-width: 0; } }
+  #top .tsep { margin: 0; }
+  #top button, #top .menu summary { padding: .4em .65em; }
+  #sound:not([hidden]) { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; align-items: start; }
+  #sound > .sec { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; }
+  #sound > .sec.dx7, #sound > .sec:has(.lanes6), #sound > p { grid-column: 1 / -1; }
+  .beats { display: inline-flex; gap: 3px; }
+  .beats i { width: 8px; height: 8px; border-radius: 2px; background: #2a2d35; }
+  .beats i.on { background: var(--acc); box-shadow: 0 0 6px var(--acc); }
+  .beats i.on:first-child { background: #fff; box-shadow: 0 0 6px #fff; }
+  .menu { position: relative; }
+  .menu summary { list-style: none; cursor: pointer; font: 600 .9rem "Chakra Petch", sans-serif; padding: .45em .9em; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); }
+  .menu summary::-webkit-details-marker { display: none; }
+  .menu[open] summary { border-color: var(--acc); }
+  .menu .pop { position: absolute; right: 0; top: calc(100% + 4px); display: flex; flex-direction: column; gap: 4px; min-width: 250px; padding: 8px;
+               background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 24px rgba(0,0,0,.5); z-index: 40; }
+  .menu .pop button { text-align: left; }
+  .menu .pop hr { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
   #pos { font: 600 .95rem "Chakra Petch", sans-serif; color: var(--acc); min-width: 11em; }
   #msg { min-height: 1.5em; color: var(--dim); margin: 6px 2px; font-size: .95rem; overflow-wrap: anywhere; }
   #msg.warn { color: var(--acc); }
@@ -44,7 +65,17 @@
   #start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
            background: rgba(14, 15, 18, .86); border-radius: 8px; text-align: center; padding: 1rem; }
   #start[hidden] { display: none; }
-  #start p { max-width: 36em; color: var(--dim); margin: 0; }
+  #start p { max-width: 36em; color: var(--dim); margin: 0; font-size: .85rem; }
+  #start .vibeq { font: 700 1.6rem "Chakra Petch", sans-serif; letter-spacing: .04em; margin: 0 0 4px; }
+  .vibes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: min(900px, 96%); }
+  @media (max-width: 760px) { .vibes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .vibe { padding: 16px 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #1d2026; text-align: center; transition: transform .12s, border-color .12s; }
+  .vibe:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--acc); }
+  .vibe b { display: block; font: 700 1.1rem "Chakra Petch", sans-serif; margin-bottom: 4px; }
+  .vibe span { font-size: .72rem; color: var(--dim); }
+  .vibe[data-vibe="calm"] { border-top: 3px solid var(--pluck); } .vibe[data-vibe="groovy"] { border-top: 3px solid var(--drum); }
+  .vibe[data-vibe="dark"] { border-top: 3px solid var(--pad); } .vibe[data-vibe="peak"] { border-top: 3px solid var(--bass); } .vibe[data-vibe="any"] { border-top: 3px solid var(--acid); }
+  .doors { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
   .lower { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 12px; margin-top: 12px; }
   @media (max-width: 980px) { .lower { grid-template-columns: 1fr; } }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
@@ -76,8 +107,7 @@
   details li { margin: 3px 0; }
   .muted { color: var(--dim); }
   .lbl { font: 600 .72rem "Chakra Petch", sans-serif; color: var(--dim); letter-spacing: .08em; }
-  #top2 { margin-top: 6px; padding: 0 10px; }
-  #top2 select, #top2 input { font-size: .85rem; }
+  #top select, #top input { font-size: .85rem; }
   .views { display: flex; gap: 2px; margin: 0 0 6px; }
   .views button { border-radius: 6px 6px 0 0; border-bottom: 0; padding: .35em 1.2em; color: var(--dim); }
   .views button[aria-selected=true] { background: var(--panel); color: var(--acc); border-color: var(--line); }
@@ -102,8 +132,35 @@
   .lanes6 .ctl { padding: 2px 6px 4px; }
   .lanes6 .ctl .top span:first-child { display: none; }
   /* the desk: a strip a part */
-  #desk { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)) minmax(240px, 1.6fr); gap: 8px; }
-  @media (max-width: 1100px) { #desk { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  #desk { display: flex; flex-direction: column; gap: 10px; }
+  .strips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  @media (max-width: 760px) { .strips { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .strip .mix { display: flex; justify-content: center; align-items: stretch; gap: 8px; margin: 2px 0 0; }
+  .strip .mix .fader { margin: 0; height: 132px; }
+  .strip .meter.v { width: 10px; height: 132px; position: relative; border-radius: 3px; background: repeating-linear-gradient(to top, #22252c 0 5px, #121318 5px 7px); }
+  .strip .meter.v i { position: absolute; left: 0; right: 0; bottom: 0; width: auto; height: 0; transition: height .06s linear;
+                      background: linear-gradient(to top, var(--c) 0 70%, #ffd447 85%, #ff5a5f 100%); background-size: 100% 132px; background-position: bottom;
+                      -webkit-mask: repeating-linear-gradient(to top, #000 0 5px, transparent 5px 7px); mask: repeating-linear-gradient(to top, #000 0 5px, transparent 5px 7px); }
+  .strip .knobs { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 2px; }
+  .strip .lists { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
+  .strip .lists .ctl.list select { font-size: .75rem; }
+  .strips .strip { align-self: start; min-height: 100%; }
+  .strip .ctl.list { padding: 3px 6px 5px; }
+  .strip .ctl.list .top { font-size: .7rem; }
+  .deskbelow { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 10px; align-items: start; }
+  .deskbelow .sec { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; }
+  .deskbelow .sec.wide { grid-column: span 2; }
+  @media (max-width: 640px) { .deskbelow .sec.wide { grid-column: auto; } }
+  .ctls.kn { display: flex; flex-wrap: wrap; gap: 6px 4px; }
+  .knob { background: none; border: 0; padding: 2px 2px 4px; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: ns-resize; }
+  .knob:focus-visible .dial { box-shadow: 0 0 0 2px var(--acc); }
+  .knob .dial { --f: 0; width: 44px; height: 44px; border-radius: 50%; position: relative;
+                    background: conic-gradient(from 225deg, var(--c, var(--acc)) calc(var(--f) * 270deg), #2a2d35 0 270deg, transparent 0); }
+  .knob .dial::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #2e3139, #181a1f 70%); box-shadow: 0 2px 4px rgba(0,0,0,.6); }
+  .knob .dial i { position: absolute; left: calc(50% - 1.5px); top: 8px; width: 3px; height: 12px; border-radius: 2px; background: var(--ink); z-index: 1;
+                      transform-origin: 50% 14px; transform: rotate(calc(-135deg + var(--f) * 270deg)); }
+  .knob .v { font: 700 .78rem "Chakra Petch", sans-serif; max-width: 72px; text-align: center; }
+  .knob .kl { font-size: .68rem; color: var(--dim); text-align: center; line-height: 1.1; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .strip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
   .strip .cap { height: 6px; background: var(--c); }
   .strip h3 { font: 700 1rem "Chakra Petch", sans-serif; letter-spacing: .08em; margin: 6px 8px 2px; display: flex; justify-content: space-between; align-items: center; }
@@ -113,15 +170,68 @@
   .fader i { position: absolute; left: 3px; right: 3px; bottom: 3px; border-radius: 4px; background: var(--c); opacity: .85; }
   .fader b { position: absolute; left: -6px; right: -6px; height: 8px; margin-bottom: -4px; background: var(--ink); border-radius: 2px; }
   .strip .lv { text-align: center; font: 700 1.3rem "Chakra Petch", sans-serif; color: var(--c); }
-  .strip .mute[aria-pressed=true] { background: var(--bass); color: #fff; border-color: var(--bass); }
-  .deskside { display: flex; flex-direction: column; gap: 8px; }
-  .deskside .ctls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .strip .mute[aria-pressed=true] { background: #555a66; color: #fff; border-color: #6a6f7c; text-decoration: line-through; }
+  .strip .solo[aria-pressed=true] { background: var(--ink); color: #0e0f12; border-color: var(--ink); }
+  .strip .ms { display: inline-flex; gap: 3px; }
+  .strip.out .body, .strip.out .cap { opacity: .35; }
   canvas.pic { width: 100%; display: block; border-radius: 6px; margin: 0 0 8px; background: #121318; border: 1px solid var(--line); touch-action: none; }
   .meter { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
   .meter i { display: block; height: 100%; width: 0; background: var(--c); transition: width .06s linear; }
   /* the song: the set list's sixteen places as blocks */
   #song .bar { margin-bottom: 8px; }
-  #songline { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; }
+  #songline { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; touch-action: none; user-select: none; }
+  .partkey { display: flex; gap: 10px; align-items: center; margin-left: 14px; }
+  .partkey i { font: 700 .72rem "Chakra Petch", sans-serif; letter-spacing: .06em; font-style: normal; color: var(--c); display: flex; align-items: center; gap: 4px; }
+  .partkey i::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+  @media (max-width: 700px) { .partkey { display: none; } }
+  .dx7 .dxgrid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 14px; margin-bottom: 8px; }
+  @media (max-width: 900px) { .dx7 .dxgrid { grid-template-columns: minmax(0, 1fr); } }
+  .dx7 canvas { width: 100%; display: block; border-radius: 6px; background: #121318; border: 1px solid var(--line); touch-action: none; }
+  .dxr { display: grid; grid-template-columns: 7.6em minmax(0, 1fr) 3em; align-items: center; gap: 6px; font-size: .8rem; color: var(--dim); margin: 2px 0; }
+  .dxr input[type=range] { width: 100%; accent-color: var(--pluck); }
+  .dxr b { color: var(--ink); text-align: right; font: 600 .8rem "Chakra Petch", sans-serif; }
+  .dxr select { font-size: .8rem; }
+  .dxops { display: flex; gap: 4px; margin: 0 0 6px; flex-wrap: wrap; }
+  .dxops button { position: relative; overflow: hidden; min-width: 3.6em; }
+  .dxops button i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--pluck); }
+  .dxops button.car { border-bottom: 2px solid var(--pluck); }
+  .dx7 details summary { cursor: pointer; color: var(--dim); font: 600 .8rem "Chakra Petch", sans-serif; margin: 8px 0 4px; }
+  .dx7 .dxtwo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 14px; }
+  #fx:not([hidden]) { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: 12px; align-items: start; }
+  @media (max-width: 900px) { #fx:not([hidden]) { grid-template-columns: minmax(0, 1fr); } }
+  .fxbank { margin: 0 0 12px; }
+  .fxkeys { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 5px; }
+  .fxk { position: relative; text-align: left; padding: 7px 8px 6px; min-height: 52px; border-radius: 6px; border: 1px solid var(--line); background: #1d2026; border-top: 3px solid var(--c, #555a66); }
+  .fxk.blk { background: #121318; }
+  .fxk b { display: block; font: 700 .78rem "Chakra Petch", sans-serif; letter-spacing: .03em; }
+  .fxk span { font-size: .65rem; color: var(--dim); }
+  .fxk[aria-pressed=true] { background: var(--acc); color: #0e0f12; border-color: var(--acc); box-shadow: 0 0 10px rgba(255,176,0,.45); }
+  .fxk[aria-pressed=true] span { color: #3a2a00; }
+  .fxk.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .fxk.hold::after { content: "HOLD"; position: absolute; right: 5px; top: 4px; font: 700 .55rem "Chakra Petch", sans-serif; color: var(--dim); }
+  .fxk[aria-pressed=true].hold::after { color: #3a2a00; }
+  .fxside .sec { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; }
+  .fxkn { cursor: ns-resize; }
+  .fadebar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--dim); font-size: .85rem; }
+  .strip .fade { width: 100%; position: relative; overflow: hidden; margin-top: 2px; }
+  .strip .fade i { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,176,0,.35); width: 0; }
+  .shapes { display: flex; gap: 3px; flex-wrap: wrap; }
+  .shapes button { padding: 3px 5px; line-height: 0; }
+  .shapes svg { width: 30px; height: 16px; }
+  .shapes button[aria-pressed=true] svg path { stroke: #0e0f12; }
+  .sec h3 .dice { float: right; padding: 0 .45em; font-size: .85rem; line-height: 1.4; }
+  .knob.locked::after { content: "🔒"; font-size: .6rem; position: absolute; margin: -2px 0 0 34px; }
+  .knob { position: relative; }
+  .knob.eleven .v { color: #ff5a5f; text-shadow: 0 0 8px rgba(255, 90, 95, .8); font-size: .95rem; }
+  .knob.eleven .dial { box-shadow: 0 0 14px rgba(255, 90, 95, .55); border-radius: 50%; }
+  .vibecard { border-color: var(--acc) !important; }
+  .vibecard .knob { width: 104px; }
+  .vibecard .knob .dial { width: 54px; height: 54px; }
+  .vibecard .knob .dial i { transform-origin: 50% 19px; height: 15px; }
+  #imp { width: 34px; height: 44px; image-rendering: pixelated; cursor: pointer; flex: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .chip { border-left: 3px solid var(--c, var(--line)) !important; cursor: grab; }
+  .chip:active { cursor: grabbing; }
   .places { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
   @media (max-width: 900px) { .places { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   .place { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 8px; min-height: 108px; cursor: pointer; position: relative; }
@@ -139,34 +249,38 @@
 <main>
   <header class="site"><a class="home" href="../">PERF-1</a><nav><a href="../emu/">Emulator</a><a href="../install/">Install</a><a href="../editor/">Editor</a><a href="./" aria-current="page">Studio</a><a href="../pieces/">Library &amp; pieces</a><a href="../manual/">Manual</a></nav></header>
   <div class="bar" id="top">
+    <canvas id="imp" width="23" height="30" title="The imp (the FM-1's). Click him."></canvas>
     <select id="genre" aria-label="Genre"></select>
     <select id="piece" aria-label="Piece"></select>
     <button id="open">Open</button>
-    <button id="play" class="go" disabled>▶ Play / stop</button>
+    <span class="tsep"></span>
+    <button id="play" class="go" disabled title="Play / stop (Space)">▶ Play</button>
+    <span class="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     <span id="pos">off</span>
-    <span class="sp"></span>
-    <button id="load">Open a .piece or code</button>
-    <input type="file" id="file" accept=".piece" hidden>
-    <button id="midi" title="A MIDI file into the piece: drums to the patterns, the bass to its steps, a line to the acid or the pluck, the chords to the progression">MIDI file</button>
-    <input type="file" id="mfile" accept=".mid,.midi,.MID,audio/midi" hidden>
-    <button id="undo" hidden>Undo the import</button>
-    <!-- TRACK CODES (0.17.11, ui.c code_pack / code_unpack / ui_code_play): nine letters packing a track's genre, piece (its recipe), key, mode,
-         tempo and seed; the emulator starts one exactly as the FM-1's Code page does (amb_web.c web_st_code_play), the same notes. -->
-    <button id="tcode" title="Open a track code (the nine letters on the FM-1's Code page): the same track, the same notes">Track code</button>
-    <span id="tc" class="tag dice" title="The code of the track playing" hidden></span>
-    <button id="save" disabled>Download .piece</button>
-    <button id="code" disabled>Copy code</button>
-    <button id="send" disabled title="Opens the Library &amp; pieces page with this piece, to add it to your FM-1 over USB">Send to the FM-1</button>
-  </div>
-  <div class="bar" id="top2">
-    <span class="lbl">TEMPO</span><input type="number" id="qTempo" min="70" max="190" style="width:4.6em" aria-label="Tempo" disabled>
+    <span class="tsep"></span>
+    <span class="lbl">BPM</span><input type="number" id="qTempo" min="70" max="190" style="width:4.4em" aria-label="Tempo" disabled>
     <span class="lbl">KEY</span><select id="qRoot" aria-label="Root" disabled></select><select id="qMode" aria-label="Mode" disabled></select>
+    <span id="tc" class="tag dice" title="The code of the track playing: the same nine letters play the same track" hidden></span>
     <span class="sp"></span>
-    <button id="roll" disabled title="A new take: the engine plays its own parts anew (the dice lanes), the piece as it is">⟳ New take</button>
+    <button id="undo" hidden>Undo the import</button>
+    <button id="roll" disabled title="A new take: the engine plays its own parts anew (the DICE lanes), the piece as it is">⟳ New take</button>
     <button id="mine" disabled title="Keep what the engine plays now: its bass, acid and pluck lines and the chords it walked become the piece's own">Make it mine</button>
-    <button id="saveEmu" disabled title="Save the piece into its genre's bank in the emulator (as SAVE on the FM-1): it is kept in this browser, plays as saved in the set, and the Library &amp; pieces page can send it">Save in the emulator</button>
-    <button id="undoB" disabled title="Undo (Ctrl+Z)">↶ Undo</button>
-    <button id="redoB" disabled title="Redo (Ctrl+Shift+Z)">↷ Redo</button>
+    <button id="saveEmu" disabled title="Save the piece into its genre's bank (as SAVE on the FM-1): kept in this browser, played as saved in the song, sent with it">Save</button>
+    <button id="undoB" disabled title="Undo (Ctrl+Z)">↶</button>
+    <button id="redoB" disabled title="Redo (Ctrl+Shift+Z)">↷</button>
+    <details class="menu" id="fileMenu"><summary>File ▾</summary><div class="pop">
+      <!-- TRACK CODES (0.17.11, ui.c code_pack / code_unpack / ui_code_play): nine letters packing a track's genre, piece (its recipe), key, mode,
+           tempo and seed; the emulator starts one exactly as the FM-1's Code page does (amb_web.c web_st_code_play), the same notes. -->
+      <button id="load">Open a .piece or piece code…</button>
+      <button id="tcode" title="Open a track code (the nine letters on the FM-1's Code page): the same track, the same notes">Open a track code…</button>
+      <button id="midi" title="A MIDI file into the piece: drums to the patterns, the bass to its steps, a line to the acid or the pluck, the chords to the progression">Import a MIDI file…</button>
+      <hr>
+      <button id="save" disabled>Download the piece (.piece)</button>
+      <button id="code" disabled>Copy the piece code</button>
+      <button id="send" disabled title="Opens the Library &amp; pieces page with this piece, to add it to your FM-1 over USB">Send the piece to the FM-1</button>
+    </div></details>
+    <input type="file" id="file" accept=".piece" hidden>
+    <input type="file" id="mfile" accept=".mid,.midi,.MID,audio/midi" hidden>
   </div>
   <div id="msg"></div>
   <section class="card" id="imp" hidden>
@@ -182,14 +296,24 @@
     <p id="impreport"></p>
     <div class="bar"><button id="impgo" class="go">Put it in the piece</button><button id="impcancel">Cancel</button></div>
   </section>
-  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button><button role="tab" data-view="song" aria-selected="false">SONG</button><span class="sp" style="flex:1"></span><span class="lbl" style="align-self:center">SHOW&nbsp;</span><select id="zoom" aria-label="How many bars the Loom shows"><option value="0">every bar</option><option value="8">8 bars</option><option value="4">4 bars</option><option value="2">2 bars</option></select></div>
+  <div class="views" role="tablist"><button role="tab" data-view="loom" aria-selected="true">LOOM</button><button role="tab" data-view="desk" aria-selected="false">DESK</button><button role="tab" data-view="song" aria-selected="false">SONG</button><button role="tab" data-view="fx" aria-selected="false">FX</button><span class="partkey" aria-label="The parts' colours, the same in every view"><i style="--c:var(--pad)">PAD</i><i style="--c:var(--bass)">BASS</i><i style="--c:var(--acid)">ACID</i><i style="--c:var(--pluck)">PLUCK</i><i style="--c:var(--drum)">DRUMS</i></span><span class="sp" style="flex:1"></span><span class="lbl" style="align-self:center">SHOW&nbsp;</span><select id="zoom" aria-label="How many bars the Loom shows"><option value="0">every bar</option><option value="8">8 bars</option><option value="4">4 bars</option><option value="2">2 bars</option></select></div>
   <section class="loomwrap">
     <canvas id="loom" height="560" aria-label="The Loom: every lane of the piece over its bars"></canvas>
     <div id="desk" hidden></div>
     <div id="song" hidden></div>
+    <div id="fx" hidden></div>
     <canvas id="scope" height="64" aria-label="What comes out: the waveform and the spectrum"></canvas>
     <div id="start">
-      <button id="power" class="go">Switch on</button>
+      <h2 class="vibeq">What do you feel like?</h2>
+      <div class="vibes">
+        <button class="vibe" data-vibe="calm"><b>Calm</b><span>lofi · trip-hop · amapiano · dub</span></button>
+        <button class="vibe" data-vibe="groovy"><b>Groovy</b><span>house · disco · funk · garage</span></button>
+        <button class="vibe" data-vibe="dark"><b>Dark</b><span>hypno · industrial · dark forest · electro</span></button>
+        <button class="vibe" data-vibe="peak"><b>Peak time</b><span>dnb · psytrance · dubstep · breaks</span></button>
+        <button class="vibe" data-vibe="any"><b>Surprise me</b><span>any of the nineteen</span></button>
+      </div>
+      <div class="doors"><span class="lbl">THEN</span><button class="door" data-door="jam" aria-pressed="true">Jam</button><button class="door" data-door="song" aria-pressed="false">Make a song</button><button class="door" data-door="sound" aria-pressed="false">Shape a sound</button>
+        <span class="muted">or</span><button id="power">Just switch on</button></div>
       <p>The studio reads and plays pieces through the emulator (the whole PERF-1 firmware, in this browser). It keeps its pieces where the Emulator page does, so a piece saved there is here too. Nothing reaches your FM-1 until you send it from the Library &amp; pieces page.</p>
     </div>
   </section>
@@ -384,16 +508,17 @@ function press(bit) {                                        // a panel button, 
   setTimeout(() => node.port.postMessage({ type: "buttons", mask: 0 }), 90);
 }
 const BTN_PLAY = 10;
-async function openPiece(g, i) {
-  const r = await ask({ type: "st_open", genre: g, piece: i });
+async function openPiece(g, i, place) {                     // (place: the set list's place, as the unit's PRESETS knob with the song on: its parts too)
+  const r = await ask(place === undefined ? { type: "st_open", genre: g, piece: i } : { type: "st_go", place });
   if (!r.ok) { say("The emulator is busy writing; try again.", true); return; }
   cur = { genre: g, piece: i };
   io = new Uint8Array(r.io);
+  dxv = null;                                                 // (the DX7 editor reads the new piece's pluck voice when it is next shown)
   resetHistory();
   $("genre").value = g; fillPieces(); $("piece").value = i;
   ["save", "code"].forEach((id) => { $(id).disabled = false; });
   undoReset(); soundRender(); deskRender();
-  say("Opened " + S.genreName(g) + " " + S.pieceName(g, i) + ". Click a lane to edit it; it plays as you change it.");
+  if (place === undefined) say("Opened " + S.genreName(g) + " " + S.pieceName(g, i) + ". Click a lane to edit it; it plays as you change it.");
   refresh();
   if (typeof codeNow === "function") setTimeout(codeNow, 300);
 }
@@ -412,14 +537,14 @@ function parseLive(b) {
            bsHist: sl(16, 16), bsPos: s8(b[32]), acLen: b[33] || 16, acPos: b[34], acGate: u16(35), acAcc: u16(37), acSlide: u16(39),
            acOff: sl(41, 16), acOct: sl(57, 16), cmRung: sl(73, 16), cmLvl: sl(89, 16), cmPos: b[105], laneSrc: sl(106, 6), playing: b[112],
            genre: b[113], piece: b[114], chordN: b[115], lanePos: sl(116, 6), pool: u16(122), root: b[124], blMode: b[125],
-           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0, slPos: b.length > 136 ? b[135] : 255, slBar: b.length > 136 ? b[136] : 255 };
+           lv: b.length > 134 ? sl(128, 5) : [0, 0, 0, 0, 0], gr: b[133] || 0, peak: b[134] || 0, slPos: b.length > 136 ? b[135] : 255, slBar: b.length > 136 ? b[136] : 255, trk: b.length > 137 ? b[137] : 0, rest: b.length > 138 ? b[138] : 0, padf: b.length > 139 ? b[139] : 1 };
 }
 let hist = {}, slotT = 0, slotNow = -2, lastBar = -1;
 function resetHistory() { hist = {}; slotT = 0; slotNow = -2; lastBar = -1; }
 let loomPos = -1;                                            // the playhead: a loom bar and its fraction
 function onLive(b) {
   live = parseLive(b);
-  document.querySelectorAll("#desk .meter[data-k]").forEach((m) => { m.firstChild.style.width = Math.min(100, Math.sqrt(live.lv[+m.dataset.k] / 255) * 130) + "%"; });
+  document.querySelectorAll("#desk .meter[data-k]").forEach((m) => { m.firstChild.style[m.classList.contains("v") ? "height" : "width"] = Math.min(100, Math.sqrt(live.lv[+m.dataset.k] / 255) * 130) + "%"; });
   if (!io) return;
   const tl = timeline(), nb = loomBars(tl), bar = Math.floor(live.t / 16), frac = (live.t % 16) / 16;
   let lb;
@@ -577,6 +702,18 @@ function drawLoom() {
     else if (L.id === "drums") drawDrumLane(g, L, nb, X, SW);
     else drawLineLane(g, L, laneNotes(L.id, nb, tl).filter((n) => n.b >= w0 - 1 && n.b <= w0 + vis), X, SW);
     g.restore();
+  }
+  const outM = live ? live.trk || 0 : 0, restM = live && live.playing ? live.rest || 0 : 0;
+  for (const L of layout) {                                   // a lane that is out now: greyed, said so (resting: the arrangement's, lighter, back by itself)
+    const m = LANE_TRK[L.id];
+    if (!m) continue;
+    if ((outM & m) === m) {
+      g.fillStyle = "rgba(14,15,18,.62)"; g.fillRect(LX, L.top, RX - LX, L.h); g.fillRect(0, L.top, LX - 2, L.h);
+      g.fillStyle = "#8b8e98"; g.font = FONT(700, 11); g.fillText("MUTED", LX + 8, L.top + Math.min(L.h - 6, 18));
+    } else if ((restM & m) === m) {
+      g.fillStyle = "rgba(14,15,18,.35)"; g.fillRect(LX, L.top, RX - LX, L.h);
+      g.fillStyle = "#8b8e98"; g.font = FONT(700, 11); g.fillText("RESTING (THE ARRANGEMENT)", LX + 8, L.top + Math.min(L.h - 6, 18));
+    }
   }
   if (loomPos >= w0 && loomPos < w0 + vis) {                // the playhead
     const x = X(loomPos, 0);
@@ -998,10 +1135,82 @@ $("open").addEventListener("click", async () => {
   await openPiece(cur.genre, cur.piece);
 });
 $("power").addEventListener("click", switchOn);
-$("play").addEventListener("click", () => node && press(BTN_PLAY));
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space" && node && !/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); press(BTN_PLAY); }
+/* the imp: the FM-1's mascot (ui.c MASCOT, draw_mascot, mascot_step): a hop on the beat (the head lags, the coils part as he rises, a squash on
+ * landing), a squash on the backbeat, a bigger jump at the top of each eight bars; asleep (eyes shut) when the music stops. Click him. */
+const IMP = ["..K............K.......", ".KHK..........KHK......", "..KHK........KHK.......", "..KhK.KKKKKK.KhK.......", "...KhKRRRRRRKhK........", "..KRLLRRRRRRRRRK.......",
+  ".KRLRKKRRRRKKRRRK......", ".KRRRYYRRRRYYRRRK......", ".KRRRKRRRRRRKRRRK......", ".KrrrKHKKKKHKrrrK...K..", "..KKKKKKKKKKKKKK...KRK.", "..KRLLRKKKKrrrrK..KRLRK",
+  "..KrrrrRLRRKKKK...KKKKK", "...KKKKrrrrRRRRK....T..", "..KRLLRKKKKrrrrK....T..", "..KrrrrRLRRKKKK.....T..", "...KKKKrrrrRRRRK...T...", "..KRLLRKKKKrrrrK..T....",
+  "..KrrrrRLRRKKKK...T....", "...KKKKrrrrRRRRKTT.....", "..KRLLRKKKKrrrrK.......", "..KrrrrRLRRKKKKK.......", "...KKKKKKKKKKKK........"];
+const IMP_COL = { K: "#8b8e98", T: "#8b8e98", H: "#f2e6c4", h: "#c4ad7e", Y: "#ffd447", R: "#e0344f", r: "#9c1d3a", L: "#ff8f8f" };
+const imp = { dh: 0, dhv: 0, lift: 0, lv: 0, t: 0, step: -1 };
+function impHop(big) { if (imp.lift <= 0) { imp.lv = big ? 52 : 36; imp.lift = 0.01; imp.dhv -= big ? 40 : 32; } }
+function impTick() {
+  const now = performance.now(), dt = Math.min(0.1, (now - (imp.t || now)) / 1000); imp.t = now;
+  const play = !!(live && live.playing), step = play ? live.step | 0 : -1;
+  if (play && step !== imp.step) {
+    const drums = live.lv ? (live.lv[4] || 0) > 10 : true;
+    if (step % 4 === 0 && drums) impHop(step === 0 && Math.floor((live.t || 0) / 16) % 8 === 0);
+    if (step % 8 === 4 && drums && imp.lift <= 0) imp.dhv -= 55;
+  }
+  imp.step = step;
+  if (!play) { imp.lift = imp.lv = 0; }
+  for (let k = 0; k < 4; k++) {
+    const h = dt * 0.25;
+    if (imp.lift > 0 || imp.lv > 0) { imp.lv -= 200 * h; imp.lift += imp.lv * h; if (imp.lift <= 0 && imp.lv < 0) { imp.dhv += imp.lv * 2.3; imp.lift = 0; imp.lv = 0; } }
+    const tg = imp.lift > 0 ? Math.abs(imp.lv) * 0.11 : 0;
+    imp.dhv += (-300 * (imp.dh - tg) - 10 * imp.dhv) * h; imp.dh += imp.dhv * h;
+  }
+  imp.dh = Math.max(-3, Math.min(4, imp.dh)); imp.lift = Math.max(0, Math.min(3, imp.lift));
+  const cv = $("imp"); if (!cv) return;
+  const g = cv.getContext("2d"); g.clearRect(0, 0, 23, 30);
+  for (let r = 0; r < 23; r++) {
+    const grp = r <= 10 ? 0 : Math.floor((r - 8) / 3), dy0 = Math.round(imp.lift + imp.dh * (4 - grp) * 0.25);
+    for (let c = 0; c < 23; c++) {
+      let ch = IMP[r][c]; if (ch === ".") continue;
+      if (ch === "Y" && !play) ch = "K";                       // (asleep)
+      const dy = grp > 0 && c < 16 ? Math.round(imp.lift + imp.dh * ((4 - grp) - Math.max(0, Math.min(1, (c - 2) / 13))) * 0.25) : dy0;
+      g.fillStyle = IMP_COL[ch]; g.fillRect(c, r - dy + 6, 1, 1);
+    }
+  }
+}
+setInterval(impTick, 33);
+const IMP_SAYS = ["These go to eleven.", "Imp approved.", "Louder. No, the other louder.", "Turn it up, it's a groovebox not a library.", "I live in the FM-1. Rent is one coil a month.",
+  "Hold a key in FX for a moment of chaos.", "Right-click a knob: I'll guard it 🔒.", "Every nine letters is a whole track. Write them down."];
+$("imp").addEventListener("click", () => { imp.lift = 0; impHop(true); say("👹 " + IMP_SAYS[Math.floor(Math.random() * IMP_SAYS.length)]); });
+const VIBE_GENRES = { calm: ["LOFI", "TRIPHOP", "AMAPI", "DUB", "REGGAE"], groovy: ["HOUSE", "DISCO", "FUNK", "GARAGE"], dark: ["HYPNO", "INDUS", "FOREST", "ELECTRO", "SYNTHWV"],
+  peak: ["DNB", "PSY", "DUBSTEP", "BREAKS", "TRAP"] };
+let startDoor = "jam";
+$("start").addEventListener("click", async (e) => {
+  const d = e.target.closest(".door");
+  if (d) { startDoor = d.dataset.door; document.querySelectorAll("#start .door").forEach((x) => x.setAttribute("aria-pressed", String(x === d))); return; }
+  const v = e.target.closest(".vibe");
+  if (!v || node) return;
+  const names = v.dataset.vibe === "any" ? N.genres : VIBE_GENRES[v.dataset.vibe], pool = N.genres.map((n, g) => (names.includes(n) ? g : -1)).filter((g) => g >= 0);
+  const g = pool[Math.floor(Math.random() * pool.length)], np = (N.pieces[g] || []).length || 10;
+  cur = { genre: g, piece: Math.floor(Math.random() * np) };
+  document.querySelectorAll("#start .vibe").forEach((x) => { x.disabled = true; });
+  await switchOn();
+  if (startDoor === "song") document.querySelector('.views button[data-view="song"]').click();
+  if (startDoor === "sound") { sel = "pluck"; document.querySelector('.edhead .views button[data-pane="sound"]').click(); document.querySelector("section.lower").scrollIntoView({ behavior: "smooth" }); }
+  say(v.querySelector("b").textContent + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + "." + (startDoor === "jam" ? " Tap New take for another, or click a lane to change it." :
+    startDoor === "song" ? " Drag pieces onto the song, then ▶ Play the song." : " Turn the VIBE knobs, or roll the dice on a card."));
 });
+$("play").addEventListener("click", () => node && press(BTN_PLAY));
+$("fileMenu").addEventListener("click", (e) => { if (e.target.closest(".pop button")) $("fileMenu").open = false; });
+document.addEventListener("click", (e) => { if ($("fileMenu").open && !e.target.closest("#fileMenu")) $("fileMenu").open = false; });
+setInterval(() => {                                           // the beat: four lights, the bar's first white; the Play button's word
+  const on = live && live.playing, q = on ? Math.floor((live.step || 0) / 4) : -1;
+  document.querySelectorAll("#top .beats i").forEach((el, k) => el.classList.toggle("on", k === q));
+  const t = on ? "■ Stop" : "▶ Play";
+  if ($("play").textContent !== t) $("play").textContent = t;
+}, 40);
+document.addEventListener("keydown", (e) => {                // Space: play and stop (in SONG: the song from its first place; a recording: stop it)
+  if (e.code !== "Space" || !node || e.repeat || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
+  e.preventDefault();
+  if (rec) return rec.stop();
+  if (view === "song" && song && song.places.some((x) => x)) songPlay(-1); else press(BTN_PLAY);
+});
+document.addEventListener("keyup", (e) => { if (e.code === "Space" && document.activeElement.tagName === "BUTTON") e.preventDefault(); });   // (not the focused button's click)
 
 /* ---- a piece as a file or a code (fm1piece.js): out, and in (to its genre and place, put into play) */
 function pieceOut() {
@@ -1193,13 +1402,14 @@ function undoNote() {                                         // (called after a
   if (undoBase && now - undoT > 700) { undoStack.push(undoBase); if (undoStack.length > 200) undoStack.shift(); redoStack = []; }
   undoT = now; undoBase = io.slice(); undoButtons();
 }
-function undoButtons() { $("undoB").disabled = !undoStack.length; $("redoB").disabled = !redoStack.length; }
+function undoButtons() { const sg = view === "song" && song; $("undoB").disabled = !(sg ? songUndo : undoStack).length; $("redoB").disabled = !(sg ? songRedo : redoStack).length; }
 function undoGo(from, to) {
   if (!from.length || !io) return;
   to.push(io.slice()); io = from.pop(); undoBase = io.slice(); undoT = 0;
   changed(true); undoButtons(); soundRender(); deskRender();
 }
-const undo = () => undoGo(undoStack, redoStack), redo = () => undoGo(redoStack, undoStack);
+const undo = () => (view === "song" && song ? songHist(songUndo, songRedo, "Undone") : undoGo(undoStack, redoStack));
+const redo = () => (view === "song" && song ? songHist(songRedo, songUndo, "Redone") : undoGo(redoStack, undoStack));
 $("undoB").addEventListener("click", undo);
 $("redoB").addEventListener("click", redo);
 document.addEventListener("keydown", (e) => {
@@ -1210,7 +1420,7 @@ document.addEventListener("keydown", (e) => {
 
 /* ======================================================================== controls: a setting as the unit's knob (a bar to drag, a list of names) */
 const FT = ["Low-pass", "High-pass", "Band-pass", "Notch", "Peak"];
-const FXMETA = [{ n: "Pad filter", min: 0, max: 4, def: 0, t: FT }, { n: "Bass filter", min: 0, max: 4, def: 0, t: FT }, { n: "Acid filter", min: 0, max: 4, def: 0, t: FT },
+const FXMETA = [{ n: "Pad filter", min: 0, max: 4, def: 0, t: FT }, { n: "Bass filter", min: 0, max: 4, def: 0, t: FT }, { n: "Acid filter", min: 0, max: 5, def: 0, t: [...FT, "303"] },   // (0.17.17: the acid's sixth, the 303 ladder)
                 { n: "Drive", min: 0, max: 100, def: 0 }, { n: "Scream", min: 0, max: 100, def: 0 }, { n: "Wow", min: 0, max: 100, def: 0 }, { n: "Target", min: 0, max: 2, def: 0, t: ["Acid", "Bass", "Both"] }];
 const meta = (p) => (p >= 0 ? P[p] : FXMETA[-p - 1]);       // a setting, or (negative) one of the FILTERS and SCREAM pages' seven (the piece's extras)
 const parV = (p) => (p >= 0 ? P[p].min + io[REC_PAR + p] : io[IO_FX - p - 1]);
@@ -1222,6 +1432,17 @@ const parSetV = (p, v) => {
 };
 const valText = (p, v) => (meta(p).t ? (meta(p).t[v - meta(p).min] ?? String(v)) : String(v));
 const shortLabel = (l) => String(l).replace(/\s*\(.*\)\s*$/, "");
+const ELEVEN = new Set([46, 130, -4, -5]);                    // Drive, the master's Make-up, SCREAM's Drive and Scream: "these go to eleven"
+const isList = (p) => { const q = meta(p); return !!(q && q.t && q.t.length > 2); };
+function knobHTML(p, label, col, force) {                    // (a list stays a list unless forced; an LFO's shape is its pictures)
+  const q = meta(p);
+  if (!q) return "";
+  if (p === PE.P_PL_SHAPE || p === PE.P_DL_SHAPE) return shapeHTML(p, col || COL.acc);
+  if (q.t && q.t.length > 2 && !force) return ctlHTML(p, label, col);
+  const lab = shortLabel(label || q.n).replace(/[<&]/g, "");
+  return '<div class="ctl knob" tabindex="0" role="slider" aria-label="' + lab + '" aria-valuemin="' + q.min + '" aria-valuemax="' + q.max + '" data-p="' + p + '" style="--c:' + (col || COL.acc) +
+    '" title="' + lab + ': drag up or down (Shift: finer), the wheel, the arrow keys; double-click: its default"><div class="dial"><i></i></div><span class="v"></span><span class="kl">' + lab + "</span></div>";
+}
 function ctlHTML(p, label, col) {
   const q = meta(p);
   if (!q) return "";
@@ -1238,24 +1459,38 @@ function syncCtls() {                                         // every control o
     const p = +el.dataset.p, v = parV(p), q = meta(p);
     if (el.classList.contains("list")) { const sl = el.querySelector("select"); if (document.activeElement !== sl && +sl.value !== v) sl.value = v; return; }
     el.querySelector(".v").textContent = valText(p, v);
-    el.querySelector("i").style.width = (100 * (v - q.min) / Math.max(1, q.max - q.min)) + "%";
+    if (el.classList.contains("knob")) {
+      el.querySelector(".dial").style.setProperty("--f", (v - q.min) / Math.max(1, q.max - q.min));
+      const to11 = ELEVEN.has(p) && v >= q.max;                // (these go to eleven)
+      el.classList.toggle("eleven", to11); if (to11) el.querySelector(".v").textContent = "11";
+      el.classList.toggle("locked", locks.has(p));
+    }
+    else el.querySelector("i").style.width = (100 * (v - q.min) / Math.max(1, q.max - q.min)) + "%";
     el.setAttribute("aria-valuenow", v);
   });
   document.querySelectorAll(".fader[data-p]").forEach((el) => {
-    const p = +el.dataset.p, q = meta(p), f = (parV(p) - q.min) / Math.max(1, q.max - q.min);
+    const p = +el.dataset.p, q = meta(p), pv = fadeV[p] !== undefined ? fadeV[p] : parV(p), f = (pv - q.min) / Math.max(1, q.max - q.min);
     el.querySelector("i").style.height = "calc(" + (f * 100) + "% - 6px)"; el.querySelector("b").style.bottom = (f * 100) + "%";
     el.setAttribute("aria-valuenow", parV(p));
-    const lv = el.parentElement.querySelector(".lv"); if (lv) lv.textContent = parV(p);
+    const lv = el.closest(".strip") ? el.closest(".strip").querySelector(".lv") : el.parentElement.querySelector(".lv"); if (lv) lv.textContent = pv;
   });
   document.querySelectorAll(".mute[data-p]").forEach((b) => b.setAttribute("aria-pressed", String(parV(+b.dataset.p) === 0)));
+  document.querySelectorAll("[data-shape]").forEach((el) => { const p = +el.dataset.shape, v = parV(p); el.querySelector(".v").textContent = valText(p, v); el.querySelectorAll("button[data-shp]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.v === v))); });
 }
-function setFromCtl(p, v) { if (io && parSetV(p, v)) changed(); }
+function setFromCtl(p, v) { if (io && parSetV(p, v)) (p >= 0 ? changedPar(p) : changed()); }
+const parSend = new Map();
+let parTimer = 0;
+function changedPar(p) {                                      // (the piece's copy here has it; the engine gets that one setting; SAVE stores it as the unit's does)
+  undoNote(); refresh();
+  parSend.set(p, parV(p));
+  if (!parTimer) parTimer = setTimeout(() => { parTimer = 0; if (node) for (const [q, v] of parSend) node.port.postMessage({ type: "st_par", p: q, v, id: ++reqId }); parSend.clear(); }, 15);
+}
 let drag = null;
 document.addEventListener("pointerdown", (e) => {
   const el = e.target.closest(".ctl:not(.list), .fader");
   if (!el || !io) return;
   const p = +el.dataset.p, r = el.getBoundingClientRect();
-  drag = { el, p, x: e.clientX, y: e.clientY, v0: parV(p), moved: false, fader: el.classList.contains("fader"), r };
+  drag = { el, p, x: e.clientX, y: e.clientY, v0: parV(p), moved: false, fader: el.classList.contains("fader"), knob: el.classList.contains("knob"), r };
   el.setPointerCapture(e.pointerId); el.focus(); e.preventDefault();
   if (drag.fader) setFromCtl(p, meta(p).min + (r.bottom - e.clientY) / r.height * (meta(p).max - meta(p).min));
 });
@@ -1263,9 +1498,9 @@ document.addEventListener("pointermove", (e) => {
   if (!drag) return;
   const q = meta(drag.p), range = q.max - q.min;
   if (drag.fader) { setFromCtl(drag.p, q.min + (drag.r.bottom - e.clientY) / drag.r.height * range); return; }
-  const dx = e.clientX - drag.x;
+  const dx = drag.knob ? drag.y - e.clientY : e.clientX - drag.x;   // (a knob: up turns it up, 150 px the whole way)
   if (Math.abs(dx) > 2) drag.moved = true;
-  if (drag.moved) setFromCtl(drag.p, drag.v0 + dx / Math.max(80, drag.r.width) * range * (e.shiftKey ? 0.2 : 1));
+  if (drag.moved) setFromCtl(drag.p, drag.v0 + dx / (drag.knob ? 150 : Math.max(80, drag.r.width)) * range * (e.shiftKey ? 0.2 : 1));
 });
 document.addEventListener("pointerup", () => {
   if (drag && !drag.moved && !drag.fader) { const q = meta(drag.p); if (q.max - q.min === 1) setFromCtl(drag.p, parV(drag.p) ? q.min : q.max); }   // a switch: a click turns it over
@@ -1294,22 +1529,663 @@ document.addEventListener("change", (e) => {
 
 /* ---- the SOUND pane: the lane's own page on the FM-1, every knob (params.json's tabs: the unit's pages, as ui.c has them) */
 const LANE_TAB = { chords: "Pad", pad: "Pad", bass: "Bass", acid: "Acid", pluck: "Pluck", drums: "Drums" };
+let padfShown = 1;
+setInterval(() => { if (pane === "sound" && (sel === "pad" || sel === "chords") && live && live.padf !== padfShown) soundRender(); }, 400);   // (the pad's sound changed: filter or none)
 function soundRender() {
   if (pane !== "sound") return;
   const tab = D.tabs.find((t) => t.name === LANE_TAB[sel]), col = (LANES.find((l) => l.id === sel) || {}).col;
   if (!tab || !io) { $("sound").innerHTML = ""; return; }
   const plain = tab.sections.filter((x) => !/ lane$/.test(x.name)), lanes = tab.sections.filter((x) => / lane$/.test(x.name));
-  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + picFor(tab.name, x, col) + '<div class="ctls">' + x.knobs.map((k) => ctlHTML(k.p, k.label, col)).join("") + "</div></div>").join("");
+  const lfoRate = tab.name === "Pad" ? PE.P_PL_RATE : tab.name === "Bass" ? PE.P_DL_RATE : undefined;   // (its rate lives on the Mixer's page: here too)
+  let h = plain.map((x) => '<div class="sec"><h3>' + shortLabel(x.name) + diceBtn(x.knobs.map((k) => k.p)) + "</h3>" + picFor(tab.name, x, col) + '<div class="ctls kn">' + x.knobs.map((k) => knobHTML(k.p, k.label, col)).join("") +
+    (x.name === "LFO" && lfoRate !== undefined ? knobHTML(lfoRate, "Rate", col, true) : "") + "</div></div>").join("");
   if (lanes.length) {                                         // the drums' six lanes: a row each
     const kp = (x, re) => (x.knobs.find((k) => re.test(k.label)) || {}).p;
     h += '<div class="sec"><h3>Each lane</h3>' + picHTML("kit", lanes.flatMap((x) => [kp(x, /^Level/), kp(x, /^Tune/), kp(x, /^Decay/)]), col, 130) + '<table class="lanes6"><tr><th></th>' + lanes[0].knobs.map((k) => "<th>" + shortLabel(k.label).replace("Probability", "Chance").replace("Length", "Steps") + "</th>").join("") + "</tr>" +
       lanes.map((x) => "<tr><th>" + x.name.replace(/ lane$/, "").toUpperCase() + "</th>" + x.knobs.map((k) => "<td>" + ctlHTML(k.p, k.label, col) + "</td>").join("") + "</tr>").join("") + "</table></div>";
   }
   const fx = { pad: [-1], chords: [-1], bass: [-2, -4, -5, -6, -7], acid: [-3, -4, -5, -6, -7] }[sel];
-  if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3><div class="ctls">' + fx.map((p) => ctlHTML(p, null, col)).join("") + "</div></div>";
-  $("sound").innerHTML = h + '<p class="muted">Drag a control (Shift: finer), turn the mouse wheel over it, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
+  const noPadFilt = fx && fx[0] === -1 && live && live.padf === 0;   // (0.17.18: the pad's filter is on its saw sounds only)
+  padfShown = live ? live.padf : 1;
+  if (fx) h += '<div class="sec"><h3>FILTERS' + (fx.length > 1 ? " and SCREAM" : "") + ' (the FX menu&#39;s pages, kept with the piece)</h3>' +
+    (noPadFilt ? '<p class="muted" style="margin:0 0 6px;font-size:.8rem">NO FILTER on this pad sound: its filter is on the saw sounds (Strings, Dub, Trance, Poly, Rave, Brass, Fat, Pluck). The setting is kept for when you pick one.</p>' : "") +
+    '<div class="ctls kn"' + (noPadFilt ? ' style="opacity:.4"' : "") + ">" + fx.map((p) => knobHTML(p, null, col)).join("") + "</div></div>";
+  if (sel === "pluck") h += dxHTML();
+  h = vibeHTML(col) + h;
+  $("sound").innerHTML = h + '<p class="muted">Drag a knob up or down (Shift: finer), drag the handles on the pictures, turn the mouse wheel over a knob, or use the arrow keys; double-click: its default. Every setting here is the FM-1&#39;s own and stored with the piece.</p>';
   syncCtls(); drawPics();
+  if (sel === "pluck") dxMount();
 }
+/* ======================================================================== the DX7 voice: the pluck's six-operator FM sound, edited as it plays
+ * (the Editor page's voice editor, moved in). The built-in DX sounds are the start; an edit goes into one of the player's 16 voice slots (as the FM-1
+ * takes a voice over SysEx), the pluck set to play it, kept in the emulator's flash (this browser) and sent with the piece's voice. */
+const FP = { R1: 0, L1: 4, BP: 8, LD: 9, RD: 10, LC: 11, RC: 12, RS: 13, AMS: 14, KVS: 15, OL: 16, MODE: 17, FC: 18, FF: 19, DET: 20, OP: 21,
+  PR1: 126, PL1: 130, ALG: 134, FB: 135, OKS: 136, LFS: 137, LFD: 138, LPMD: 139, LAMD: 140, LKS: 141, LFW: 142, LPMS: 143, TRNSP: 144, NAME: 145, SIZE: 155 };
+const OPMAX = [99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 3, 3, 7, 3, 7, 99, 1, 31, 99, 14];
+const VMAX = [99, 99, 99, 99, 99, 99, 99, 99, 31, 7, 1, 99, 99, 99, 99, 1, 5, 7, 48];
+const vmax = (i) => (i < 126 ? OPMAX[i % 21] : i < FP.NAME ? VMAX[i - 126] : 126);
+function vSanitize(v) { for (let i = 0; i < FP.SIZE; i++) { if (i >= FP.NAME) v[i] = v[i] < 32 || v[i] > 126 ? 32 : v[i]; else if (v[i] > vmax(i)) v[i] = vmax(i); } return v; }
+function vUnpack(b) {
+  const v = new Uint8Array(FP.SIZE);
+  for (let k = 0; k < 6; k++) {
+    const o = b.subarray(k * 17, k * 17 + 17), d = k * FP.OP;
+    for (let i = 0; i < 11; i++) v[d + i] = o[i] & 127;
+    v[d + FP.LC] = o[11] & 3; v[d + FP.RC] = (o[11] >> 2) & 3; v[d + FP.RS] = o[12] & 7; v[d + FP.DET] = (o[12] >> 3) & 15;
+    v[d + FP.AMS] = o[13] & 3; v[d + FP.KVS] = (o[13] >> 2) & 7; v[d + FP.OL] = o[14] & 127; v[d + FP.MODE] = o[15] & 1; v[d + FP.FC] = (o[15] >> 1) & 31; v[d + FP.FF] = o[16] & 127;
+  }
+  for (let i = 0; i < 9; i++) v[FP.PR1 + i] = b[102 + i] & 127;
+  v[FP.ALG] &= 31; v[FP.FB] = b[111] & 7; v[FP.OKS] = (b[111] >> 3) & 1;
+  for (let i = 0; i < 4; i++) v[FP.LFS + i] = b[112 + i] & 127;
+  v[FP.LKS] = b[116] & 1; v[FP.LFW] = (b[116] >> 1) & 7; v[FP.LPMS] = (b[116] >> 4) & 7; v[FP.TRNSP] = b[117] & 127;
+  for (let i = 0; i < 10; i++) v[FP.NAME + i] = b[118 + i] & 127;
+  return vSanitize(v);
+}
+function vPack(v) {
+  const b = new Uint8Array(128);
+  for (let k = 0; k < 6; k++) {
+    const o = k * 17, d = k * FP.OP;
+    for (let i = 0; i < 11; i++) b[o + i] = v[d + i] & 127;
+    b[o + 11] = (v[d + FP.LC] & 3) | ((v[d + FP.RC] & 3) << 2); b[o + 12] = (v[d + FP.RS] & 7) | ((v[d + FP.DET] & 15) << 3);
+    b[o + 13] = (v[d + FP.AMS] & 3) | ((v[d + FP.KVS] & 7) << 2); b[o + 14] = v[d + FP.OL] & 127; b[o + 15] = (v[d + FP.MODE] & 1) | ((v[d + FP.FC] & 31) << 1); b[o + 16] = v[d + FP.FF] & 127;
+  }
+  for (let i = 0; i < 9; i++) b[102 + i] = v[FP.PR1 + i] & 127;
+  b[111] = (v[FP.FB] & 7) | ((v[FP.OKS] & 1) << 3);
+  for (let i = 0; i < 4; i++) b[112 + i] = v[FP.LFS + i] & 127;
+  b[116] = (v[FP.LKS] & 1) | ((v[FP.LFW] & 7) << 1) | ((v[FP.LPMS] & 7) << 4); b[117] = v[FP.TRNSP] & 127;
+  for (let i = 0; i < 10; i++) b[118 + i] = v[FP.NAME + i] & 127;
+  return b;
+}
+function vInit() {                                            // the DX7's init voice: OP1 alone, a plain sine
+  const v = new Uint8Array(FP.SIZE);
+  for (let k = 0; k < 6; k++) { const d = k * FP.OP; for (let i = 0; i < 7; i++) v[d + i] = 99; v[d + FP.BP] = 39; v[d + FP.FC] = 1; v[d + FP.DET] = 7; v[d + FP.OL] = k === 5 ? 99 : 0; }
+  for (let i = 0; i < 4; i++) { v[FP.PR1 + i] = 99; v[FP.PL1 + i] = 50; }
+  v[FP.LFS] = 35; v[FP.TRNSP] = 24;
+  "INIT VOICE".split("").forEach((c, i) => { v[FP.NAME + i] = c.charCodeAt(0); });
+  return v;
+}
+const vName = (v) => String.fromCharCode(...Array.from(v.subarray(FP.NAME, FP.NAME + 10)).map((c) => (c < 32 || c > 126 ? 32 : c))).trimEnd();
+const vSum = (a) => { let t = 0; for (const b of a) t += b; return (128 - (t & 127)) & 127; };
+function vGraph(a) {                                          // the firmware's routing (D.alg, FM6_ALG): who modulates whom, the carriers, feedback
+  const row = D.alg[a], bus = [[], [], []], edges = [], carrier = [], fb = [];
+  for (let k = 0; k < 6; k++) {
+    const f = row[k], out = f & 3, inn = (f >> 4) & 3, add = f & 4, n = 6 - k;
+    if (inn) for (const q of bus[inn]) edges.push([q, n]);
+    carrier[n] = out === 0; fb[n] = (f & 0xC0) !== 0;
+    if (out) { if (!add) bus[out] = []; bus[out].push(n); }
+  }
+  return { edges, carrier, fb };
+}
+let dxv = null, dxSlot = -1, dxDx = -1, dxOp = 1, dxN = 0, dxNames = [], dxFile = [], dxBusy = false, dxAgain = false, dxKeepT = 0, dxPutT = 0, dxEnvDrag = null, dxAlgHit = [];
+const DXB = () => N.nplain + N.nfmfact;                        // (the pluck's Sound: the plain sounds, the built-in DX ones, then the player's)
+const dxSndNames = () => P[PE.P_CM_SND].t;
+const CURVE = ["-LIN", "-EXP", "+EXP", "+LIN"], LFOW = ["Triangle", "Saw down", "Saw up", "Square", "Sine", "S & H"];
+function dxFmt(i, v) {
+  if (i < 126 && i % 21 === FP.DET) return (v - 7 > 0 ? "+" : "") + (v - 7);
+  if (i === FP.TRNSP) return NOTE[v % 12] + (Math.floor(v / 12) + 1);
+  return String(v);
+}
+function dxRow(label, i, opts) {
+  const v = dxv[i];
+  if (opts) return '<label class="dxr"><span>' + label + '</span><select data-dx="' + i + '">' + opts.map((t, k) => '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + t + "</option>").join("") + "</select><b></b></label>";
+  return '<label class="dxr"><span>' + label + '</span><input type="range" min="0" max="' + vmax(i) + '" value="' + v + '" data-dx="' + i + '"><b>' + dxFmt(i, v) + "</b></label>";
+}
+function dxRatio(d) {
+  return dxv[d + FP.MODE] ? "fixed " + (Math.pow(10, dxv[d + FP.FC] & 3) * (1 + dxv[d + FP.FF] / 100 * 8.772)).toFixed(1) + " Hz" : "× " + ((dxv[d + FP.FC] || 0.5) * (1 + dxv[d + FP.FF] / 100)).toFixed(2);
+}
+function dxHTML() {                                           // (the rows are filled by dxMount once the voice is read)
+  const nm = dxSndNames(), b = DXB();
+  return '<div class="sec dx7"><h3>DX7 VOICE <span class="muted" id="dxWhat" style="font-weight:500;letter-spacing:0"></span></h3>' +
+    '<div class="bar" style="margin-bottom:8px"><span class="lbl">EDIT</span><select id="dxFrom" aria-label="The DX voice to edit">' +
+    '<optgroup label="The built-in DX sounds">' + Array.from({ length: N.nfmfact }, (_, k) => '<option value="d' + k + '">' + nm[N.nplain + k] + "</option>").join("") + "</optgroup>" +
+    '<optgroup label="Your voices (the 16 slots)">' + Array.from({ length: 16 }, (_, k) => '<option value="u' + k + '"' + (k > dxN ? " disabled" : "") + ">" + (k + 1) + " · " + (k < dxN ? dxNames[k] || nm[b + k] : k === dxN ? "(the next free)" : "(empty)") + "</option>").join("") + "</optgroup>" +
+    (dxFile.length ? '<optgroup label="From the .syx file">' + dxFile.map((v, k) => '<option value="f' + k + '">' + (vName(v) || "(no name)") + "</option>").join("") + "</optgroup>" : "") +
+    '<option value="i">Init voice (a plain sine)</option></select>' +
+    '<button class="small" id="dxLoad" title="DX7 banks (32 voices) or single voices, from any librarian">Open .syx…</button><input type="file" id="dxFileIn" accept=".syx,.SYX" hidden>' +
+    '<button class="small" id="dxSave">Save .syx</button></div>' +
+    '<div class="dxgrid"><div><canvas id="dxAlg" height="200" aria-label="The algorithm: click an operator"></canvas>' +
+    '<div class="bar" style="margin:6px 0"><button class="small" id="dxAlgP" aria-label="Algorithm before">◀</button><b id="dxAlgN" style="min-width:4.5em;text-align:center"></b><button class="small" id="dxAlgX" aria-label="Algorithm after">▶</button>' +
+    '<span class="lbl">&nbsp;NAME</span><input id="dxName" maxlength="10" size="11" aria-label="The voice name"></div><div id="dxGlob"></div></div>' +
+    '<div><div class="dxops" id="dxOps"></div><canvas id="dxEnv" height="150" aria-label="The operator envelope: drag a point (up: its level; sideways: its rate)"></canvas></div></div><div id="dxOpRows"></div>' +
+    '<details><summary>PITCH ENVELOPE AND LFO</summary><div class="dxtwo" id="dxMore"></div></details></div>';
+}
+async function dxMount() {
+  if (!$("dxFrom")) return;
+  if (!dxv) await dxReadPlaying();
+  dxFill();
+}
+async function dxSlots() {                                    // the player's voices: how many, their names
+  const r = await ask({ type: "st_vox", op: "get", slot: 0 });
+  dxN = r.n || 0; dxNames = [];
+  for (let k = 0; k < dxN; k++) { const q = k ? await ask({ type: "st_vox", op: "get", slot: k }) : r; dxNames[k] = q.ok ? "DX " + vName(vUnpack(q.vox.subarray(0, 128))) : ""; }
+  const t = dxSndNames(); for (let k = 0; k < 16; k++) t[DXB() + k] = k < dxN ? dxNames[k] : "(empty)";
+}
+async function dxReadPlaying() {                              // the voice the pluck plays now, into the editor
+  await dxSlots();
+  const s = parV(PE.P_CM_SND);
+  if (s >= DXB() && s - DXB() < dxN) return dxPick("u" + (s - DXB()), true);
+  if (s >= N.nplain && s < DXB()) return dxPick("d" + (s - N.nplain), true);
+  return dxPick("d0", true);
+}
+async function dxPick(key, quiet) {                           // a voice into the editor: a built-in (heard as it is), a slot, a file's, the init voice
+  const k = key[0], i = +key.slice(1);
+  if (k === "d") { const r = await ask({ type: "st_vox", op: "dx", idx: i }); if (!r.ok) return; dxv = r.ok === 2 ? vSanitize(r.vox.slice(0, FP.SIZE)) : vUnpack(r.vox.subarray(0, 128)); dxSlot = -1; dxDx = i; if (!quiet) dxPlay(N.nplain + i); }
+  else if (k === "u") { const r = await ask({ type: "st_vox", op: "get", slot: i }); if (!r.ok) return; dxv = vUnpack(r.vox.subarray(0, 128)); dxSlot = i; dxDx = -1; if (!quiet) dxPlay(DXB() + i); }
+  else { dxv = k === "f" ? Uint8Array.from(dxFile[i]) : vInit(); dxSlot = -1; dxDx = -1; await dxPut(true); }
+  dxOp = 1;
+  if (!quiet) { dxFill(); say(k === "d" ? "The pluck plays " + dxSndNames()[N.nplain + i] + ". Edit it: your changes go into a voice slot of your own, the built-in stays." :
+    k === "u" ? "The pluck plays your voice " + (i + 1) + ". Edits go straight into it." : "In a voice slot of your own, and the pluck plays it."); }
+}
+function dxPlay(snd) { if (parV(PE.P_CM_SND) !== snd) { parSetV(PE.P_CM_SND, snd); changed(); } }
+function dxWhat() {
+  const el = $("dxWhat");
+  if (el) el.textContent = dxSlot >= 0 ? "· your voice " + (dxSlot + 1) + " · the pluck plays it" : dxDx >= 0 ? "· built-in: the first edit makes it a voice of your own" : "";
+  const f = $("dxFrom"), nm = dxSndNames();
+  if (f) {                                                    // (the slots' names as they are now, here and in every Sound list)
+    for (let k = 0; k < 16; k++) { const o = f.querySelector('option[value="u' + k + '"]'); if (o) { o.textContent = (k + 1) + " · " + (k < dxN ? dxNames[k] || nm[DXB() + k] : k === dxN ? "(the next free)" : "(empty)"); o.disabled = k > dxN; } }
+    f.value = dxSlot >= 0 ? "u" + dxSlot : dxDx >= 0 ? "d" + dxDx : f.value;
+  }
+  document.querySelectorAll('select[data-p="' + PE.P_CM_SND + '"]').forEach((sl) => { for (let k = 0; k < 16; k++) { const o = sl.options[DXB() + k]; if (o) o.textContent = nm[DXB() + k]; } });
+}
+function dxFill() {                                           // the editor drawn from dxv
+  if (!dxv || !$("dxGlob")) return;
+  $("dxName").value = vName(dxv);
+  $("dxAlgN").textContent = "ALG " + (dxv[FP.ALG] + 1);
+  $("dxGlob").innerHTML = dxRow("Feedback", FP.FB) + dxRow("Transpose", FP.TRNSP) + dxRow("Oscillator sync", FP.OKS, ["Off", "On"]);
+  $("dxMore").innerHTML = "<div>" + [1, 2, 3, 4].map((n) => dxRow("Pitch rate " + n, FP.PR1 + n - 1)).join("") + [1, 2, 3, 4].map((n) => dxRow("Pitch level " + n, FP.PL1 + n - 1)).join("") + "</div><div>" +
+    dxRow("LFO wave", FP.LFW, LFOW) + dxRow("LFO speed", FP.LFS) + dxRow("LFO delay", FP.LFD) + dxRow("LFO pitch depth", FP.LPMD) + dxRow("LFO amp depth", FP.LAMD) + dxRow("LFO pitch sens", FP.LPMS) + dxRow("LFO key sync", FP.LKS, ["Off", "On"]) + "</div>";
+  dxOpFill(); dxWhat(); dxDraw();
+}
+function dxOpFill() {
+  const d = (6 - dxOp) * FP.OP, g = vGraph(dxv[FP.ALG]);
+  $("dxOps").innerHTML = [1, 2, 3, 4, 5, 6].map((n) => '<button class="small' + (g.carrier[n] ? " car" : "") + '" data-dxop="' + n + '" aria-pressed="' + (n === dxOp) + '" title="' + (g.carrier[n] ? "A carrier: heard" : "A modulator: colours the ones below it") + '">OP' + n +
+    '<i style="width:' + Math.round(dxv[(6 - n) * FP.OP + FP.OL] / 99 * 100) + '%"></i></button>').join("") + '<span class="muted" style="align-self:center">&nbsp;' + (g.carrier[dxOp] ? "carrier" : "modulator") + " · " + dxRatio(d) + "</span>";
+  $("dxOpRows").innerHTML = '<div class="dxtwo"><div>' + dxRow("Level", d + FP.OL) + dxRow("Frequency", d + FP.MODE, ["Ratio", "Fixed"]) + dxRow("Coarse", d + FP.FC) + dxRow("Fine", d + FP.FF) + dxRow("Detune", d + FP.DET) +
+    dxRow("Velocity sens", d + FP.KVS) + dxRow("Amp mod sens", d + FP.AMS) + "</div><div>" + [1, 2, 3, 4].map((n) => dxRow("Rate " + n, d + n - 1)).join("") + [1, 2, 3, 4].map((n) => dxRow("Level " + n, d + 3 + n)).join("") + "</div></div>" +
+    "<details><summary>KEY SCALING</summary><div class=\"dxtwo\"><div>" + dxRow("Break point", d + FP.BP) + dxRow("Left depth", d + FP.LD) + dxRow("Left curve", d + FP.LC, CURVE) + "</div><div>" + dxRow("Rate scaling", d + FP.RS) + dxRow("Right depth", d + FP.RD) + dxRow("Right curve", d + FP.RC, CURVE) + "</div></div></details>";
+}
+function dxDraw() { dxDrawAlg(); dxDrawEnv(); }
+function dxCanvas(id, H) {
+  const cv = $(id); if (!cv) return null;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth;
+  if (!W) return null;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
+  return { g, W, H };
+}
+function dxDrawAlg() {                                        // the operators as boxes in their stacks (a level a row), lines to what they modulate,
+  const c = dxCanvas("dxAlg", 200); if (!c || !dxv) return;     //  a carrier's base in the pluck's colour, its level as a fill, a curl for feedback
+  const { g, W, H } = c, gr = vGraph(dxv[FP.ALG]), level = {}, tg = (n) => gr.edges.filter((e) => e[0] === n).map((e) => e[1]);
+  const lv = (n) => { if (level[n] !== undefined) return level[n]; const t = tg(n); level[n] = t.length ? 1 + Math.max(...t.map(lv)) : 0; return level[n]; };
+  for (let n = 1; n <= 6; n++) lv(n);
+  const by = {}; for (let n = 1; n <= 6; n++) (by[level[n]] = by[level[n]] || []).push(n);
+  const maxl = Math.max(...Object.values(level)), rowH = Math.min(42, (H - 40) / Math.max(1, maxl)), pos = {};
+  for (const l of Object.keys(by)) by[l].forEach((n, i) => { pos[n] = { x: W / 2 + (i - (by[l].length - 1) / 2) * Math.min(70, W / 6.5), y: H - 26 - l * rowH }; });
+  g.strokeStyle = "#8b8e98"; g.lineWidth = 2;
+  for (const [a, b] of gr.edges) { g.beginPath(); g.moveTo(pos[a].x, pos[a].y + 12); g.lineTo(pos[b].x, pos[b].y - 12); g.stroke(); }
+  g.fillStyle = COL.pluck; g.fillRect(W / 2 - 90, H - 8, 180, 3);   // the out
+  dxAlgHit = [];
+  for (let n = 1; n <= 6; n++) {
+    const p = pos[n], sel = n === dxOp, ol = dxv[(6 - n) * FP.OP + FP.OL] / 99;
+    if (gr.carrier[n]) { g.strokeStyle = hexA(COL.pluck, 0.5); g.lineWidth = 1; g.beginPath(); g.moveTo(p.x, p.y + 12); g.lineTo(p.x, H - 8); g.stroke(); }
+    g.fillStyle = sel ? "#3a2c10" : "#22252c"; g.fillRect(p.x - 19, p.y - 12, 38, 24);
+    g.fillStyle = hexA(gr.carrier[n] ? COL.pluck : COL.ink, 0.35); g.fillRect(p.x - 19, p.y + 12 - 24 * ol, 38, 24 * ol);
+    g.strokeStyle = sel ? COL.acc : gr.carrier[n] ? COL.pluck : "#555a66"; g.lineWidth = 2; g.strokeRect(p.x - 19, p.y - 12, 38, 24);
+    g.fillStyle = COL.ink; g.font = FONT(700, 12); g.textAlign = "center"; g.fillText(String(n), p.x, p.y + 4); g.textAlign = "left";
+    if (gr.fb[n]) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.beginPath(); g.moveTo(p.x + 19, p.y - 4); g.quadraticCurveTo(p.x + 34, p.y - 8, p.x + 30, p.y - 18); g.quadraticCurveTo(p.x + 24, p.y - 24, p.x + 12, p.y - 12); g.stroke(); }
+    dxAlgHit.push([p.x - 22, p.y - 15, 44, 30, n]);
+  }
+  g.fillStyle = COL.dim; g.font = FONT(600, 10); g.fillText("FEEDBACK " + dxv[FP.FB], 8, 14);
+}
+let dxEnvG = null;
+function dxDrawEnv() {                                        // the operator's envelope: levels up, each segment as wide as its rate is slow; the points drag
+  const c = dxCanvas("dxEnv", 150); if (!c || !dxv) return;
+  const { g, W, H } = c, d = (6 - dxOp) * FP.OP, pad = 10, R = [0, 1, 2, 3].map((k) => dxv[d + k]), L = [0, 1, 2, 3].map((k) => dxv[d + 4 + k]);
+  const seg = R.map((r) => 8 + Math.pow((99 - r) / 99, 1.6) * 80), hold = 30;
+  const sx = dxEnvDrag ? dxEnvDrag.sx : (W - 2 * pad) / (seg[0] + seg[1] + seg[2] + hold + seg[3]), y = (l) => H - pad - (l / 99) * (H - 2 * pad - 6);
+  const xs = [pad]; xs.push(xs[0] + seg[0] * sx, 0, 0, 0, 0); xs[2] = xs[1] + seg[1] * sx; xs[3] = xs[2] + seg[2] * sx; xs[4] = xs[3] + hold * sx; xs[5] = xs[4] + seg[3] * sx;
+  const pts = [[xs[0], y(L[3])], [xs[1], y(L[0])], [xs[2], y(L[1])], [xs[3], y(L[2])], [xs[4], y(L[2])], [xs[5], y(L[3])]];
+  g.strokeStyle = "#262932"; g.lineWidth = 1; for (let q = 1; q < 4; q++) { g.beginPath(); g.moveTo(pad, y(q * 33)); g.lineTo(W - pad, y(q * 33)); g.stroke(); }
+  g.fillStyle = COL.dim; g.font = FONT(600, 9); g.fillText("KEY ON", xs[0] + 2, 11); g.fillText("KEY OFF", xs[4] + 2, 11);
+  g.strokeStyle = "#3a3e4a"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(xs[4], 14); g.lineTo(xs[4], H - pad); g.stroke(); g.setLineDash([]);
+  g.beginPath(); g.moveTo(pts[0][0], H - pad); pts.forEach(([px, py]) => g.lineTo(px, py)); g.lineTo(pts[5][0], H - pad); g.closePath(); g.fillStyle = hexA(COL.pluck, 0.18); g.fill();
+  g.beginPath(); pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py))); g.strokeStyle = COL.pluck; g.lineWidth = 2; g.stroke();
+  const hp = [[1, 0], [2, 1], [3, 2], [5, 3]];               // the handles: the end of segment k (its level k, its rate k)
+  dxEnvG = { hp: hp.map(([pi, k]) => ({ x: pts[pi][0], y: pts[pi][1], k, x0: pi === 5 ? xs[4] : xs[pi - 1] })), sx, pad, H, y };
+  for (const h of dxEnvG.hp) { g.fillStyle = dxEnvDrag && dxEnvDrag.k === h.k ? COL.acc : COL.ink; g.beginPath(); g.arc(h.x, h.y, 5, 0, 7); g.fill(); g.fillStyle = COL.dim; g.font = FONT(600, 9); g.fillText(String(h.k + 1), h.x + 7, h.y - 6); }
+}
+function dxSet(i, v, quiet) {                                 // a byte of the voice changed: drawn, heard
+  v = Math.max(0, Math.min(vmax(i), Math.round(v)));
+  if (dxv[i] === v) return;
+  dxv[i] = v;
+  const el = document.querySelector('#sound [data-dx="' + i + '"]');
+  if (el && !quiet) { el.value = v; const b = el.parentElement.querySelector("b"); if (b && el.type === "range") b.textContent = dxFmt(i, v); }
+  dxEdit();
+}
+function dxEdit() {                                           // into the emulator (the newest, one at a time); kept a moment after the last change
+  clearTimeout(dxPutT); dxPutT = setTimeout(() => dxPut(false), 40);
+  clearTimeout(dxKeepT); dxKeepT = setTimeout(() => dxPut(true), 900);
+  dxDraw();
+  if (document.querySelector("#dxOps")) { const g = vGraph(dxv[FP.ALG]); document.querySelectorAll("#dxOps button[data-dxop]").forEach((b) => { const n = +b.dataset.dxop; b.querySelector("i").style.width = Math.round(dxv[(6 - n) * FP.OP + FP.OL] / 99 * 100) + "%"; b.classList.toggle("car", !!g.carrier[n]); }); }
+}
+async function dxPut(keep) {
+  if (!node || !dxv) return;
+  if (dxBusy) { dxAgain = true; return; }
+  dxBusy = true;
+  let tries = 0;
+  for (;;) {
+    dxAgain = false;
+    const first = dxSlot < 0;
+    if (first && dxN >= 16) say("All 16 voice slots are in use: this edit replaces voice 16.", true);
+    const r = await ask({ type: "st_vox", op: "put", slot: first ? dxN : dxSlot, keep, vox: vPack(dxv) });
+    if (r.ok < 0 && ++tries < 30) { await new Promise((res) => setTimeout(res, 30)); continue; }
+    if (r.ok >= 0) {
+      dxSlot = r.ok; dxDx = -1; dxN = Math.max(dxN, r.ok + 1);
+      dxNames[dxSlot] = "DX " + vName(dxv); dxSndNames()[DXB() + dxSlot] = dxNames[dxSlot];
+      if (first) { dxPlay(DXB() + dxSlot); dxWhat(); say("Your voice " + (dxSlot + 1) + " (“" + vName(dxv) + "”): the pluck plays it. Every change is heard as you make it, and kept in the emulator's voices (this browser)."); }
+      if (keep || first) dxWhat();
+    }
+    if (!dxAgain) break;
+  }
+  dxBusy = false;
+}
+function dxParseSyx(buf) {                                    // a 32-voice bank, or single voices (VCED), in any .syx
+  const out = [];
+  if (buf.length === 4096) { for (let i = 0; i < 32; i++) out.push(vUnpack(buf.subarray(i * 128, i * 128 + 128))); return out; }
+  for (let i = 0; i < buf.length;) {
+    if (buf[i] !== 0xF0) { i++; continue; }
+    let j = i + 1; while (j < buf.length && buf[j] !== 0xF7) j++;
+    const m = buf.subarray(i + 1, j); i = j + 1;
+    if (m.length === 4102 && m[0] === 0x43 && m[2] === 0x09 && m[3] === 0x20 && m[4] === 0x00) for (let v = 0; v < 32; v++) out.push(vUnpack(m.subarray(5 + v * 128, 5 + (v + 1) * 128)));
+    else if (m.length === 161 && m[0] === 0x43 && m[2] === 0x00 && m[3] === 0x01 && m[4] === 0x1B) out.push(vSanitize(Uint8Array.from(m.subarray(5, 160))));
+  }
+  return out;
+}
+$("sound").addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.dx !== undefined && dxv) { const i = +t.dataset.dx; dxSet(i, +t.value, true); const b = t.parentElement.querySelector("b"); if (b && t.type === "range") b.textContent = dxFmt(i, dxv[i]); if (i % 21 === FP.FC || i % 21 === FP.FF || i % 21 === FP.MODE) dxOpFill(); }
+  if (t.id === "dxName" && dxv) { const nm = t.value.toUpperCase().replace(/[^ -~]/g, " ").padEnd(10).slice(0, 10); for (let k = 0; k < 10; k++) dxv[FP.NAME + k] = nm.charCodeAt(k); dxEdit(); }
+});
+$("sound").addEventListener("change", async (e) => {
+  const t = e.target;
+  if (t.dataset.dx !== undefined && dxv && t.tagName === "SELECT") { dxSet(+t.dataset.dx, +t.value, true); dxOpFill(); }
+  if (t.id === "dxFrom") await dxPick(t.value);
+  if (t.id === "dxFileIn" && t.files.length) {
+    dxFile = []; for (const f of t.files) dxFile.push(...dxParseSyx(new Uint8Array(await f.arrayBuffer())));
+    soundRender();
+    say(dxFile.length ? dxFile.length + " voices in the file: pick one under EDIT (“From the .syx file”); it goes into a voice slot of your own." : "No DX7 voices in that file.", !dxFile.length);
+  }
+});
+$("sound").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b || !dxv) return;
+  if (b.dataset.dxop) { dxOp = +b.dataset.dxop; dxOpFill(); dxDraw(); return; }
+  if (b.id === "dxAlgP" || b.id === "dxAlgX") { dxSet(FP.ALG, (dxv[FP.ALG] + (b.id === "dxAlgP" ? 31 : 1)) % 32); $("dxAlgN").textContent = "ALG " + (dxv[FP.ALG] + 1); dxOpFill(); return; }
+  if (b.id === "dxLoad") return $("dxFileIn").click();
+  if (b.id === "dxSave") {
+    const v = vSanitize(Uint8Array.from(dxv)), a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([new Uint8Array([0xF0, 0x43, 0x00, 0x00, 0x01, 0x1B, ...v, vSum(v), 0xF7])], { type: "application/octet-stream" }));
+    a.download = (vName(v) || "voice").replace(/[^A-Za-z0-9_-]+/g, "_") + ".syx"; document.body.append(a); a.click(); a.remove();
+    say("Saved “" + vName(v) + "” as a DX7 single voice (.syx): any DX7 librarian, Dexed, or the FM-1 takes it.");
+  }
+});
+$("sound").addEventListener("pointerdown", (e) => {
+  if (!dxv) return;
+  const cv = e.target;
+  if (cv.id === "dxAlg") { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, h = dxAlgHit.find(([hx, hy, w, hh]) => x >= hx && x < hx + w && y >= hy && y < hy + hh); if (h) { dxOp = h[4]; dxOpFill(); dxDraw(); } return; }
+  if (cv.id !== "dxEnv" || !dxEnvG) return;
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const h = dxEnvG.hp.reduce((a, q) => (Math.hypot(q.x - x, q.y - y) < (a ? Math.hypot(a.x - x, a.y - y) : 18) ? q : a), null);
+  if (!h) return;
+  e.preventDefault(); cv.setPointerCapture(e.pointerId);
+  dxEnvDrag = { k: h.k, x0: h.x0, sx: dxEnvG.sx }; dxDrawEnv();
+});
+$("sound").addEventListener("pointermove", (e) => {
+  if (!dxEnvDrag || e.target.id !== "dxEnv" || !dxv) return;
+  const r = e.target.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, G = dxEnvG, d = (6 - dxOp) * FP.OP, k = dxEnvDrag.k;
+  dxSet(d + 4 + k, (G.H - G.pad - y) / (G.H - 2 * G.pad - 6) * 99);
+  const segU = Math.max(8, (x - dxEnvDrag.x0) / dxEnvDrag.sx);   // the segment's width back to its rate (8 + ((99 - r) / 99)^1.6 * 80)
+  dxSet(d + k, 99 - 99 * Math.pow(Math.min(1, (segU - 8) / 80), 1 / 1.6));
+  dxOpFill();
+});
+$("sound").addEventListener("pointerup", () => { if (dxEnvDrag) { dxEnvDrag = null; dxDrawEnv(); } });
+window.addEventListener("resize", () => { if (pane === "sound" && sel === "pluck") dxDraw(); });
+
+/* ======================================================================== FX: the FX menu's effects, played and set from the studio (the unit's own
+ * menu: its two banks of keys in their order, a tap latches, a hold plays while held; each effect's page of settings as knobs, the text the unit
+ * shows). The effects and their settings are the player's (as on the FM-1: kept with the unit's settings), not the piece's. */
+let fxd = null, fxSel = -1, fxBusy = false, fxNext = null;
+const FX_NOTE = ["F3", "F#3", "G3", "G#3", "A3", "A#3", "B3", "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4", "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5"];
+const FX_KIND = [[[0, 1, 2, 3, 4, 5, 33, 34, 26, 27, 28, 29, 31], "#ff6fb5"], [[12, 13, 30, 38, 39, 40, 52, 53, 34], "#7f8ea3"],   // (a colour a kind: repeats and
+  [[14, 15, 16, 23, 37, 17], "#d8c39a"], [[19, 20, 21, 25, 35, 32, 6, 7], "#b5838d"], [[8, 9, 10, 11, 41, 18, 22, 24, 54, 55, 56, 57, 58], "#e6e6e6"]];   // time, filters, rhythm, colour, drums)
+const fxCol = (bit) => (FX_KIND.find(([bs]) => bs.includes(bit)) || [0, "#555a66"])[1];
+const fxIsOn = (bit) => !!fxd && !!(bit < 32 ? (fxd.lo >>> bit) & 1 : (fxd.hi >>> (bit - 32)) & 1);
+async function fxAsk(m) {
+  const r = await ask({ type: "st_fx", ...m, light: m.all ? 0 : 1 });
+  if (!r.pages && !r.one && r.lo === undefined) { say("This emulator build has no FX hooks: rebuild it (web/emu/build_clang.sh).", true); return null; }
+  if (r.one && fxd && fxd.pages) { fxd.pages[r.one.page] = r.one.desc; const { one, ...rest } = r; fxd = { ...fxd, ...rest }; }
+  else fxd = { ...fxd, ...r };
+  return r;
+}
+async function fxLoad() {
+  if (view !== "fx") return;
+  if (!node) { $("fx").innerHTML = '<p class="muted">Switch on to play the effects.</p>'; return; }
+  if (!(await fxAsk({ all: 1 }))) return;
+  fxRender();
+}
+function fxLock(bit, on) {
+  let lo = fxd.lo >>> 0, hi = fxd.hi >>> 0;
+  if (bit < 32) lo = on ? (lo | (1 << bit)) >>> 0 : (lo & ~(1 << bit)) >>> 0; else hi = on ? (hi | (1 << (bit - 32))) >>> 0 : (hi & ~(1 << (bit - 32))) >>> 0;
+  mvAdd({ k: "fx", lo: lo | 0, hi: hi | 0 });
+  return fxAsk({ lo: lo | 0, hi: hi | 0 }).then(fxPaint);
+}
+function fxRender() {
+  if (!fxd || !fxd.keys) return;
+  const bank = (b) => '<div class="fxbank"><h3 class="lbl">BANK ' + (b + 1) + (b ? " · REPEATS, MOTION AND DRUMS" : " · FILTERS, COLOUR AND SPACE") + '</h3><div class="fxkeys">' + fxd.keys[b].map((bit, k) => {
+    if (bit === 63) return '<div class="fxk blk" style="opacity:.25" aria-hidden="true"></div>';
+    const pg = fxd.pageOf[bit];
+    return '<button class="fxk' + (FX_NOTE[k].includes("#") ? " blk" : "") + (pg >= 0 && fxd.pages[pg].hold ? " hold" : "") + '" data-bit="' + bit + '" style="--c:' + fxCol(bit) + '" title="Tap: on until tapped again · hold: on while held' + (pg >= 0 ? " · its settings on the right" : "") + '"><b>' + fxd.names[bit] + "</b><span>" + FX_NOTE[k] + "</span></button>";
+  }).join("") + "</div></div>";
+  $("fx").innerHTML = '<div><div class="bar" style="margin-bottom:8px"><button id="fxOff">All off</button><span class="muted">The FM-1&#39;s FX menu: tap an effect to latch it, hold it to play it while you hold. The effects and their settings are the player&#39;s, not the piece&#39;s (as on the unit).</span></div>' +
+    bank(0) + bank(1) + '</div><div class="fxside" id="fxSide"></div>';
+  fxPaint(); fxSide();
+}
+function fxPaint() {
+  document.querySelectorAll("#fx .fxk[data-bit]").forEach((b) => { const bit = +b.dataset.bit; b.setAttribute("aria-pressed", String(fxIsOn(bit))); b.classList.toggle("sel", fxd.pageOf[bit] === fxSel && fxSel >= 0); });
+}
+function fxKnob(pg, i, c, col) {
+  const f = (c.v - c.lo) / Math.max(1, c.hi - c.lo);
+  return '<div class="knob fxkn" tabindex="0" role="slider" aria-label="' + c.label + '" data-page="' + pg + '" data-i="' + i + '" title="' + c.label + ': drag up or down, the wheel, the arrow keys' + (c.hi - c.lo === 1 ? "; a click turns it over" : "") + '">' +
+    '<div class="dial" style="--f:' + f + ";--c:" + col + '"><i></i></div><span class="v">' + (c.t || c.v) + '</span><span class="kl">' + c.label + "</span></div>";
+}
+function fxPage(pg) {
+  const P0 = fxd.pages[pg], col = P0.bit < 63 ? fxCol(P0.bit) : COL.acc;
+  return '<div class="sec"><h3>' + P0.name + (P0.bit < 63 && fxIsOn(P0.bit) ? " · ON" : "") + '</h3><div class="ctls kn">' + P0.c.map((c, i) => (c && c.label ? fxKnob(pg, i, c, col) : "")).join("") + "</div></div>";
+}
+function fxSide() {
+  const el = $("fxSide"); if (!el || !fxd) return;
+  const af = fxd.pages.findIndex((x) => x.name === "AUTO FX");
+  el.innerHTML = xyHTML() + (fxSel >= 0 ? fxPage(fxSel) : '<div class="sec"><h3>SETTINGS</h3><p class="muted" style="margin:0">Tap or hold an effect: its settings come here.</p></div>') + (af >= 0 && af !== fxSel ? fxPage(af) : "");
+  xyDraw();
+}
+/* the XY pad: a setting across, another up; touching it turns their effects on (off again when let go, unless Keep on), as a Kaoss pad */
+let xyA = null, xyB = null, xyTouch = null;
+function xyOpts() {
+  const o = [];
+  fxd.pages.forEach((P0, pg) => { if (P0.bit >= 62) return; P0.c.forEach((c, i) => { if (c && c.label && c.hi - c.lo >= 4) o.push([pg + ":" + i, P0.name + " · " + c.label]); }); });
+  return o;
+}
+function xyHTML() {
+  const o = xyOpts();
+  if (!xyA) { const f = fxd.pages.findIndex((x) => x.name === "FILTER"); xyA = f >= 0 ? f + ":1" : o[0][0]; xyB = f >= 0 ? f + ":2" : o[1][0]; }
+  const sel = (id, v) => '<select id="' + id + '">' + o.map(([k, t]) => '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + t + "</option>").join("") + "</select>";
+  return '<div class="sec"><h3>XY PAD · DRAG ON IT: ITS EFFECTS PLAY WHILE YOU TOUCH</h3><div class="bar" style="margin-bottom:6px"><span class="lbl">↔</span>' + sel("xyA", xyA) + '<span class="lbl">↕</span>' + sel("xyB", xyB) +
+    '<label class="muted"><input type="checkbox" id="xyKeep"' + (xyKeep ? " checked" : "") + "> keep on</label></div>" +
+    '<canvas id="xyPad" height="210" style="width:100%;display:block;border-radius:6px;background:#121318;border:1px solid var(--line);touch-action:none;cursor:crosshair"></canvas>' + xyRest() + "</div>";
+}
+function xyRest() {                                           // the X and Y effects' other settings (the FILTER's type and targets, say), under the pad
+  const A = xyGet(xyA), B = xyGet(xyB), seen = new Set([xyA, xyB]), ks = [];
+  for (const q of A.pg === B.pg ? [A] : [A, B]) q.P0.c.forEach((c, i) => { const k = q.pg + ":" + i; if (c && c.label && !seen.has(k)) { seen.add(k); ks.push(fxKnob(q.pg, i, c, q.P0.bit < 63 ? fxCol(q.P0.bit) : COL.acc)); } });
+  return ks.length ? '<div class="ctls kn" style="margin-top:6px">' + ks.join("") + "</div>" : "";
+}
+let xyKeep = false;
+const xyGet = (k) => { const [pg, i] = k.split(":").map(Number); return { pg, i, c: fxd.pages[pg].c[i], P0: fxd.pages[pg] }; };
+function xyDraw() {
+  const cv = $("xyPad"); if (!cv || !fxd) return;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = 210;
+  if (!W) return;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
+  g.strokeStyle = "#22252c"; g.lineWidth = 1; for (let q = 1; q < 8; q++) { g.beginPath(); g.moveTo(q * W / 8, 0); g.lineTo(q * W / 8, H); g.stroke(); g.beginPath(); g.moveTo(0, q * H / 8); g.lineTo(W, q * H / 8); g.stroke(); }
+  const A = xyGet(xyA), B = xyGet(xyB), fa = (A.c.v - A.c.lo) / Math.max(1, A.c.hi - A.c.lo), fb = (B.c.v - B.c.lo) / Math.max(1, B.c.hi - B.c.lo), x = 8 + fa * (W - 16), y = H - 8 - fb * (H - 16);
+  const col = A.P0.bit < 63 ? fxCol(A.P0.bit) : COL.acc;
+  if (xyTouch) { const gr = g.createRadialGradient(x, y, 0, x, y, 60); gr.addColorStop(0, hexA(col, 0.45)); gr.addColorStop(1, hexA(col, 0)); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+  g.strokeStyle = hexA(COL.ink, 0.25); g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+  g.fillStyle = xyTouch ? COL.ink : col; g.beginPath(); g.arc(x, y, xyTouch ? 9 : 7, 0, 7); g.fill();
+  if (fa >= 0.999 && fb >= 0.999) { g.font = FONT(700, 64); g.fillStyle = hexA("#ff5a5f", 0.5); g.fillText("11", W - 92, 64); }   // (one louder)
+  g.font = FONT(700, 10); g.fillStyle = COL.dim;
+  g.fillText(A.c.label.toUpperCase() + " " + (A.c.t || A.c.v) + " →", 8, H - 6); g.save(); g.translate(12, H - 70); g.rotate(-Math.PI / 2); g.fillText(B.c.label.toUpperCase() + " " + (B.c.t || B.c.v) + " →", 0, 0); g.restore();
+}
+async function xyAt(e) {
+  const cv = $("xyPad"), r = cv.getBoundingClientRect(), fa = Math.max(0, Math.min(1, (e.clientX - r.left - 8) / (r.width - 16))), fb = Math.max(0, Math.min(1, (r.bottom - e.clientY - 8) / (r.height - 16)));
+  const A = xyGet(xyA), B = xyGet(xyB);
+  fxSetK(A.pg, A.i, Math.round(A.c.lo + fa * (A.c.hi - A.c.lo)));
+  fxSetK(B.pg, B.i, Math.round(B.c.lo + fb * (B.c.hi - B.c.lo)));
+  xyDraw();
+}
+let fxPress = null;
+$("fx").addEventListener("pointerdown", async (e) => {
+  if (e.target.id === "xyPad" && fxd) {                       // the XY pad: its effects on while touched
+    e.preventDefault(); e.target.setPointerCapture(e.pointerId);
+    const bits = [...new Set([xyGet(xyA).P0.bit, xyGet(xyB).P0.bit])].filter((b) => b < 62 && !fxIsOn(b));
+    xyTouch = { bits };
+    for (const b of bits) await fxLock(b, true);
+    xyAt(e);
+    return;
+  }
+  const b = e.target.closest(".fxk[data-bit]");
+  if (b && fxd) {
+    e.preventDefault();
+    const bit = +b.dataset.bit, was = fxIsOn(bit);
+    fxPress = { bit, was, t: performance.now(), p: null };
+    if (fxd.pageOf[bit] >= 0) { fxSel = fxd.pageOf[bit]; fxSide(); }
+    if (!was) { fxPress.p = fxLock(bit, true); await fxPress.p; }
+    return;
+  }
+  const k = e.target.closest(".fxkn");
+  if (k && fxd) { e.preventDefault(); k.setPointerCapture(e.pointerId); const c = fxd.pages[+k.dataset.page].c[+k.dataset.i]; fxPress = { knob: k, y: e.clientY, v0: c.v, moved: false }; }
+});
+$("fx").addEventListener("pointermove", (e) => {
+  if (xyTouch && e.target.id === "xyPad") { xyAt(e); return; }
+  if (!fxPress || !fxPress.knob) return;
+  const k = fxPress.knob, c = fxd.pages[+k.dataset.page].c[+k.dataset.i], d = fxPress.y - e.clientY;
+  if (Math.abs(d) > 2) fxPress.moved = true;
+  if (fxPress.moved) fxSetK(+k.dataset.page, +k.dataset.i, Math.round(fxPress.v0 + d / 150 * (c.hi - c.lo) * (e.shiftKey ? 0.2 : 1)));
+});
+document.addEventListener("pointerup", async () => {
+  if (xyTouch) { const t = xyTouch; xyTouch = null; if (!xyKeep) for (const b of t.bits) await fxLock(b, false); xyDraw(); fxSide(); return; }
+  const pr = fxPress; fxPress = null;
+  if (!pr || !fxd) return;
+  if (pr.knob) { if (!pr.moved) { const c = fxd.pages[+pr.knob.dataset.page].c[+pr.knob.dataset.i]; if (c.hi - c.lo === 1) fxSetK(+pr.knob.dataset.page, +pr.knob.dataset.i, c.v === c.lo ? c.hi : c.lo); } return; }
+  const held = performance.now() - pr.t > 300;
+  if (pr.p) await pr.p;                                       // (its switch-on first)
+  if (pr.was) await fxLock(pr.bit, false);                    // a tap on one that was on: off
+  else if (held) await fxLock(pr.bit, false);                 // held: only while held
+  fxSide();
+  say(fxIsOn(pr.bit) ? fxd.names[pr.bit] + ": on (tap it again for off)." : fxd.names[pr.bit] + ": off.");
+});
+const fxPend = new Map();
+async function fxSetK(pg, i, v) {                              // a setting: the newest of each goes, one message at a time
+  const c = fxd.pages[pg].c[i];
+  v = Math.max(c.lo, Math.min(c.hi, v));
+  if (v === c.v && !fxBusy) return;
+  c.v = v;
+  if (fxBusy) { fxPend.set(pg + ":" + i, [pg, i, v]); return; }
+  fxBusy = true;
+  await fxAsk({ page: pg, i, v });
+  fxBusy = false;
+  if (fxPend.size) { const n = [...fxPend.values()]; fxPend.clear(); for (const a of n) fxSetK(...a); }
+  const k = document.querySelector('.fxkn[data-page="' + pg + '"][data-i="' + i + '"]'), q = fxd.pages[pg].c[i];
+  if (k) { k.querySelector(".dial").style.setProperty("--f", (q.v - q.lo) / Math.max(1, q.hi - q.lo)); k.querySelector(".v").textContent = q.t || q.v; }
+}
+$("fx").addEventListener("wheel", (e) => {
+  const k = e.target.closest(".fxkn"); if (!k || !fxd) return;
+  e.preventDefault();
+  const c = fxd.pages[+k.dataset.page].c[+k.dataset.i];
+  fxSetK(+k.dataset.page, +k.dataset.i, c.v + (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 10 : 1));
+}, { passive: false });
+$("fx").addEventListener("keydown", (e) => {
+  const k = e.target.closest(".fxkn"); if (!k || !fxd) return;
+  const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key]; if (!d) return;
+  e.preventDefault(); const c = fxd.pages[+k.dataset.page].c[+k.dataset.i]; fxSetK(+k.dataset.page, +k.dataset.i, c.v + d * (e.shiftKey ? 10 : 1));
+});
+$("fx").addEventListener("change", (e) => {
+  if (e.target.id === "xyA") { xyA = e.target.value; fxSide(); }   // (the pad's card again: the effects' other settings with it)
+  if (e.target.id === "xyB") { xyB = e.target.value; fxSide(); }
+  if (e.target.id === "xyKeep") xyKeep = e.target.checked;
+});
+$("fx").addEventListener("click", async (e) => { if (e.target.id === "fxOff" && fxd) { mvAdd({ k: "fx", lo: 0, hi: 0 }); await fxAsk({ lo: 0, hi: 0 }); fxPaint(); fxSide(); say("Every effect off."); } });
+
+/* ---- moves: the FX taps and the fades made while the song plays and Rec moves is on, kept where they happened (a place, its bar, its step) and played
+ * back each time the song comes there, in the studio and its WAV. The FM-1's song does not keep them (they are kept in this browser). */
+const MV_KEY = "perf1-studio-moves";
+let moves = (() => { try { return JSON.parse(localStorage.getItem(MV_KEY) || "[]") || []; } catch { return []; } })(), mvRec = false, mvLast = null;
+const mvSave = () => { try { localStorage.setItem(MV_KEY, JSON.stringify(moves)); } catch { /* (a private window: this page only) */ } };
+const songPos = () => (live && live.playing && song && song.on && live.slPos < 16 ? { pl: live.slPos, s: (live.slBar === 255 ? 0 : live.slBar) * 16 + (live.step || 0) } : null);
+function mvAdd(ev) {
+  if (!mvRec) return;
+  const at = songPos();
+  if (!at) return;
+  moves.push({ ...ev, pl: at.pl, s: at.s });
+  moves.sort((a, b) => a.pl - b.pl || a.s - b.s);
+  mvSave();
+  if (view === "song") songRender();
+}
+function mvFire(e) {
+  if (e.k === "fx") fxAsk({ lo: e.lo, hi: e.hi }).then(() => { if (view === "fx") { fxPaint(); fxSide(); } });
+  else if (e.k === "fade") deskFade(e.trk, e.p, e.dir, e.bars);
+}
+setInterval(() => {                                           // the song's moves, as it comes to them
+  if (!moves.length || !node) { mvLast = null; return; }
+  const at = songPos();
+  if (!at) { mvLast = null; return; }
+  if (!mvLast || at.pl !== mvLast.pl || at.s < mvLast.s) {    // a place begins (or the song round again): its moves up to here
+    const first = song.places.findIndex((x) => x);
+    const base = moves.find((e) => e.k === "base");
+    if (at.pl === first && base && moves.some((e) => e.k === "fx")) fxAsk({ lo: base.lo, hi: base.hi });   // (from the top: the effects as they were when the recording began)
+    moves.filter((e) => e.pl === at.pl && e.s <= at.s).forEach(mvFire);
+  } else moves.filter((e) => e.pl === at.pl && e.s > mvLast.s && e.s <= at.s).forEach(mvFire);
+  mvLast = at;
+}, 40);
+
+/* ---- fades: a part's level down to out over some bars (then muted, its level back as it was), or up from out (unmuted at nothing, up to its level);
+ * the steps go to the engine as the unit's knob would (web_st_par), so the piece keeps its level */
+let fadeBars = 4;
+const fadeV = {}, fading = {};
+async function deskFade(trk, p, dir, bars) {                 // (dir, bars: a recorded move's; dir 1 in, 0 out: none when the part is that way already)
+  if (!node || !io || fading[trk]) return;
+  const target = parV(p), out = live ? ((live.trk || 0) & trk) === trk : false, nb = bars || fadeBars, secs = nb * 240 / Math.max(40, parV(PE.P_TEMPO));
+  if (dir !== undefined && !!dir !== out) return;
+  if (dir === undefined) mvAdd({ k: "fade", trk, p, dir: out ? 1 : 0, bars: nb });
+  const run = (from, to) => new Promise((res) => {
+    const t0 = performance.now();
+    const tick = () => {
+      const t = Math.min(1, (performance.now() - t0) / (secs * 1000)), v = Math.round(from + (to - from) * (to > from ? Math.sqrt(t) : t * t));   // (by ear: up quick at first, down slow at first)
+      fadeV[p] = v; fading[trk] = { t, dir: to > from };
+      node.port.postMessage({ type: "st_par", p, v, id: ++reqId });
+      deskFadeShow(trk);
+      if (t < 1) setTimeout(tick, 50); else res();
+    };
+    tick();
+  });
+  if (out) {
+    node.port.postMessage({ type: "st_par", p, v: 0, id: ++reqId });
+    await deskTrk((live.trk || 0) & ~trk, deskSolo);
+    say("Fading in over " + nb + " bar" + (nb > 1 ? "s" : "") + "…");
+    await run(0, target);
+  } else {
+    say("Fading out over " + nb + " bar" + (nb > 1 ? "s" : "") + "…");
+    await run(target, 0);
+    await deskTrk(((live && live.trk) || 0) | trk, deskSolo);
+    node.port.postMessage({ type: "st_par", p, v: target, id: ++reqId });   // (out by its mute; its level as the piece has it)
+  }
+  delete fadeV[p]; delete fading[trk];
+  deskFadeShow(trk); syncCtls();
+  say(out ? "Faded in." : "Faded out: the part is muted (M), its level as it was. FADE IN brings it back.");
+}
+function deskFadeShow(trk) {
+  const b = document.querySelector('#desk .fade[data-trk="' + trk + '"]'); if (!b) return;
+  const f = fading[trk], out = live ? ((live.trk || 0) & trk) === trk : false;
+  b.querySelector("i").style.width = f ? Math.round(f.t * 100) + "%" : "0";
+  b.firstChild.textContent = f ? (f.dir ? "FADING IN" : "FADING OUT") : out ? "FADE IN" : "FADE OUT";
+}
+setInterval(() => { if (view === "desk") document.querySelectorAll("#desk .fade[data-trk]").forEach((b) => deskFadeShow(+b.dataset.trk)); }, 250);
+
+/* ---- the LFOs' shapes as pictures to pick */
+const SHAPE_PATH = ["M1 8 C 5 -2, 9 -2, 13 8 S 21 18, 25 8 S 29 2, 29 2", "M1 14 L8 2 L15 14 L22 2 L29 14", "M1 14 L13 2 L13 14 L25 2 L25 14 L29 10", "M1 14 L1 2 L8 2 L8 14 L15 14 L15 2 L22 2 L22 14 L29 14",
+  "M1 10 L6 10 L6 3 L11 3 L11 13 L16 13 L16 6 L21 6 L21 11 L26 11 L26 4 L29 4", "M1 10 C 6 4, 9 4, 12 9 S 18 15, 22 7 S 27 6, 29 8"];
+function shapeHTML(p, col) {
+  const q = meta(p);
+  return '<div class="ctl list" data-shape="' + p + '" style="--c:' + col + '"><div class="top"><span>Shape</span><span class="v"></span></div><div class="shapes">' +
+    q.t.map((n, i) => '<button class="small" data-shp="' + p + '" data-v="' + (q.min + i) + '" title="' + n + '" aria-label="' + n + '"><svg viewBox="0 0 30 16"><path d="' + (SHAPE_PATH[i] || SHAPE_PATH[0]) + '" fill="none" stroke="' + col + '" stroke-width="2"/></svg></button>').join("") + "</div></div>";
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-shp]"); if (!b || !io) return;
+  setFromCtl(+b.dataset.shp, +b.dataset.v); syncCtls();
+});
+
+/* ======================================================================== vibe knobs, dice and locks: a part's sound in three plain moves, rolled near
+ * its defaults, a knob held still (right-click or Alt-click it: a lock) */
+const VIBES = {                                               // [left word, right word, [setting, weight], ...]: a turn moves each by its weight
+  pad: [["DARK", "BRIGHT", [9, 1], [11, 0.25]], ["CALM", "WILD", [17, 1], [11, 0.6], [127, 0.6]], ["DRY", "WET", [117, 1]]],
+  bass: [["DARK", "BRIGHT", [24, 1], [25, 0.3]], ["CALM", "WILD", [29, 1], [31, 0.8], [154, 0.6], [25, 0.3]], ["DRY", "WET", [118, 1]]],
+  acid: [["DARK", "BRIGHT", [34, 1], [36, 0.4]], ["CALM", "WILD", [35, 0.6], [38, 0.8], [44, 1], [41, 0.5]], ["DRY", "WET", [119, 1]]],
+  pluck: [["SHORT", "LONG", [102, 1]], ["CALM", "WILD", [100, 1], [158, 0.8], [156, 0.6]], ["DRY", "WET", [120, 1]]],
+  drums: [["TIGHT", "LOOSE", [163, 1], [47, 0.6], [161, 0.4]], ["CALM", "WILD", [46, 1], [162, 0.6], [161, 0.5]], ["DRY", "WET", [121, 1]]] };
+VIBES.chords = VIBES.pad;
+const vibePos = {};                                           // (where each lane's vibe knobs were left: they move from there)
+let locks = (() => { try { return new Set(JSON.parse(localStorage.getItem("perf1-studio-locks") || "[]")); } catch { return new Set(); } })();
+const lockSave = () => { try { localStorage.setItem("perf1-studio-locks", JSON.stringify([...locks])); } catch { /* (this page only) */ } };
+function vibeHTML(col) {
+  const vs = VIBES[sel]; if (!vs) return "";
+  const pos = vibePos[sel] || (vibePos[sel] = vs.map(() => 0.5));
+  return '<div class="sec vibecard"><h3>VIBE · ' + (LANES.find((l) => l.id === sel) || { name: sel }).name + diceBtn(Object.values(LANE_PARAMS()), "Roll this whole sound: new values near the defaults; locked knobs stay") +
+    '</h3><div class="ctls kn">' + vs.map(([a, b], k) => '<div class="knob vibek" tabindex="0" role="slider" aria-label="' + a + " to " + b + '" data-vk="' + k + '" title="' + a + " ↔ " + b + ': drag up or down; it turns several settings at once"><div class="dial" style="--f:' + pos[k] + ";--c:" + col + '"><i></i></div><span class="v">' + vibeText(k, pos[k]) + '</span><span class="kl">' + a + " ↔ " + b + "</span></div>").join("") +
+    '</div><p class="muted" style="margin:4px 0 0;font-size:.75rem">🎲 rolls a card (or the whole sound) · right-click a knob to lock it 🔒 · Ctrl+Z undoes</p></div>';
+}
+function vibeText(k, f) {
+  const [a, b] = VIBES[sel][k], d = Math.round((f - 0.5) * 200);
+  return f >= 0.999 && b === "WILD" ? "11" : d === 0 ? "·" : d < 0 ? a + " " + -d : b + " " + d;
+}
+const LANE_PARAMS = () => { const tab = D.tabs.find((t) => t.name === LANE_TAB[sel]); const o = {}; (tab ? tab.sections : []).forEach((x) => x.knobs.forEach((k) => { o[k.p] = k.p; })); return o; };
+function diceBtn(ps, title) { return '<button class="small dice" data-dice="' + ps.join(",") + '" title="' + (title || "Roll these: new values near the defaults; locked knobs stay") + '">🎲</button>'; }
+const NO_ROLL = new Set([0, 1, 2, 3, 98, PE.P_CM_SND, PE.P_TEMPO, PE.P_ROOT, PE.P_MODE].filter((x) => x !== undefined));   // (levels, the pluck's voice, tempo and key: never)
+function diceRoll(ps) {
+  let n = 0;
+  for (const p of ps) {
+    if (p < 0 || locks.has(p) || NO_ROLL.has(p)) continue;
+    const q = meta(p); if (!q) continue;
+    const lab = String(q.n || "");
+    if (/^(Octave|By hand|Pan|Length|Probability|Condition|Source|Range|Answer|Frozen|Mutates|Theme|MIDI|Tune|Links on|P>Clock|Time|Chain|Slice|Pool|Change|Every|Mode|Trigger|Voicing|Loop|Chord|Pattern|Kick|Snare|Hats|Perc|Rate|Style|Target)/.test(lab) && !(p === PE.P_PL_SHAPE || p === PE.P_DL_SHAPE)) continue;
+    const span = q.max - q.min, lists = q.t && q.t.length > 2;
+    const v = lists ? q.min + Math.floor(Math.random() * (span + 1)) : Math.round(Math.max(q.min, Math.min(q.max, (q.def ?? (q.min + span / 2)) + (Math.random() * 2 - 1) * 0.35 * span)));
+    if (parSetV(p, v)) { changedPar(p); n++; }
+  }
+  syncCtls(); drawPics();
+  return n;
+}
+let vibeDrag = null;
+document.addEventListener("pointerdown", (e) => {
+  const k = e.target.closest(".vibek"); if (!k || !io) return;
+  e.preventDefault(); k.setPointerCapture(e.pointerId);
+  const vk = +k.dataset.vk, [, , ...targets] = VIBES[sel][vk];
+  vibeDrag = { k, vk, y: e.clientY, f0: vibePos[sel][vk], base: targets.map(([p, w]) => [p, w, parV(p)]) };
+});
+document.addEventListener("pointermove", (e) => {
+  if (!vibeDrag) return;
+  const d = (vibeDrag.y - e.clientY) / 150 * (e.shiftKey ? 0.2 : 1), f = Math.max(0, Math.min(1, vibeDrag.f0 + d)), dd = f - vibeDrag.f0;
+  vibePos[sel][vibeDrag.vk] = f;
+  for (const [p, w, b] of vibeDrag.base) { if (locks.has(p)) continue; const q = meta(p); if (parSetV(p, Math.round(Math.max(q.min, Math.min(q.max, b + dd * w * (q.max - q.min)))))) changedPar(p); }
+  vibeDrag.k.querySelector(".dial").style.setProperty("--f", f);
+  vibeDrag.k.querySelector(".v").textContent = vibeText(vibeDrag.vk, f);
+  vibeDrag.k.classList.toggle("eleven", f >= 0.999 && VIBES[sel][vibeDrag.vk][1] === "WILD");
+});
+document.addEventListener("pointerup", () => { if (vibeDrag) { vibeDrag = null; syncCtls(); drawPics(); } });
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-dice]"); if (!b || !io) return;
+  const n = diceRoll(b.dataset.dice.split(",").map(Number));
+  say(n ? "🎲 " + n + " settings rolled" + (locks.size ? " (locked ones stayed)" : "") + ". Ctrl+Z if it was better before." : "Nothing to roll there (all locked, or settings dice leave alone).");
+});
+document.addEventListener("contextmenu", (e) => {               // a lock: right-click (or Alt-click) a knob
+  const k = e.target.closest(".knob[data-p]"); if (!k) return;
+  e.preventDefault(); lockToggle(k);
+});
+document.addEventListener("click", (e) => { if (!e.altKey) return; const k = e.target.closest(".knob[data-p]"); if (k) { e.preventDefault(); lockToggle(k); } }, true);
+function lockToggle(k) {
+  const p = +k.dataset.p;
+  if (locks.has(p)) locks.delete(p); else locks.add(p);
+  lockSave(); syncCtls();
+  say((locks.has(p) ? "🔒 Locked: " : "Unlocked: ") + (k.querySelector(".kl") ? k.querySelector(".kl").textContent : "it") + (locks.has(p) ? ". The dice and the vibe knobs leave it alone." : "."));
+}
+
 // the picture a section of a page gets (by its page and section, its knobs found by their labels), or none
 function picFor(tabName, x, col) {
   const k = (re) => { const q = x.knobs.find((y) => re.test(y.label)); return q ? q.p : NaN; };
@@ -1339,7 +2215,7 @@ const knobIn = (tabName, re, secRe) => { const t = tabOf(tabName); for (const x 
 function deskStrips() {
   const mix = tabOf("Mixer"), sec = (n) => (mix.sections.find((x) => x.name.startsWith(n)) || { knobs: [] }).knobs;
   const L = sec("Levels"), Pn = sec("Pan"), Sd = sec("Send");
-  const parts = [["PAD", "Pad", COL.pad], ["BASS", "Bass", COL.bass], ["ACID", "Acid", COL.acid], ["PLUCK", "Pluck", COL.pluck], ["DRUMS", "Drums", COL.drum], ["VINYL", "Vinyl", "#c9c6bd"]];
+  const parts = [["PAD", "Pad", COL.pad], ["BASS", "Bass", COL.bass], ["ACID", "Acid", COL.acid], ["PLUCK", "Pluck", COL.pluck], ["DRUMS", "Drums", COL.drum]];   // (no VINYL strip: the Mixer's Vinyl level and Wear are not used by the engine, 0.17.15; the vinyl is the FX menu's VINYL key)
   return parts.map(([n, t, c]) => {
     const lv = L.find((k) => k.label === t), pn = Pn.find((k) => k.label === t), sd = Sd.find((k) => k.label === t);
     const extra = [];
@@ -1349,41 +2225,66 @@ function deskStrips() {
     return { n, c, k: ["Pad", "Bass", "Acid", "Pluck", "Drums"].indexOf(t), lvl: lv ? lv.p : -1, pan: pn ? pn.p : -1, send: sd ? sd.p : -1, extra: extra.filter((x) => x[0] >= 0) };
   });
 }
-const muteMem = {};
+const LANE_TRK = { drums: 0x0F, bass: 0x10, acid: 0x20, pluck: 0x80, pad: 0x40 };
+const DESK_TRK = { PAD: 0x40, BASS: 0x10, ACID: 0x20, PLUCK: 0x80, DRUMS: 0x0F };   // (a strip's tracks: ui.c SL_PARTM)
+let deskSolo = 0;
+async function deskTrk(mute, solo) {
+  const r = await ask({ type: "st_trk", mute, solo });
+  if (!r.ok) say("This emulator build has no track mutes: rebuild it (web/emu/build_clang.sh).", true);
+}
+function deskMS() {                                           // M lit from what the engine has out (a song place's parts too), S from the solos
+  const out = live ? live.trk || 0 : 0;
+  document.querySelectorAll("#desk .mute[data-trk]").forEach((b) => { const m = +b.dataset.trk; b.setAttribute("aria-pressed", String((out & m) === m)); });
+  document.querySelectorAll("#desk .solo[data-trk]").forEach((b) => { const m = +b.dataset.trk; b.setAttribute("aria-pressed", String((deskSolo & m) === m)); });
+  document.querySelectorAll("#desk .strip").forEach((el) => { const b = el.querySelector(".mute[data-trk]"); if (!b) return; const m = +b.dataset.trk;
+    el.classList.toggle("out", (out & m) === m || (deskSolo && !(deskSolo & m))); });
+}
+setInterval(() => { if (view === "desk") deskMS(); }, 120);
 function deskRender() {
   if (view !== "desk" || !io) return;
-  let h = deskStrips().map((st) => '<div class="strip" style="--c:' + st.c + '"><div class="cap"></div><h3>' + st.n +
-    (st.lvl >= 0 ? '<button class="small mute" data-p="' + st.lvl + '" title="Mute (the level to 0, and back)">M</button>' : "") + '</h3><div class="body">' +
-    (st.lvl >= 0 ? '<div class="fader" tabindex="0" role="slider" aria-label="' + st.n + ' level" data-p="' + st.lvl + '"><i></i><b></b></div><div class="lv"></div>' : "") +
-    (st.k >= 0 ? '<div class="meter" data-k="' + st.k + '" title="What it plays now"><i></i></div>' : "") +
-    (st.pan >= 0 ? ctlHTML(st.pan, "Pan", st.c) : "") + (st.send >= 0 ? ctlHTML(st.send, "Send", st.c) : "") + st.extra.map(([p, l]) => ctlHTML(p, l, st.c)).join("") + "</div></div>").join("");
-  const sp = tabOf("Space & master"), tg = tabOf("Tempo & global"), skip = new Set([PE.P_THEME, PE.P_MIDI, PE.P_TUNE]);
+  let h = '<div class="fadebar"><span class="lbl">FADES OVER</span>' + [1, 2, 4, 8, 16].map((b) => '<button class="small" data-fb="' + b + '" aria-pressed="' + (b === fadeBars) + '">' + b + (b === 1 ? " bar" : " bars") + "</button>").join("") +
+    '<span>FADE OUT takes a part down to nothing and mutes it; FADE IN brings it back up to its level. The piece keeps its levels.</span></div><div class="strips">' + deskStrips().map((st) => '<div class="strip" style="--c:' + st.c + '"><div class="cap"></div><h3>' + st.n +
+    (DESK_TRK[st.n] ? '<span class="ms"><button class="small mute" data-trk="' + DESK_TRK[st.n] + '" title="Mute: out now (as GLO and a key on the FM-1: not stored with the piece)">M</button>' +
+      '<button class="small solo" data-trk="' + DESK_TRK[st.n] + '" title="Solo: only the soloed parts play (not stored)">S</button></span>' : "") + '</h3><div class="body">' +
+    (DESK_TRK[st.n] && st.lvl >= 0 ? '<button class="small fade" data-trk="' + DESK_TRK[st.n] + '" data-p="' + st.lvl + '" title="Fade the part out over the bars set above (then it is muted, its level kept), or in from out">FADE OUT<i></i></button>' : "") +
+    '<div class="mix">' + (st.lvl >= 0 ? '<div class="fader" tabindex="0" role="slider" aria-label="' + st.n + ' level" data-p="' + st.lvl + '"><i></i><b></b></div>' : "") +
+    (st.k >= 0 ? '<div class="meter v" data-k="' + st.k + '" title="What it plays now"><i></i></div>' : "") + "</div>" + (st.lvl >= 0 ? '<div class="lv"></div>' : "") +
+    '<div class="knobs">' + (st.pan >= 0 ? knobHTML(st.pan, "Pan", st.c) : "") + (st.send >= 0 ? knobHTML(st.send, "Send", st.c) : "") + "</div>" +
+    ((ls) => (ls.length ? '<div class="lists">' + ls.map(([p, l]) => ctlHTML(p, l, st.c)).join("") + "</div>" : ""))(st.extra.filter(([p]) => isList(p))) +
+    ((ks) => (ks.length ? '<div class="knobs">' + ks.map(([p, l]) => knobHTML(p, l, st.c)).join("") + "</div>" : ""))(st.extra.filter(([p]) => !isList(p))) + "</div></div>").join("") + "</div>";
+  const sp = tabOf("Space & master"), tg = tabOf("Tempo & global"), skip = new Set([PE.P_THEME, PE.P_MIDI, PE.P_TUNE, PE.P_TEMPO, PE.P_ROOT, PE.P_MODE].filter((x) => x !== undefined));   // (tempo and key: on the top bar)
   const all = sp.sections.flatMap((x) => x.knobs), kk = (re, secRe) => { for (const x of sp.sections) if (!secRe || secRe.test(x.name)) { const q = x.knobs.find((y) => re.test(y.label)); if (q) return q.p; } return NaN; };
   const strips = deskStrips().slice(0, 5);
-  h += '<div class="deskside"><div class="sec"><h3>The stage</h3>' + picHTML("stereo", strips.flatMap((st) => [st.pan, st.send]), COL.acc, 170) + "</div>" + [...sp.sections, ...tg.sections].map((x) => {
+  h += '<div class="deskbelow"><div class="sec wide"><h3>The stage: drag a part (left / right: where it sits; up: how much goes to the echo and reverb)</h3>' + picHTML("stereo", strips.flatMap((st) => [st.pan, st.send]), COL.acc, 200) + "</div>" + [...sp.sections, ...tg.sections].map((x) => {
     const ks = x.knobs.filter((k) => !skip.has(k.p));
     let pic = "";
-    if (x.name === "Space") pic = picHTML("space", [kk(/^Echo$/), kk(/^Echo time/), kk(/^Reverb$/), kk(/^Size/), kk(/^Damping/, /^Reverb/), kk(/^Predelay/, /^Reverb/)], COL.pad, 120);
+    if (x.name === "Space") pic = picHTML("space", [kk(/^Echo$/), kk(/^Echo time/), kk(/^Reverb$/), kk(/^Size/), kk(/^Damping/, /^Reverb/), kk(/^Predelay/, /^Reverb/)], COL.ink, 120);
     if (/^Master/.test(x.name)) pic = picHTML("comp", [kk(/^Ratio/), kk(/^Thresh/), kk(/^Make-up/), kk(/^Ceiling/)], COL.acc, 150);
-    return ks.length ? '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + pic + '<div class="ctls">' + ks.map((k) => ctlHTML(k.p, k.label)).join("") + "</div></div>" : "";
+    return ks.length ? '<div class="sec"><h3>' + shortLabel(x.name) + "</h3>" + pic + '<div class="ctls kn">' + ks.map((k) => knobHTML(k.p, k.label)).join("") + "</div></div>" : "";
   }).join("") + "</div>";
   $("desk").innerHTML = h;
   syncCtls(); drawPics();
 }
 $("desk").addEventListener("click", (e) => {
-  const b = e.target.closest(".mute");
-  if (!b || !io) return;
-  const p = +b.dataset.p;
-  if (parV(p)) { muteMem[p] = parV(p); parSetV(p, 0); } else parSetV(p, muteMem[p] || P[p].def || 50);
-  changed();
+  const fb = e.target.closest("button[data-fb]");
+  if (fb) { fadeBars = +fb.dataset.fb; document.querySelectorAll("#desk button[data-fb]").forEach((x) => x.setAttribute("aria-pressed", String(x === fb))); return; }
+  const fd = e.target.closest(".fade[data-trk]");
+  if (fd) return deskFade(+fd.dataset.trk, +fd.dataset.p);
+  const b = e.target.closest(".mute[data-trk], .solo[data-trk]");
+  if (!b || !node) return;
+  const m = +b.dataset.trk, out = live ? live.trk || 0 : 0;
+  if (b.classList.contains("mute")) deskTrk((out & m) === m ? out & ~m : out | m, deskSolo);
+  else { deskSolo = (deskSolo & m) === m ? deskSolo & ~m : deskSolo | m; deskTrk(out, deskSolo); }
+  setTimeout(deskMS, 150);
 });
 document.querySelector(".views").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-view]");
   if (!b) return;
   view = b.dataset.view;
   document.querySelectorAll(".views button[data-view]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
-  $("loom").hidden = view !== "loom"; $("desk").hidden = view !== "desk"; $("song").hidden = view !== "song";
-  deskRender(); songLoad(); refresh();
+  $("loom").hidden = view !== "loom"; $("desk").hidden = view !== "desk"; $("song").hidden = view !== "song"; $("fx").hidden = view !== "fx";
+  fxLoad();
+  deskRender(); songLoad(); refresh(); undoButtons();
 });
 
 $("zoom").addEventListener("change", () => { zoom = +$("zoom").value; refresh(); });
@@ -1490,51 +2391,100 @@ setInterval(() => { if (ac && node && !analyser) scopeStart(); }, 500);
 
 /* ======================================================================== the SONG: the set list (project.c glob: sixteen places) as a song
  * (0.17.13, song mode) Each place plays its piece for its bars (Auto: the auto-DJ's rounds) with the parts it leaves out; Play goes Off, Loop (round
- * again) or Once (stop after the last). A place plays its piece as saved in the bank (Save in the emulator). The timeline draws the song: a block a
- * place as long as its bars, a lane a part (left out: empty), the place and bar playing. */
+ * again) or Once (stop after the last). (0.17.14) A place can also set the drum pattern it plays (0 the piece's own, 1..6) and its energy (the mood
+ * macro: 0 as it is, else mood + 1). A place plays its piece as saved in the bank (Save in the emulator). The timeline draws the song: a block a
+ * place as long as its bars, a lane a part (left out: empty), its energy as a line, the place and bar playing. */
 let song = null, setSel = 0;
-const GENRE_COL = [COL.pad, COL.acid, COL.drum, COL.bass, COL.pluck];
+const GENRE_COL = ["#ff6fb5", "#d8c39a", "#e6e6e6", "#7f8ea3", "#b5838d"];   // (a genre's own colours: never a part's, which mean the parts everywhere)
 const SONG_BARS = [0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128];
 const PARTS = [["PAD", COL.pad], ["BASS", COL.bass], ["ACID", COL.acid], ["PLUCK", COL.pluck], ["DRUMS", COL.drum]];
 function bankOf(g) {                                          // a genre's bank as the emulator keeps it (this browser), or empty
   try { const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}")[S.objOf(g)]; return raw ? Uint8Array.from(atob(raw), (c) => c.charCodeAt(0)) : new Uint8Array(0); } catch { return new Uint8Array(0); }
 }
-const songFrom = (b) => ({ places: Array.from(b.slice(0, 16)), on: b[16], bars: b.length >= 50 ? Array.from(b.slice(17, 33)) : new Array(16).fill(0),
-                         mutes: b.length >= 50 ? Array.from(b.slice(33, 49)) : new Array(16).fill(0), end: b.length >= 50 ? b[49] : 0, full: b.length >= 50 });
-const songBytes = (x) => Uint8Array.from([...x.places, x.on ? 1 : 0, ...x.bars, ...x.mutes, x.end ? 1 : 0]);
+const SONG_MOODS = [0, ...Array.from({ length: 21 }, (_, k) => k * 5 + 1)];   // As is, then energy 0..100 in 5s (stored + 1, as the unit's knob)
+const z16 = () => new Array(16).fill(0);
+const songFrom = (b) => ({ places: Array.from(b.slice(0, 16)), on: b[16], bars: b.length >= 50 ? Array.from(b.slice(17, 33)) : z16(),
+                         mutes: b.length >= 50 ? Array.from(b.slice(33, 49)) : z16(), end: b.length >= 50 ? b[49] : 0, full: b.length >= 50,
+                         pats: b.length >= 82 ? Array.from(b.slice(50, 66)) : z16(), moods: b.length >= 82 ? Array.from(b.slice(66, 82)) : z16(), full2: b.length >= 82 });
+const songBytes = (x) => Uint8Array.from([...x.places, x.on ? 1 : 0, ...x.bars, ...x.mutes, x.end ? 1 : 0, ...x.pats, ...x.moods]);
+const SONG_ARRS = (x) => [x.places, x.bars, x.mutes, x.pats, x.moods];
+const moodName = (m) => (m ? "energy " + (m - 1) : "energy as is");
+let songUndo = [], songRedo = [], songPrev = null;            // the song's edits, undone in SONG (Ctrl+Z, the Undo button)
+const sameB = (a, b) => a && b && a.length === b.length && a.every((v, i) => v === b[i]);
+async function songHist(from, to, word) {
+  if (!from.length || !song || rec) return;
+  to.push(songBytes(song));
+  song = songFrom(from.pop());
+  await songWrite(word + ": the song as it was.", true);
+}
 async function songLoad() {
   if (view !== "song") return;
   if (!node) { $("song").innerHTML = '<p class="muted">Switch on to see and arrange the song.</p>'; return; }
   const r = await ask({ type: "st_set" });
   song = songFrom(r.sl);
+  songPrev = songBytes(song); undoButtons();
+  if (moves.length && (!fxd || !fxd.names)) await fxAsk({ all: 1 });
+  if (!slGenre && cur) slGenre = cur.genre;
+  slShown = -2;
   songRender();
 }
-async function songWrite(msg) {
-  const r = await ask({ type: "st_set", sl: songBytes(song) });
+async function songWrite(msg, quiet) {                      // (quiet: no undo step: an undo itself, or the recorder's Once and back)
+  const nb = songBytes(song);
+  if (!quiet && songPrev && !sameB(nb, songPrev)) { songUndo.push(songPrev); if (songUndo.length > 200) songUndo.shift(); songRedo = []; }
+  const r = await ask({ type: "st_set", sl: nb });
   song = songFrom(r.sl);
+  songPrev = songBytes(song); undoButtons();
   songRender();
   if (msg) say(msg);
+}
+async function songPlay(from) {                             // the song from its first place (from -1) or place `from`: Loop if it was Off, then PLAY
+  if (!node || !song) return;
+  if (live && live.playing) {                                 // playing: stop (the button reads Stop while the song plays; a block's ■ is -2)
+    press(BTN_PLAY);
+    if (from === -2 || (from < 0 && song.on)) { setTimeout(songRender, 250); return; }
+    await new Promise((res) => setTimeout(res, 250));
+  }
+  if (!song.on) { song.on = 1; song.end = 0; await songWrite(); }
+  if (from === -2) return;
+  const s = from >= 0 ? from : song.places.findIndex((x) => x);
+  const pq = s >= 0 && song.places[s] ? pcSetPlaces([song.places[s]])[0] : null;
+  if (!pq) return;
+  await openPiece(pq.genre, pq.slot, s);
+  press(BTN_PLAY);
+  setSel = s;
+  setTimeout(songRender, 250);
+  say("The song plays from place " + (s + 1) + ": " + S.genreName(pq.genre) + " " + S.pieceName(pq.genre, pq.slot) + (song.mutes[s] ? ", without " + PARTS.filter((_, k) => (song.mutes[s] >> k) & 1).map(([n]) => n.toLowerCase()).join(", ") : "") +
+    (song.bars[s] ? ", " + song.bars[s] + " bars" : ", Auto") + ". " + (song.end ? "Once: it stops after the last place." : "Loop: round again after the last place."));
 }
 const placeBars = (i) => song.bars[i] || 16;                  // (an Auto place drawn as sixteen bars, hatched: the auto-DJ decides)
 function songRender() {
   if (!song) return;
   const sel = setSel, q = song.places[sel] ? pcSetPlaces([song.places[sel]])[0] : null, mode = !song.on ? 0 : song.end ? 2 : 1;
   const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), total = used.reduce((a, i) => a + (song.bars[i] || 0), 0), autos = used.filter((i) => !song.bars[i]).length;
-  let h = '<div class="bar"><span class="lbl">PLAY</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
-    '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? "" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
-    '<canvas id="songline" height="150" aria-label="The song: a block a place, as long as its bars, a lane a part"></canvas>' +
+  let h = '<div class="bar"><button id="mvRec" aria-pressed="' + mvRec + '" title="While the song plays: the effects you tap (FX) and the fades (DESK) are kept where they happen, and play back with the song and its WAV">' + (mvRec ? "● Recording moves" : "● Rec moves") + "</button>" +
+    (moves.some((e) => e.k !== "base") ? '<button id="mvClear" title="Forget every recorded move">Clear moves (' + moves.filter((e) => e.k !== "base").length + ")</button>" : "") + '<button id="slWav"' + (used.length || rec ? "" : " disabled") + ' title="Plays the song once from its first place and records it: a WAV (44.1 kHz, 16-bit stereo) to download">' + (rec ? "■ Stop recording" : "● Song to WAV") + '</button><button id="slSend"' + (used.length ? "" : " disabled") + ' title="Opens the Library &amp; pieces page with this song as a set: connect the FM-1 there and add it">Send the song to the FM-1</button><button id="slPlay"' + (used.length ? "" : " disabled") + '>' + (live && live.playing && song.on ? "■ Stop" : "▶ Play the song") + '</button><button id="slFrom"' + (q ? "" : " disabled") + ">▶ From place " + (sel + 1) + "</button>" +
+    '<span class="lbl">&nbsp;SONG</span>' + ["Off", "Loop", "Once"].map((t, k) => '<button class="small" data-mode="' + k + '" aria-pressed="' + (mode === k) + '">' + t + "</button>").join("") +
+    '<span class="muted">' + used.length + " places · " + total + " bars" + (autos ? " + " + autos + " on Auto" : "") + (song.full ? song.full2 ? "" : " · patterns and energy need 0.17.14" : " · this firmware has no song mode (bars and parts need 0.17.13)") + "</span></div>" +
+    '<canvas id="songline" height="' + SLH + '" aria-label="The song: a block a place, as long as its bars, a lane a part, its energy"></canvas><div id="songnow" class="muted" style="margin-top:4px"></div>' +
+    '<div class="muted" style="margin-top:2px;font-size:.8rem">On the song: click a lane to take that part out or bring it back · drag a block\'s right edge for its bars · drag up or down in ENERGY (right-click: as is) · drag a block\'s name to move it · ▶ on a block plays from there.</div>' +
+    '<div class="bar chips" style="margin-top:8px"><span class="lbl">PIECES</span><select id="slGenre" aria-label="Genre of the pieces to add">' + N.genres.map((n, g) => '<option value="' + g + '"' + (g === slGenre ? " selected" : "") + ">" + n + "</option>").join("") + "</select>" +
+    (N.pieces[slGenre] || []).map((n, k) => '<button class="small chip" draggable="true" data-g="' + slGenre + '" data-p="' + k + '" style="--c:' + GENRE_COL[slGenre % 5] + '" title="Drag onto the song, or click: into place ' + (sel + 1) + '">' + n + "</button>").join("") +
+    '<span class="muted">drag one onto the song, or click: into place ' + (sel + 1) + "</span></div>" +
     '<div class="bar" style="margin-top:8px"><span class="lbl">PLACE ' + (sel + 1) + "</span>" + (q ? "<b>" + S.genreName(q.genre) + " " + S.pieceName(q.genre, q.slot) + "</b>" : '<span class="muted">empty</span>') +
     '<span class="lbl">&nbsp;BARS</span><select id="slBars" aria-label="Place ' + (sel + 1) + ' bars"' + (q ? "" : " disabled") + ">" + SONG_BARS.map((b) => '<option value="' + b + '"' + (song.bars[sel] === b ? " selected" : "") + ">" + (b ? b + " bars" : "Auto") + "</option>").join("") + "</select>" +
-    '<span class="lbl">&nbsp;PARTS</span>' + PARTS.map(([n], k) => '<button class="small" data-part="' + k + '" aria-pressed="' + !((song.mutes[sel] >> k) & 1) + '"' + (q ? "" : " disabled") + ">" + n + "</button>").join("") + "</div>" +
+    '<span class="lbl">&nbsp;PARTS</span>' + PARTS.map(([n], k) => '<button class="small" data-part="' + k + '" aria-pressed="' + !((song.mutes[sel] >> k) & 1) + '"' + (q ? "" : " disabled") + ">" + n + "</button>").join("") +
+    '<span class="lbl">&nbsp;PATTERN</span><select id="slPat" aria-label="Place ' + (sel + 1) + ' drum pattern"' + (q && song.full2 ? "" : " disabled") + ">" + [0, 1, 2, 3, 4, 5, 6].map((v) => '<option value="' + v + '"' + (song.pats[sel] === v ? " selected" : "") + ">" + (v ? "Pattern " + v : "The piece's") + "</option>").join("") + "</select>" +
+    '<span class="lbl">&nbsp;ENERGY</span><select id="slMood" aria-label="Place ' + (sel + 1) + ' energy"' + (q && song.full2 ? "" : " disabled") + ">" + (SONG_MOODS.includes(song.moods[sel]) ? SONG_MOODS : [...SONG_MOODS, song.moods[sel]].sort((a, b) => a - b)).map((v) => '<option value="' + v + '"' + (song.moods[sel] === v ? " selected" : "") + ">" + (v ? v - 1 + (v === 1 ? " chill" : v === 101 ? " peak" : "") : "As is") + "</option>").join("") + "</select></div>" +
     '<div class="bar"><button id="slPut">Put the open piece in place ' + (sel + 1) + '</button><button id="slOpen"' + (q ? "" : " disabled") + ">Open it</button>" +
     '<button id="slLeft">◀ Move</button><button id="slRight">Move ▶</button><button id="slClear">Clear place ' + (sel + 1) + "</button>" +
-    '<span class="muted">Click a block (or a place below) to pick it; drag the places to reorder. Parts lit play; the others are left out of that place.</span></div><div class="places">';
+    '<span class="muted">Click a place to pick it; drag the places to reorder.</span></div><div class="places">';
   song.places.forEach((x, i) => {
     const pq = x ? pcSetPlaces([x])[0] : null, now = live && live.playing && live.slPos === i;
     if (!pq) { h += '<div class="place empty' + (i === sel ? " sel" : "") + '" data-i="' + i + '" draggable="true"><div class="n">' + (i + 1) + "</div><div>empty</div></div>"; return; }
     const bank = bankOf(pq.genre), saved = !pcBankCheck(bank, pq.genre) && ((pcSaved(bank) >> pq.slot) & 1);
     h += '<div class="place' + (i === sel ? " sel" : "") + (now ? " now" : "") + '" data-i="' + i + '" draggable="true" style="--c:' + GENRE_COL[pq.genre % 5] + '"><div class="n">' + (i + 1) + " · " + (song.bars[i] ? song.bars[i] + " bars" : "auto") +
       '</div><div class="g">' + S.genreName(pq.genre) + '</div><div class="pc">' + S.pieceName(pq.genre, pq.slot) + '</div><canvas data-mini="' + i + '" width="160" height="36"></canvas><div class="st">' + (saved ? "saved" : "its recipe") +
+      (song.pats[i] ? " · pattern " + song.pats[i] : "") + (song.moods[i] ? " · " + moodName(song.moods[i]) : "") +
       (song.mutes[i] ? " · without " + PARTS.filter((_, k) => (song.mutes[i] >> k) & 1).map(([n]) => n.toLowerCase()).join(", ") : "") + "</div></div>";
   });
   $("song").innerHTML = h + "</div>";
@@ -1546,7 +2496,7 @@ function songRender() {
     let pc = null;
     try { pc = pcFromBank(bank, pq.genre, pq.slot); } catch { pc = null; }
     if (!pc) { g.fillStyle = "#3a3e4a"; g.font = "600 10px 'Chakra Petch', sans-serif"; g.fillText("as the genre makes it", 6, 22); return; }
-    const pat = Math.max(0, Math.min(5, pcGet(pc, PE.P_PATTERN, 0) || 0));
+    const pat = song.pats[i] ? song.pats[i] - 1 : Math.max(0, Math.min(5, pcGet(pc, PE.P_PATTERN, 0) || 0));   // (the place's pattern when it sets one)
     for (let l = 0; l < 6; l++) {
       const m = pc.rec[2 + 2 * (pat * 6 + l)] | (pc.rec[3 + 2 * (pat * 6 + l)] << 8);
       for (let st = 0; st < 16; st++) if ((m >> st) & 1) { g.fillStyle = COL.drum; g.globalAlpha = l ? 0.75 : 1; g.fillRect(2 + st * 9.75, 2 + l * 5.5, 7, 4.5); }
@@ -1555,50 +2505,313 @@ function songRender() {
   });
   songLine();
 }
-let songHit = [];
-function songLine() {                                         // the song as a timeline: a block a place, its lanes, the place and bar playing
+let songHit = [], songGeo = null, tl = null, slShown = -2, slGenre = 0;   // (tl: a drag on the timeline: bars, energy, move, part)
+const SLH = 254, SL_MV = 48, SL_TOP = 24, SL_EH = 40, SL_BARS = SONG_BARS.slice(1), SL_FIT = [24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048];   // (the scale: in steps, so an edit seldom moves the others)
+const slBarsOf = (i) => (tl && tl.kind === "bars" && tl.i === i ? tl.v : placeBars(i));
+const slMoodOf = (i) => (tl && tl.kind === "energy" && tl.i === i ? tl.v : song.moods[i]);
+function songLine() {                                         // the song as a timeline: a block a place, its lanes, its energy, the place and bar playing
   const cv = $("songline");
   if (!cv || !song) return;
-  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = 150;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = SLH;
   if (!W) return;
   if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.fillStyle = "#121318"; g.fillRect(0, 0, W, H);
-  const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), LX = 60, top = 22, lh = (H - top - 8) / 5;
+  const used = song.places.map((x, i) => (x ? i : -1)).filter((i) => i >= 0), LX = 60, top = SL_TOP, eH = SL_EH, eTop = H - eH - 6 - SL_MV, lh = (eTop - top - 4) / 5;
   PARTS.forEach(([n, c], k) => { g.fillStyle = c; g.fillRect(6, top + k * lh + 3, 3, lh - 6); g.font = FONT(700, 10); g.fillStyle = COL.dim; g.fillText(n, 13, top + k * lh + lh / 2 + 4); });
+  g.fillStyle = COL.ink; g.fillRect(6, eTop + 3, 3, eH - 6); g.font = FONT(700, 10); g.fillStyle = COL.dim; g.fillText("ENERGY", 13, eTop + eH / 2 + 4);
+  g.fillStyle = mvRec ? "#ff5a5f" : "#555a66"; g.font = FONT(700, 10); g.fillText(mvRec ? "● REC FX" : "FX", 13, eTop + eH + 20); g.fillStyle = mvRec ? "#ff5a5f" : "#555a66"; g.fillText("FADES", 13, eTop + eH + 42);
   songHit = [];
-  if (!used.length) { g.fillStyle = COL.dim; g.font = "500 14px 'Barlow Semi Condensed', sans-serif"; g.fillText("No places yet: open a piece and put it in place 1.", LX, H / 2); return; }
-  const total = used.reduce((a, i) => a + placeBars(i), 0), bw = (W - LX - 8) / total;
+  songGeo = { LX, top, lh, eTop, eH, W, H, bw: 0 };
+  if (!used.length) { g.fillStyle = COL.dim; g.font = "500 14px 'Barlow Semi Condensed', sans-serif"; g.fillText("No places yet: drag a piece from PIECES (below) onto here.", LX, H / 2); return; }
+  const total = used.reduce((a, i) => a + slBarsOf(i), 0), bw = tl && tl.bw ? tl.bw : (W - LX - 8) / (SL_FIT.find((f) => f >= total + 6) || total + 6);
+  songGeo.bw = bw;
   let x = LX;
   for (const i of used) {
-    const pq = pcSetPlaces([song.places[i]])[0], w = placeBars(i) * bw, auto = !song.bars[i], gc = GENRE_COL[pq.genre % 5];
-    g.fillStyle = i === setSel ? "#2a2416" : "#181a1f"; g.fillRect(x + 1, 2, w - 2, H - 4);
+    const pq = pcSetPlaces([song.places[i]])[0], b = slBarsOf(i), w = b * bw, auto = !song.bars[i] && !(tl && tl.kind === "bars" && tl.i === i), gc = GENRE_COL[pq.genre % 5];
+    const now = !!(live && live.playing && song.on && live.slPos === i), bar = now ? Math.min(b, (live.slBar === 255 ? 0 : live.slBar) + (live.step || 0) / 16) : 0;
+    g.fillStyle = i === setSel ? "#2a2416" : now ? "#1b2119" : "#181a1f"; g.fillRect(x + 1, 2, w - 2, H - 4);
+    if (now) { g.fillStyle = hexA(COL.acc, 0.08); g.fillRect(x + 1, 2, bar * bw, H - 4); }   // the part of it played
     g.fillStyle = gc; g.fillRect(x + 1, 2, w - 2, 3);
-    g.font = FONT(700, 11); g.fillStyle = COL.ink; g.save(); g.beginPath(); g.rect(x + 1, 0, w - 2, H); g.clip();
-    g.fillText((i + 1) + " " + S.genreName(pq.genre) + " " + S.pieceName(pq.genre, pq.slot) + "  " + (auto ? "auto" : song.bars[i] + " bars"), x + 5, 17);
-    PARTS.forEach(([n, c], k) => {                            // a part's lane: lit where it plays
-      if ((song.mutes[i] >> k) & 1) { g.strokeStyle = "#2e313a"; g.setLineDash([2, 3]); g.strokeRect(x + 3.5, top + k * lh + 3.5, w - 7, lh - 7); g.setLineDash([]); return; }
-      g.fillStyle = hexA(c, auto ? 0.28 : 0.55); g.fillRect(x + 3, top + k * lh + 3, w - 6, lh - 6);
-      if (auto) { g.strokeStyle = hexA(c, 0.5); g.lineWidth = 1; for (let hx = x + 3; hx < x + w - 6; hx += 8) { g.beginPath(); g.moveTo(hx, top + k * lh + lh - 3); g.lineTo(hx + 6, top + k * lh + 3); g.stroke(); } }
+    g.save(); g.beginPath(); g.rect(x + 1, 0, w - 2, H); g.clip();
+    g.fillStyle = now ? COL.acc : hexA(COL.ink, 0.75); g.font = FONT(700, 11); g.fillText(now ? "■" : "▶", x + 5, 17);   // play from here (stop, when it plays)
+    g.fillStyle = COL.ink;
+    g.fillText((i + 1) + " " + S.genreName(pq.genre) + " " + S.pieceName(pq.genre, pq.slot) + "  " + (auto ? "auto" : b + " bars") + (song.pats[i] ? "  P" + song.pats[i] : "") +
+      (now && !auto ? "  · " + Math.max(0, Math.ceil(b - bar)) + " left" : ""), x + 19, 17);
+    PARTS.forEach(([n, c], k) => {                            // a part's lane: lit where it plays, an outline where it is left out
+      const ly = top + k * lh;
+      if ((song.mutes[i] >> k) & 1) { g.strokeStyle = "#3a3e4a"; g.lineWidth = 1; g.setLineDash([2, 3]); g.strokeRect(x + 3.5, ly + 3.5, w - 7, lh - 7); g.setLineDash([]);
+        if (w > 70) { g.fillStyle = "#4a4e5a"; g.font = FONT(600, 9); g.fillText("out", x + 8, ly + lh / 2 + 3); } return; }
+      g.fillStyle = hexA(c, auto ? 0.28 : now ? 0.7 : 0.55); g.fillRect(x + 3, ly + 3, w - 6, lh - 6);
+      if (auto) { g.strokeStyle = hexA(c, 0.5); g.lineWidth = 1; for (let hx = x + 3; hx < x + w - 6; hx += 8) { g.beginPath(); g.moveTo(hx, ly + lh - 3); g.lineTo(hx + 6, ly + 3); g.stroke(); } }
     });
+    const m = slMoodOf(i);                                     // its energy: a bar from the floor, chill .. peak
+    g.fillStyle = "#14161b"; g.fillRect(x + 3, eTop + 2, w - 6, eH - 4);
+    if (!song.full2) { g.fillStyle = "#4a4e5a"; g.font = FONT(600, 9); if (w > 60) g.fillText("needs 0.17.14", x + 7, eTop + eH / 2 + 3); }
+    else if (m) {
+      const eh = Math.max(2, (m - 1) / 100 * (eH - 6));
+      g.fillStyle = hexA(COL.ink, i === setSel || (tl && tl.i === i) ? 0.55 : 0.32); g.fillRect(x + 3, eTop + eH - 3 - eh, w - 6, eh);
+      g.fillStyle = COL.ink; g.fillRect(x + 3, eTop + eH - 3 - eh, w - 6, 2);
+      g.font = FONT(700, 10); g.fillText(String(m - 1), x + 7, Math.max(eTop + 12, eTop + eH - 6 - eh));
+    } else { g.fillStyle = "#4a4e5a"; g.font = FONT(600, 9); if (w > 40) g.fillText("as is", x + 7, eTop + eH / 2 + 3); }
     g.restore();
-    if (i === setSel) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.strokeRect(x + 1, 1, w - 2, H - 2); }
-    if (live && live.playing && live.slPos === i && song.on) {   // the bar playing in it
-      const bx = x + Math.min(placeBars(i), (live.slBar === 255 ? 0 : live.slBar) + (live.step || 0) / 16) * bw;
-      g.fillStyle = COL.acc; g.fillRect(Math.round(bx) - 1, 2, 2, H - 4);
+    if (i === setSel) { g.strokeStyle = COL.acc; g.lineWidth = 2; g.strokeRect(x + 1, 1, w - 2, H - 2);
+      g.fillStyle = COL.acc; g.fillRect(x + w - 5, top + lh * 2, 3, lh);   // the grip: drag the edge for the bars
     }
+    if (now) { const bx = x + bar * bw; g.fillStyle = COL.acc; g.fillRect(Math.round(bx) - 1, 2, 2, H - 4); }   // the bar playing in it
     songHit.push([x, w, i]);
     x += w;
   }
-}
-setInterval(() => { if (view === "song" && song && live && live.playing) songLine(); }, 100);
-$("song").addEventListener("click", async (e) => {
-  if (e.target.id === "songline") {                           // a block on the timeline picks its place
-    const r = e.target.getBoundingClientRect(), x = e.clientX - r.left, hit = songHit.find(([x0, w]) => x >= x0 && x < x0 + w);
-    if (hit) { setSel = hit[2]; songRender(); }
-    return;
+  songMovesDraw(g, eTop + eH + 4, W);
+  if (x < W - 60 && used.length < 16) {                        // the room after the song: a piece dropped here takes the next empty place
+    g.strokeStyle = "#2e313a"; g.lineWidth = 1; g.setLineDash([4, 4]); g.strokeRect(x + 6.5, 6.5, W - x - 14, H - 13); g.setLineDash([]);
+    g.fillStyle = "#4a4e5a"; g.font = FONT(600, 11); g.fillText("+ drop a piece here", x + 16, H / 2 + 4);
   }
+  if (tl && tl.moved && tl.kind === "move" && tl.to !== undefined && tl.to !== tl.i) {   // where the moved place lands
+    const h = songHit.find(([, , j]) => j === tl.to);
+    if (h) { const mx = tl.to > tl.i ? h[0] + h[1] : h[0]; g.fillStyle = COL.acc; g.fillRect(mx - 2, 0, 4, H); }
+  }
+  if (tl && tl.kind === "bars") {                             // the bars it would have
+    const h = songHit.find(([, , j]) => j === tl.i);
+    if (h) { const t = tl.v + " bars", tx = Math.min(W - 60, h[0] + h[1] + 6); g.font = FONT(700, 12); g.fillStyle = "#000000"; g.fillRect(tx - 3, top + lh * 2 - 2, g.measureText(t).width + 6, 18); g.fillStyle = COL.acc; g.fillText(t, tx, top + lh * 2 + 11); }
+  }
+}
+function songMovesDraw(g, y0, W) {                           // the moves under the song: an effect's span from on to off, a fade's ramp in its part's colour
+  if (!moves.length || !songHit.length) return;
+  const bw = songGeo.bw, X = (pl, st) => { const h = songHit.find(([, , j]) => j === pl); return h ? h[0] + st / 16 * bw : null; }, endX = songHit[songHit.length - 1][0] + songHit[songHit.length - 1][1];
+  const base = moves.find((e) => e.k === "base") || { lo: 0, hi: 0 };
+  let lo = base.lo >>> 0, hi = base.hi >>> 0;
+  const open = {}, spans = [], moved = new Set();
+  for (const e of moves) if (e.k === "fx") for (let b = 0; b < 64; b++) { const a = b < 32 ? (e.lo >>> b) & 1 : (e.hi >>> (b - 32)) & 1, z = b < 32 ? (base.lo >>> b) & 1 : (base.hi >>> (b - 32)) & 1; if (a !== z) moved.add(b); }
+  for (let b = 0; b < 64; b++) if (moved.has(b) && (b < 32 ? (lo >>> b) & 1 : (hi >>> (b - 32)) & 1)) open[b] = songHit[0][0];   // (on from the start)
+  const isOn = (b) => (b < 32 ? (lo >>> b) & 1 : (hi >>> (b - 32)) & 1);
+  for (const e of moves) {
+    if (e.k !== "fx") continue;
+    const x = X(e.pl, e.s); if (x === null) continue;
+    const plo = lo, phi = hi; lo = e.lo >>> 0; hi = e.hi >>> 0;
+    for (let b = 0; b < 64; b++) {
+      const was = b < 32 ? (plo >>> b) & 1 : (phi >>> (b - 32)) & 1, now = isOn(b);
+      if (now && !was) open[b] = x;
+      if (!now && was && open[b] !== undefined) { spans.push([b, open[b], x]); delete open[b]; }
+    }
+  }
+  for (const b of Object.keys(open)) spans.push([+b, open[b], endX]);
+  for (let k = spans.length - 1; k >= 0; k--) if (!moved.has(spans[k][0])) spans.splice(k, 1);   // (only the effects the moves turn on or off)
+  spans.forEach(([b, x0, x1], k) => {
+    const row = k % 2, y = y0 + 2 + row * 10, c = fxd && fxd.names ? fxCol(b) : COL.acc;
+    g.fillStyle = hexA(c, 0.7); g.fillRect(x0, y, Math.max(3, x1 - x0), 8);
+    if (x1 - x0 > 40 && fxd && fxd.names) { g.fillStyle = "#0e0f12"; g.font = FONT(700, 8); g.fillText(fxd.names[b].toUpperCase(), x0 + 3, y + 7); }
+  });
+  for (const e of moves) {
+    if (e.k !== "fade") continue;
+    const x = X(e.pl, e.s); if (x === null) continue;
+    const k = PART_TRK.indexOf(e.trk), c = k >= 0 ? PARTS[k][1] : COL.ink, w = Math.max(6, e.bars * bw), y = y0 + 24, h = 18;
+    g.fillStyle = hexA(c, 0.55); g.beginPath();
+    if (e.dir) { g.moveTo(x, y + h); g.lineTo(x + w, y); g.lineTo(x + w, y + h); } else { g.moveTo(x, y); g.lineTo(x + w, y + h); g.lineTo(x, y + h); }
+    g.closePath(); g.fill();
+  }
+}
+function slAt(e) {                                            // a pointer on the timeline: where, and which block
+  const r = $("songline").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  return { x, y, hit: songHit.find(([x0, w]) => x >= x0 && x < x0 + w) };
+}
+function slKind(p) {                                          // what a press there does
+  const G = songGeo;
+  if (!G || !song) return null;
+  if (p.y >= G.top && p.y < G.eTop) { const ed = songHit.find(([x0, w]) => Math.abs(p.x - (x0 + w)) < 8); if (ed) return { kind: "bars", i: ed[2], bx: ed[0] }; }
+  if (!p.hit) return null;
+  const [x0, , i] = p.hit;
+  if (p.y < G.top) return p.x < x0 + 17 ? { kind: "play", i } : { kind: "move", i };
+  if (p.y >= G.eTop + G.eH) return null;                    // (the moves: drawn, not edited here)
+  if (p.y >= G.eTop) return song.full2 ? { kind: "energy", i } : { kind: "pick", i };
+  return { kind: "part", i, k: Math.max(0, Math.min(4, Math.floor((p.y - G.top) / G.lh))) };
+}
+const slEnergyAt = (y) => { const G = songGeo, v = Math.round((G.eTop + G.eH - 3 - y) / (G.eH - 6) * 20); return Math.max(0, Math.min(20, v)) * 5 + 1; };
+const slBarsAt = (x) => { const raw = (x - tl.bx) / tl.bw; return SL_BARS.reduce((a, b) => (Math.abs(b - raw) < Math.abs(a - raw) ? b : a)); };
+const SL_CURSOR = { bars: "ew-resize", energy: "ns-resize", move: "grab", part: "pointer", play: "pointer", pick: "pointer" };
+$("song").addEventListener("pointerdown", (e) => {
+  if (e.target.id !== "songline" || e.button !== 0 || !song) return;
+  const p = slAt(e), t = slKind(p);
+  if (!t) return;
+  e.preventDefault();
+  e.target.setPointerCapture(e.pointerId);
+  setSel = t.i;
+  tl = { ...t, x0: p.x, y0: p.y, moved: false, bw: songGeo.bw };
+  if (t.kind === "bars") tl.v = placeBars(t.i);
+  if (t.kind === "energy") tl.v = slEnergyAt(p.y);
+  if (t.kind === "move") e.target.style.cursor = "grabbing";
+  songLine();
+});
+$("song").addEventListener("pointermove", (e) => {
+  if (e.target.id !== "songline" || !song) return;
+  const p = slAt(e);
+  if (!tl) { const t = slKind(p); e.target.style.cursor = t ? SL_CURSOR[t.kind] : "default"; return; }
+  if (Math.abs(p.x - tl.x0) + Math.abs(p.y - tl.y0) > 4) tl.moved = true;
+  if (tl.kind === "bars") tl.v = slBarsAt(p.x);
+  else if (tl.kind === "energy") tl.v = slEnergyAt(p.y);
+  else if (tl.kind === "move") tl.to = p.hit ? p.hit[2] : p.x < songGeo.LX ? songHit[0][2] : songHit[songHit.length - 1][2];
+  songLine();
+});
+$("song").addEventListener("pointercancel", () => { if (tl) { tl = null; songRender(); } });
+$("song").addEventListener("pointerup", async (e) => {
+  if (!tl || !song) return;
+  const t = tl, n = "Place " + (t.i + 1) + ": ";
+  tl = null;
+  if (e.target.id === "songline") e.target.style.cursor = "";
+  if (t.kind === "bars" && t.v !== song.bars[t.i] && (t.moved || song.bars[t.i])) { song.bars[t.i] = t.v; return songWrite(n + t.v + " bars."); }
+  if (t.kind === "energy") { song.moods[t.i] = t.v; return songWrite(n + moodName(t.v) + " (the mood macro, from its first bar)."); }
+  if (t.kind === "move" && t.moved && t.to !== undefined && t.to !== t.i) {
+    for (const a of SONG_ARRS(song)) { const v = a.splice(t.i, 1)[0]; a.splice(t.to, 0, v); }
+    setSel = t.to;
+    return songWrite("Moved to place " + (t.to + 1) + ".");
+  }
+  if (t.kind === "part" && !t.moved) {
+    song.mutes[t.i] ^= 1 << t.k;
+    return songWrite(n + PARTS[t.k][0].toLowerCase() + ((song.mutes[t.i] >> t.k) & 1 ? " out" : " back in") + " · plays: " + (PARTS.filter((_, k) => !((song.mutes[t.i] >> k) & 1)).map(([m]) => m.toLowerCase()).join(", ") || "no parts") + ".");
+  }
+  if (t.kind === "play" && !t.moved) return songPlay(live && live.playing && song.on && live.slPos === t.i ? -2 : t.i);
+  songRender();
+});
+$("song").addEventListener("contextmenu", (e) => {            // right-click in ENERGY: back to as is
+  if (e.target.id !== "songline" || !song || !song.full2) return;
+  const p = slAt(e), t = slKind(p);
+  if (!t || t.kind !== "energy") return;
+  e.preventDefault();
+  song.moods[t.i] = 0; setSel = t.i;
+  songWrite("Place " + (t.i + 1) + ": energy as is.");
+});
+function songLive() {                                         // the place playing marked on the cards, the Play button's word (no re-render)
+  const k = live && live.playing && song.on ? live.slPos : -1;
+  if (k === slShown) return;
+  slShown = k;
+  document.querySelectorAll("#song .place").forEach((el) => el.classList.toggle("now", +el.dataset.i === k));
+  const b = $("slPlay");
+  if (b) b.textContent = k >= 0 || (live && live.playing && song.on) ? "■ Stop" : "▶ Play the song";
+  songLine();
+}
+function storeObj(id) {                                       // one of the emulator's stored objects (this browser), or empty
+  try { const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}")[id]; return raw ? Uint8Array.from(atob(raw), (c) => c.charCodeAt(0)) : new Uint8Array(0); } catch { return new Uint8Array(0); }
+}
+function songSet() {                                          // the song as a set file (as the Library & pieces page reads one from an FM-1): the places, Play,
+  const have = pcVoices(storeObj(S.OBJ_VOICES)), knd = storeObj(S.OBJ_KINDS), bst = storeObj(S.OBJ_BSTEP);   // bars, parts, patterns, energy; the pieces saved
+  const voices = [], vslot = [], pieces = [];                                                                  // here (a factory piece is the same on every FM-1)
+  for (const q of pcSetPlaces(song.places)) {
+    if (!q || pieces.some((x) => x.genre === q.genre && x.slot === q.slot)) continue;
+    const bank = bankOf(q.genre);
+    if (pcBankCheck(bank, q.genre) || !((pcSaved(bank) >> q.slot) & 1)) continue;
+    const pc = pcFromBank(bank, q.genre, q.slot), k = S.userSlot(pc);
+    if (k >= 0 && k < have.length) pc.voice = have[k];
+    pc.kinds = pcKindsOf(knd, q.genre, q.slot); pc.fx = pcFxOf(knd, q.genre, q.slot); pc.bass = pcBassOf(bst, q.genre, q.slot);
+    let vidx = -1;
+    if (k >= 0 && pc.voice) { vidx = vslot.indexOf(k); if (vidx < 0) { vslot.push(k); voices.push(pc.voice); vidx = voices.length - 1; } }
+    pieces.push({ ...pc, vidx });
+  }
+  const gl = pcGlobList(storeObj(S.OBJ_GLOB));
+  return { kind: "set", list: song.places.slice(), on: !!song.on, mix: gl.mix || 0, bars: song.bars.slice(), mutes: song.mutes.slice(), end: song.end ? 1 : 0,
+           pats: song.pats.slice(), moods: song.moods.slice(), pieces, voices, meta: { t: "Studio song" } };
+}
+async function songSend() {
+  if (!song || !song.places.some((x) => x)) return;
+  const set = songSet(), n = song.places.filter((x) => x).length;
+  window.open("../pieces/#p=" + (await pcToCode(set)), "_blank", "noopener");
+  say("The song is on the Library & pieces page (a new tab), as a set: " + n + (n === 1 ? " place" : " places") + (set.pieces.length ? " and " + set.pieces.length + " saved piece" + (set.pieces.length === 1 ? "" : "s") : "") +
+    ". Connect the FM-1 there and add it: the set list, its bars, parts, patterns and energy" + (song.on ? ", Play " + (song.end ? "Once" : "Loop") : "") + ". Edits you have not saved (Save in the emulator) are not in it.");
+}
+const REC_SRC = `class R extends AudioWorkletProcessor {      // (the recorder: the emulator's output in, its samples to the page; it sounds nothing)
+  constructor() { super(); this.on = false; this.l = []; this.r = []; this.n = 0;
+    this.port.onmessage = (e) => { this.on = !!e.data.on; if (!this.on) { this.flush(); this.port.postMessage({ done: true }); } }; }
+  flush() { if (!this.n) return; const L = new Float32Array(this.n), R = new Float32Array(this.n); let o = 0;
+    for (let i = 0; i < this.l.length; i++) { L.set(this.l[i], o); R.set(this.r[i], o); o += this.l[i].length; }
+    this.port.postMessage({ L, R }, [L.buffer, R.buffer]); this.l = []; this.r = []; this.n = 0; }
+  process(ins) { const i = ins[0]; if (this.on && i && i.length) { this.l.push(i[0].slice()); this.r.push((i[1] || i[0]).slice()); this.n += i[0].length; if (this.n >= 16384) this.flush(); } return true; }
+}
+registerProcessor("perf1-rec", R);`;
+let rec = null, recN = null;
+async function recNode() {
+  if (recN) return recN;
+  const url = URL.createObjectURL(new Blob([REC_SRC], { type: "application/javascript" }));
+  await ac.audioWorklet.addModule(url);
+  recN = new AudioWorkletNode(ac, "perf1-rec", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 2, channelCountMode: "explicit" });
+  node.connect(recN); recN.connect(ac.destination);           // (to the output so it runs; it writes silence)
+  return recN;
+}
+function wavOf(L, R, sr) {                                    // 16-bit stereo PCM
+  const n = L.length, b = new ArrayBuffer(44 + n * 4), v = new DataView(b), w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + n * 4, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 4, true);
+  const q = (x) => Math.round(Math.max(-1, Math.min(1, x)) * 32767);
+  for (let i = 0, o = 44; i < n; i++, o += 4) { v.setInt16(o, q(L[i]), true); v.setInt16(o + 2, q(R[i]), true); }
+  return new Blob([b], { type: "audio/wav" });
+}
+const mmss = (t) => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+async function songWav() {                                    // the song once (Once, from its first place), recorded as it plays, and 2.5 s of tail
+  if (!node || !song || rec) return;
+  const s0 = song.places.findIndex((x) => x), pq = s0 >= 0 ? pcSetPlaces([song.places[s0]])[0] : null;
+  if (!pq) return;
+  const rn = await recNode(), was = { on: song.on, end: song.end }, L = [], R = [];
+  if (live && live.playing) { press(BTN_PLAY); await new Promise((res) => setTimeout(res, 300)); }
+  song.on = 1; song.end = 1; await songWrite(null, true);
+  await openPiece(pq.genre, pq.slot, s0);
+  let finished = false;
+  const finish = async (why) => {
+    if (finished) return;
+    finished = true;
+    clearInterval(rec.timer);
+    const n = L.reduce((a, x) => a + x.length, 0), FL = new Float32Array(n), FR = new Float32Array(n);
+    for (let i = 0, o = 0; i < L.length; i++) { FL.set(L[i], o); FR.set(R[i], o); o += L[i].length; }
+    let a = 0;                                                // (the silence before the first note, cut to 10 ms)
+    while (a < n && Math.abs(FL[a]) < 1e-4 && Math.abs(FR[a]) < 1e-4) a++;
+    a = Math.max(0, a - Math.round(ac.sampleRate / 100));
+    rec = null;
+    song.on = was.on; song.end = was.end; await songWrite(null, true);
+    if (n - a < ac.sampleRate / 2) return say("Nothing recorded.", true);
+    const blob = wavOf(FL.subarray(a), FR.subarray(a), ac.sampleRate), url = URL.createObjectURL(blob), el = document.createElement("a");
+    const name = "perf1-song-" + S.genreName(pq.genre).toLowerCase() + "-" + new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "") + ".wav";
+    el.href = url; el.download = name; document.body.append(el); el.click(); el.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    say("Recorded " + mmss((n - a) / ac.sampleRate) + (why ? " (" + why + ")" : "") + ": " + name + " (" + (blob.size / 1048576).toFixed(1) + " MB, 44.1 kHz 16-bit stereo) is downloading.");
+  };
+  rn.port.onmessage = (e) => { if (e.data.L) { L.push(e.data.L); R.push(e.data.R); } if (e.data.done) finish(rec && rec.why); };
+  rec = { t0: performance.now(), started: false, endAt: 0, why: "", timer: 0,
+          stop: (why) => { if (!rec || rec.stopping) return; rec.stopping = true; rec.why = why === undefined ? "stopped" : why; if (live && live.playing) press(BTN_PLAY); rn.port.postMessage({ on: false }); } };
+  rn.port.postMessage({ on: true });
+  press(BTN_PLAY);
+  songRender();
+  say("Recording the song once from place " + (s0 + 1) + ": it plays to the end (Once), then the WAV downloads. ■ Stop recording (or Space) ends it early and keeps what is recorded.");
+  rec.timer = setInterval(() => {
+    if (!rec) return;
+    const t = (performance.now() - rec.t0) / 1000, b = $("slWav");
+    if (b) b.textContent = "■ Stop recording " + mmss(t);
+    if (live && live.playing) rec.started = true;
+    else if (rec.started && !rec.endAt) rec.endAt = performance.now() + 2500;   // (the song ended: its echoes and reverb ring out)
+    if (rec.endAt && performance.now() > rec.endAt) rec.stop("");
+    if (t > 1800) rec.stop("30 minutes, the most");
+  }, 100);
+}
+async function slPutPiece(i, gq, pq) {                        // a piece into place i (an empty place starts at 16 bars, all parts)
+  if (i < 0 || i > 15) return;
+  const was = song.places[i];
+  song.places[i] = gq * 10 + pq + 1;
+  if (!was) { song.bars[i] = song.full ? 16 : 0; song.mutes[i] = 0; song.pats[i] = 0; song.moods[i] = 0; }
+  setSel = i;
+  await songWrite("Place " + (i + 1) + ": " + S.genreName(gq) + " " + S.pieceName(gq, pq) + ". It plays as saved: Save in the emulator keeps your edits.");
+}
+const PART_TRK = [0x40, 0x10, 0x20, 0x80, 0x0F];             // (ui.c SL_PARTM: the tracks a part is)
+function songNow() {                                          // what plays now: the place, its bar, the parts the engine has out
+  const el = $("songnow");
+  if (!el || !song) return;
+  const t = !live || !live.playing ? "Stopped." : !song.on ? "Playing; the song is Off, so the piece plays on its own." :
+    live.slPos < 16 ? "Now: place " + (live.slPos + 1) + ", bar " + ((live.slBar === 255 ? 0 : live.slBar) + 1) + (song.bars[live.slPos] ? " of " + song.bars[live.slPos] : "") +
+      " · out: " + (PARTS.filter((_, k) => (live.trk & PART_TRK[k]) === PART_TRK[k]).map(([n]) => n.toLowerCase()).join(", ") || "nothing") :
+    "Playing a piece that is not in the song: Play the song starts it.";
+  if (el.textContent !== t) el.textContent = t;
+}
+setInterval(() => { if (view !== "song" || !song) return; if (live && live.playing && !tl) songLine(); songNow(); songLive(); }, 100);
+$("song").addEventListener("click", async (e) => {
+  if (e.target.id === "songline") return;                     // (the timeline: its pointer handlers)
+  const ch = e.target.closest(".chip");
+  if (ch && song) return slPutPiece(setSel, +ch.dataset.g, +ch.dataset.p);
   const pl = e.target.closest(".place");
   if (pl) { setSel = +pl.dataset.i; songRender(); return; }
   const b = e.target.closest("button");
@@ -1613,29 +2826,61 @@ $("song").addEventListener("click", async (e) => {
     return songWrite("Place " + (setSel + 1) + ": " + (PARTS.filter((_, k) => !((song.mutes[setSel] >> k) & 1)).map(([n]) => n.toLowerCase()).join(", ") || "no parts") + ".");
   }
   const id = b.id;
+  if (id === "slPlay" || id === "slFrom") return songPlay(id === "slFrom" ? setSel : -1);
+  if (id === "slSend") return songSend();
+  if (id === "slWav") return rec ? rec.stop() : songWav();
+  if (id === "mvRec") {
+    mvRec = !mvRec;
+    if (mvRec && !moves.some((e) => e.k === "base") && node) { const r = await fxAsk({}); if (r) { moves.unshift({ k: "base", lo: r.lo | 0, hi: r.hi | 0, pl: -1, s: -1 }); mvSave(); } }
+    songRender();
+    return say(mvRec ? "Recording moves: play the song, then tap effects in FX and fade parts on the DESK; each is kept where it happens and plays back with the song. Press again to stop recording." :
+      "Moves kept: " + moves.filter((e) => e.k !== "base").length + ". They play back each time the song comes to them (the studio only: the FM-1's song does not keep them).");
+  }
+  if (id === "mvClear") { if (!confirm("Forget all " + moves.length + " recorded moves?")) return; moves = []; mvSave(); songRender(); return say("The moves are cleared."); }
   if (id === "slPut") { if (!io) return; song.places[setSel] = cur.genre * 10 + cur.piece + 1; await songWrite("Place " + (setSel + 1) + ": " + S.genreName(cur.genre) + " " + S.pieceName(cur.genre, cur.piece) + ". It plays as saved: Save in the emulator keeps your edits."); }
-  else if (id === "slClear") { song.places[setSel] = 0; song.bars[setSel] = 0; song.mutes[setSel] = 0; await songWrite(); }
+  else if (id === "slClear") { for (const a of SONG_ARRS(song)) a[setSel] = 0; await songWrite(); }
   else if (id === "slLeft" || id === "slRight") {
     const j = setSel + (id === "slLeft" ? -1 : 1);
     if (j < 0 || j > 15) return;
-    for (const a of [song.places, song.bars, song.mutes]) [a[setSel], a[j]] = [a[j], a[setSel]];
+    for (const a of SONG_ARRS(song)) [a[setSel], a[j]] = [a[j], a[setSel]];
     setSel = j; await songWrite();
-  } else if (id === "slOpen") { const pq = song.places[setSel] ? pcSetPlaces([song.places[setSel]])[0] : null; if (pq) await openPiece(pq.genre, pq.slot); songRender(); }
+  } else if (id === "slOpen") { const pq = song.places[setSel] ? pcSetPlaces([song.places[setSel]])[0] : null; if (pq) await openPiece(pq.genre, pq.slot, setSel); songRender(); }
 });
 $("song").addEventListener("change", (e) => {
-  if (e.target.id !== "slBars" || !song) return;
+  if (!song) return;
+  if (e.target.id === "slGenre") { slGenre = +e.target.value; return songRender(); }
+  if (e.target.id === "slPat") { song.pats[setSel] = +e.target.value; return songWrite("Place " + (setSel + 1) + ": " + (song.pats[setSel] ? "drum pattern " + song.pats[setSel] : "the piece's own pattern") + "."); }
+  if (e.target.id === "slMood") { song.moods[setSel] = +e.target.value; return songWrite("Place " + (setSel + 1) + ": " + moodName(song.moods[setSel]) + (song.moods[setSel] ? " (the mood macro, from its first bar)" : "") + "."); }
+  if (e.target.id !== "slBars") return;
   song.bars[setSel] = +e.target.value;
   songWrite("Place " + (setSel + 1) + ": " + (song.bars[setSel] ? song.bars[setSel] + " bars, exactly" : "Auto (the auto-DJ's rounds)") + ".");
 });
-let dragFrom = -1;
-$("song").addEventListener("dragstart", (e) => { const pl = e.target.closest(".place"); if (pl) { dragFrom = +pl.dataset.i; e.dataTransfer.effectAllowed = "move"; } });
-$("song").addEventListener("dragover", (e) => { if (dragFrom >= 0 && e.target.closest(".place")) e.preventDefault(); });
+let dragFrom = -1, dragPiece = null;
+$("song").addEventListener("dragstart", (e) => {
+  const ch = e.target.closest(".chip");
+  if (ch) { dragPiece = { g: +ch.dataset.g, p: +ch.dataset.p }; dragFrom = -1; e.dataTransfer.effectAllowed = "copy"; e.dataTransfer.setData("text/plain", ch.textContent); return; }
+  const pl = e.target.closest(".place"); if (pl) { dragFrom = +pl.dataset.i; dragPiece = null; e.dataTransfer.effectAllowed = "move"; }
+});
+$("song").addEventListener("dragend", () => { dragPiece = null; });
+$("song").addEventListener("dragover", (e) => {
+  if (dragPiece && (e.target.id === "songline" || e.target.closest(".place"))) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; return; }
+  if (dragFrom >= 0 && e.target.closest(".place")) e.preventDefault();
+});
 $("song").addEventListener("drop", async (e) => {
+  if (dragPiece && song) {
+    e.preventDefault();
+    const d = dragPiece; dragPiece = null;
+    let to = -1;
+    if (e.target.id === "songline") { const p = slAt(e); to = p.hit ? p.hit[2] : song.places.findIndex((x) => !x); }
+    else { const c = e.target.closest(".place"); if (c) to = +c.dataset.i; }
+    if (to < 0) return say("All sixteen places are full: drop it on a block to replace that place.", true);
+    return slPutPiece(to, d.g, d.p);
+  }
   const pl = e.target.closest(".place");
   if (!pl || dragFrom < 0 || !song) return;
   e.preventDefault();
   const to = +pl.dataset.i;
-  for (const a of [song.places, song.bars, song.mutes]) { const x = a.splice(dragFrom, 1)[0]; a.splice(to, 0, x); }
+  for (const a of SONG_ARRS(song)) { const x = a.splice(dragFrom, 1)[0]; a.splice(to, 0, x); }
   setSel = to; dragFrom = -1;
   await songWrite();
 });
@@ -1721,13 +2966,15 @@ PICS.env3 = (g, W, H, [T, A, Dc, Am], col) => {
 PICS.filt = (g, W, H, [C, Q, Ty, Em], col) => {
   const pad = 12, w = W - 2 * pad, top = 22, base = H - 14, xc = pad + pf(C) * w, q = pf(Q), type = Number.isFinite(Ty) ? parV(Ty) : 0;
   const ydb = (db) => top + (14 - Math.max(-36, Math.min(14, db))) / 50 * (base - top);
-  const resp = (d) => {                                        // d: octaves from the cutoff (about); dB
-    const bump = q * 13 * Math.exp(-Math.pow(d * 2.6, 2));
+  const hpOff = type === 1 ? Math.log2({ "-1": 0.4, "-2": 0.25, "-3": 0.5 }[String(Ty)] || 1) : 0;   // (0.17.18 FT_FC: High's corner below the cutoff)
+  const resp = (d0) => {                                       // d: octaves from the cutoff (about); dB
+    const d = d0 - hpOff, bump = q * 13 * Math.exp(-Math.pow(d * 2.6, 2));
     switch (type) {
-      case 1: return (d < 0 ? d * 22 : 0) + bump;
+      case 1: return (d < 0 ? d * 24 : 0) + bump;              // (24 dB, its second stage mirrored below the corner)
       case 2: return -Math.abs(d) * 16 + bump * 1.2;
       case 3: return -34 * Math.exp(-Math.pow(d * 3.2 / (0.4 + q), 2));
       case 4: return bump * 1.15 + 1;
+      case 5: return (d > 0 ? -d * 26 : 0) + bump * 1.1;      // (the 303's ladder: 24 dB a octave, the resonance singing, the bass kept full)
       default: return (d > 0 ? -d * 22 : 0) + bump;
     }
   };
@@ -1735,7 +2982,7 @@ PICS.filt = (g, W, H, [C, Q, Ty, Em], col) => {
   for (let x = pad; x <= pad + w; x += 2) pts.push([x, ydb(resp((x - xc) / w * 7))]);
   curve(g, pts, col, base);
   g.strokeStyle = "#3a3e4a"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(pad, ydb(0)); g.lineTo(pad + w, ydb(0)); g.stroke(); g.setLineDash([]);
-  label(g, (["LOW-PASS", "HIGH-PASS", "BAND-PASS", "NOTCH", "PEAK"][type] || "") + "  ·  LOW ← FREQUENCY → HIGH", pad, 14);
+  label(g, (["LOW-PASS", "HIGH-PASS (ITS CORNER AT ×" + Math.pow(2, hpOff).toFixed(2).replace(/0$/, "") + " THE CUTOFF)", "BAND-PASS", "NOTCH", "PEAK", "303 LADDER"][type] || "") + "  ·  LOW ← FREQUENCY → HIGH", pad, 14);
   const hs = [{ name: "Cutoff · resonance", x: xc, y: ydb(resp(0)), px: C, ax: [pad, pad + w], py: Q, ay: [ydb(0), ydb(13)] }];
   if (Number.isFinite(Em)) {                                   // the envelope opens it this far on each note
     const xe = xc + pf(Em) * w * 0.45, ye = base - 10;
@@ -1780,8 +3027,14 @@ const cyclesPerBar = (t) => {
   return m[2] === "T" ? c * 1.5 : m[2] === "." ? c / 1.5 : c;
 };
 PICS.lfo = (g, W, H, [Dp, Sh, Tg, Rt], col) => {
-  const pad = 12, w = W - 2 * pad, mid = H / 2 + 6, amp = (0.05 + 0.95 * pf(Dp)) * (H / 2 - 18), shape = parV(Sh), cyc = cyclesPerBar(valText(Rt, parV(Rt))) * 2;
-  g.strokeStyle = "#3a3e4a"; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(pad + w / 2, 18); g.lineTo(pad + w / 2, H - 4); g.stroke(); g.setLineDash([]);
+  const pad = 12, w = W - 2 * pad, mid = H / 2 + 4, amp = (0.05 + 0.95 * pf(Dp)) * (H / 2 - 18), shape = parV(Sh), cpb = cyclesPerBar(valText(Rt, parV(Rt)));
+  const win = Math.max(2, Math.min(32, Math.ceil(1 / Math.max(cpb, 1 / 32) - 1e-6))), cyc = cpb * win;   // (at least a whole cycle drawn: 2 bars, or as many as one takes)
+  for (let b = 0; b <= win; b++) {                            // the bars along the foot (the LFOs are locked to the bar)
+    const x = pad + b / win * w;
+    g.fillStyle = b % 4 === 0 ? "#3a3e4a" : "#262932"; g.fillRect(Math.round(x), H - 8, 1, 6);
+    if (win <= 8 || b % 4 === 0) { g.fillStyle = "#555a66"; g.font = FONT(600, 8); if (b < win) g.fillText(String(b + 1), x + 2, H - 1); }
+  }
+  g.strokeStyle = "#2a2d35"; g.beginPath(); g.moveTo(pad, mid); g.lineTo(pad + w, mid); g.stroke();
   let seed = 7;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1, steps = [];
   const val = (ph) => {
@@ -1798,9 +3051,16 @@ PICS.lfo = (g, W, H, [Dp, Sh, Tg, Rt], col) => {
   const pts = [];
   for (let x = 0; x <= w; x += 1.5) pts.push([pad + x, mid - val(x / w * cyc) * amp]);
   curve(g, pts, col);
-  label(g, String(P[PE.P_PL_SHAPE] ? valText(Sh, shape) : "").toUpperCase() + " · " + valText(Rt, parV(Rt)) + " · TO " + String(valText(Tg, parV(Tg))).toUpperCase() + "  (2 BARS; CLICK: NEXT SHAPE)", pad, 14);
-  const xq = pad + Math.min(w, w / Math.max(cyc, 0.5) / 4);
-  return [{ name: "Depth", x: xq, y: mid - amp, py: Dp, ay: [mid - 0.05 * (H / 2 - 18), mid - (H / 2 - 18)], click: Sh }];
+  label(g, String(P[PE.P_PL_SHAPE] ? valText(Sh, shape) : "").toUpperCase() + " · " + valText(Rt, parV(Rt)) + " · TO " + String(valText(Tg, parV(Tg))).toUpperCase() + "  (" + win + " BARS SHOWN)", pad, 14);
+  if (live && live.playing) {                                 // where it is now: the bar playing, the wave there
+    const pos = (live.t || 0) / 16, x = pad + ((pos % win) / win) * w, y = mid - val(pos * cpb) * amp;
+    g.strokeStyle = hexA(COL.ink, 0.25); g.beginPath(); g.moveTo(x, 18); g.lineTo(x, H - 8); g.stroke();
+    g.fillStyle = COL.ink; g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill(); g.fillStyle = col; g.beginPath(); g.arc(x, y, 2.5, 0, 7); g.fill();
+  }
+  const ax = [pad + 0.05 * w, pad + 0.95 * w], xr = ax[0] + pf(Rt) * (ax[1] - ax[0]);   // the point: sideways the rate (left fast, right slow), up the depth
+  g.font = FONT(700, 9); g.fillStyle = COL.ink; g.fillText(String(valText(Rt, parV(Rt))) + " · " + parV(Dp), Math.min(xr + 8, pad + w - 60), Math.max(26, mid - amp - 6));
+  g.fillStyle = "#555a66"; g.fillText("← FASTER   SLOWER →", pad + w - 104, H - 12);
+  return [{ name: "Rate · depth", x: xr, y: mid - amp, px: Rt, ax, py: Dp, ay: [mid - 0.05 * (H / 2 - 18), mid - (H / 2 - 18)], click: Sh }];
 };
 // the master bus: in against out (the compressor's ratio over its threshold, the make-up, the limiter's ceiling); its reduction now beside
 PICS.comp = (g, W, H, [Ra, Th, Mk, Ce], col) => {
@@ -1811,12 +3071,12 @@ PICS.comp = (g, W, H, [Ra, Th, Mk, Ce], col) => {
   const pts = [];
   for (let i = -48; i <= 0; i += 1) { let o = i < T ? i : T + (i - T) / r; o = Math.min(C, o + M); pts.push([X(i), Y(Math.max(-48, o))]); }
   curve(g, pts, col, y0);
-  g.strokeStyle = COL.bass; g.beginPath(); g.moveTo(X(-48), Y(C)); g.lineTo(X(0), Y(C)); g.stroke();
-  label(g, "IN → OUT · " + valText(Ra, parV(Ra)) + (r === 1 ? " (OFF)" : ""), x0, 14); label(g, "CEILING", X(-48) + 4, Y(C) - 4, COL.bass);
+  g.strokeStyle = COL.acc; g.beginPath(); g.moveTo(X(-48), Y(C)); g.lineTo(X(0), Y(C)); g.stroke();
+  label(g, "IN → OUT · " + valText(Ra, parV(Ra)) + (r === 1 ? " (OFF)" : ""), x0, 14); label(g, "CEILING", X(-48) + 4, Y(C) - 4, COL.acc);
   if (live) {                                                  // the reduction now (dB) and the output's peak
     const gr = (live.gr || 0) / 8, gx = x0 + sz + 18;
     g.fillStyle = "#22252c"; g.fillRect(gx, y0 - sz, 10, sz); g.fillStyle = COL.acc; g.fillRect(gx, y0 - sz, 10, Math.min(sz, gr / 12 * sz));
-    g.fillStyle = "#22252c"; g.fillRect(gx + 16, y0 - sz, 10, sz); g.fillStyle = COL.acid; const pk = (live.peak || 0) / 255 * sz; g.fillRect(gx + 16, y0 - pk, 10, pk);
+    g.fillStyle = "#22252c"; g.fillRect(gx + 16, y0 - sz, 10, sz); g.fillStyle = COL.ink; const pk = (live.peak || 0) / 255 * sz; g.fillRect(gx + 16, y0 - pk, 10, pk);
     label(g, "GR", gx - 1, y0 + 9); label(g, "OUT", gx + 13, y0 + 9);
   }
   const ok = (y) => Math.max(y0 - sz, Math.min(y0, y));
@@ -1837,7 +3097,7 @@ PICS.space = (g, W, H, [Ec, Et, Rv, Sz, Dm, Pd], col) => {
     if (!k) hs.push({ name: "Echo", x: x + 2, y: base - h, py: Ec, ay: [base, top] });
   }
   const xp = pad + 6 + pf(Pd) * bar * 0.12, len = (0.1 + pf(Sz)) * bar * 1.3, rh = pf(Rv) * (base - top), grd = g.createLinearGradient(xp, 0, xp + len, 0);
-  grd.addColorStop(0, hexA(COL.pad, 0.55)); grd.addColorStop(1, hexA(COL.pad, 0.55 * (1 - 0.8 * pf(Dm))));
+  grd.addColorStop(0, hexA(col, 0.55)); grd.addColorStop(1, hexA(col, 0.55 * (1 - 0.8 * pf(Dm))));
   g.beginPath(); g.moveTo(xp, base);
   for (let i = 0; i <= 30; i++) { const t = i / 30; g.lineTo(xp + len * t, base - rh * Math.exp(-3 * t)); }
   g.lineTo(xp + len, base); g.closePath(); g.fillStyle = grd; g.fill();
@@ -1902,7 +3162,7 @@ document.addEventListener("pointermove", (e) => {
   let ch = false;
   if (Number.isFinite(h.px)) ch = parSetV(h.px, fromSpan(h.px, x, h.ax)) || ch;
   if (Number.isFinite(h.py)) ch = parSetV(h.py, fromSpan(h.py, y, h.ay)) || ch;
-  if (ch) changed();
+  if (ch) { const ps = [h.px, h.py].filter(Number.isFinite); if (ps.every((q) => q >= 0)) ps.forEach(changedPar); else changed(); }   // (a piece setting: the engine alone; FILTERS/SCREAM's: the piece put)
 });
 document.addEventListener("pointerup", () => { if (pdrag) { pdrag = null; drawPics(); } });
 

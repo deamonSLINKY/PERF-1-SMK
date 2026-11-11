@@ -403,9 +403,17 @@ function showIncoming(x) {
     const used = x.list.filter((v) => v);
     add("tag", "A set of " + plural(used.length, "piece"));
     add("title", m.t ? m.t + (m.a ? "  by " + m.a : "") : m.a ? "by " + m.a : "");
-    add("sub", (x.on ? "Play on" : "Play off") + " · Mix: " + (["cut", "4 bars", "8 bars", "16 bars", "32 bars"][x.mix % 5]) + (x.voices.length ? " · " + plural(x.voices.length, "DX7 voice") : ""));
+    add("sub", (x.on ? (x.end ? "Play Once" : x.bars.some((v) => v) ? "Play Loop" : "Play on") : "Play off") + " · Mix: " + (["cut", "4 bars", "8 bars", "16 bars", "32 bars"][x.mix % 5]) + (x.voices.length ? " · " + plural(x.voices.length, "DX7 voice") : ""));
     const ol = document.createElement("ol");
-    for (const v of x.list) if (v) { const li = document.createElement("li"); const q = pcSetPlaces([v])[0], pc = x.pieces.find((p) => p.genre === q.genre && p.slot === q.slot); li.textContent = S.placeName(v) + (pc ? " (shared: " + S.describe(pc) + ")" : " (factory)"); ol.append(li); }
+    const PARTN = ["pad", "bass", "acid", "pluck", "drums"];
+    x.list.forEach((v, k) => {                                     // each place, and its song settings (0.17.13: bars, parts left out; 0.17.14: pattern, energy)
+      if (!v) return;
+      const li = document.createElement("li"), q = pcSetPlaces([v])[0], pc = x.pieces.find((p) => p.genre === q.genre && p.slot === q.slot);
+      const song = [x.bars[k] ? x.bars[k] + " bars" : "", x.mutes[k] ? "without " + PARTN.filter((_, b) => (x.mutes[k] >> b) & 1).join(", ") : "",
+                    x.pats[k] ? "pattern " + x.pats[k] : "", x.moods[k] ? "energy " + (x.moods[k] - 1) : ""].filter((t) => t).join(" · ");
+      li.textContent = S.placeName(v) + (song ? " · " + song : "") + (pc ? " (shared: " + S.describe(pc) + ")" : " (factory)");
+      ol.append(li);
+    });
     info.append(ol);
     add("note", m.n);
     $("slotrow").hidden = true;
@@ -573,7 +581,7 @@ $("scan").addEventListener("click", async () => {
         if (k >= 0 && pc.voice) { vidx = vslot.indexOf(k); if (vidx < 0) { vslot.push(k); voices.push(pc.voice); vidx = voices.length - 1; } }
         pieces.push({ ...pc, vidx });
       }
-      mySet = { kind: "set", list: gl.list, on: gl.on, mix: gl.mix, bars: gl.bars, mutes: gl.mutes, end: gl.end, pieces, voices, meta: {} };   // (bars, parts, end: 0.17.13's song mode)
+      mySet = { kind: "set", list: gl.list, on: gl.on, mix: gl.mix, bars: gl.bars, mutes: gl.mutes, end: gl.end, pats: gl.pats, moods: gl.moods, pieces, voices, meta: {} };   // (bars, parts, end: 0.17.13's song mode; patterns, energy: 0.17.14)
     }
     $("scanbar").value = 100;
     showMine();

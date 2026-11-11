@@ -7,7 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const src = fs.readFileSync(path.join(__dirname, "..", "web", "fm1piece.js"), "utf8").replace(/^export /gm, "");
-const M = new Function(src + "; return { PC_HDR, PC_REC, PC_LEN, PC_PRG, PC_REC_PAR, PC_RECIPE, PC_VOX_LEN, PC_GLOB_LEN, PC_GLOB_SONG, pcBankCheck, pcSaved, pcFromBank, pcGet, pcSet, pcEncode, pcDecode, pcDecodeAny, pcToCode, pcFromCode, pcIntoBank, pcVoiceName, pcUserSlot, pcVoices, pcVoicePlan, pcVoicesWith, pcParseAbout, pcAboutMsg, pcSetEncode, pcSetDecode, pcSetPlaces, pcGlobWith, pcGlobList, pcSetVoices, pcHash, pcKindsOf, pcKindsWith, PC_KND_MAGIC, pcFxOf, pcExtrasWith, pcBassOf, pcBassWith };")();
+const M = new Function(src + "; return { PC_HDR, PC_REC, PC_LEN, PC_PRG, PC_REC_PAR, PC_RECIPE, PC_VOX_LEN, PC_GLOB_LEN, PC_GLOB_SONG, PC_GLOB_SONG2, pcBankCheck, pcSaved, pcFromBank, pcGet, pcSet, pcEncode, pcDecode, pcDecodeAny, pcToCode, pcFromCode, pcIntoBank, pcVoiceName, pcUserSlot, pcVoices, pcVoicePlan, pcVoicesWith, pcParseAbout, pcAboutMsg, pcSetEncode, pcSetDecode, pcSetPlaces, pcGlobWith, pcGlobList, pcSetVoices, pcHash, pcKindsOf, pcKindsWith, PC_KND_MAGIC, pcFxOf, pcExtrasWith, pcBassOf, pcBassWith };")();
 let bad = 0;
 const check = (name, ok) => { console.log((ok ? "  ok   " : "  FAIL ") + name); if (!ok) bad++; };
 const eq = (a, b) => a.length === b.length && Array.from(a).every((x, i) => x === b[i]);
@@ -127,6 +127,19 @@ const voiceOf = (name, k) => { const v = new Uint8Array(128).map((_, i) => (i * 
   const ssong = M.pcSetDecode(M.pcSetEncode({ ...set, bars, mutes, end: 1 })), sold = M.pcSetDecode(M.pcSetEncode(set));
   check("a set file carries its places' bars, parts and Once (the note); one without them reads Auto, Loop", eq(ssong.bars, bars) && eq(ssong.mutes, mutes) && ssong.end === 1 &&
     sold.bars.every((v) => !v) && sold.mutes.every((v) => !v) && sold.end === 0 && !("sb" in ssong.meta));
+  // song mode, part two (0.17.14): a place's pattern (0 the piece's, 1..6) and energy (0 as is, else mood + 1); the record 100 bytes when it has them or was that long
+  const pats = [0, 3, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], moods = [101, 0, 1, 51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const g2 = M.pcGlobWith(gs, { ...set, bars, mutes, end: 1, pats, moods }, defs), l2 = M.pcGlobList(g2);
+  check("a song with patterns and energy: 100 bytes, the patterns at 68, the energy at 84; bars, parts, Once, the player's kept", g2.length === M.PC_GLOB_SONG2 &&
+    eq(g2.slice(68, 84), pats) && eq(g2.slice(84, 100), moods) && eq(g2.slice(32, 48), bars) && g2[64] === 1 && g2[4] === 7 && eq(l2.pats, pats) && eq(l2.moods, moods) && eq(l2.bars, bars));
+  const g3 = M.pcGlobWith(g2, { ...set, bars, mutes, end: 1 }, defs);
+  check("a set without patterns or energy into a 100-byte record: still 100, the piece's pattern and energy as is", g3.length === M.PC_GLOB_SONG2 && g3.slice(68, 100).every((v) => !v) && eq(g3.slice(32, 48), bars));
+  check("a 68-byte record (0.17.13) reads: the piece's pattern, energy as is; a set with only bars still writes 68",
+    M.pcGlobList(gs).pats.every((v) => !v) && M.pcGlobList(gs).moods.every((v) => !v) && M.pcGlobWith(gx, { ...set, bars }, defs).length === M.PC_GLOB_SONG &&
+    M.pcGlobWith(gx, { ...set, pats }, defs).length === M.PC_GLOB_SONG2);
+  const sp2 = M.pcSetDecode(M.pcSetEncode({ ...set, bars, mutes, end: 1, pats, moods }));
+  check("a set file carries its places' patterns and energy; one without them reads the piece's, as is", eq(sp2.pats, pats) && eq(sp2.moods, moods) &&
+    sold.pats.every((v) => !v) && sold.moods.every((v) => !v) && !("sp" in sp2.meta) && !("sv" in sp2.meta));
   const sv = M.pcSetVoices(vox, [v1, pc.voice, voiceOf("NEW TWO", 4)]);
   check("a set's voices: one loaded, two to the next empty slots", JSON.stringify(sv.map) === JSON.stringify([1, 2, 3]) && M.pcVoices(sv.vox).length === 4);
   const sfull = M.pcSetVoices(full, [pc.voice]);
@@ -228,6 +241,11 @@ const voiceOf = (name, k) => { const v = new Uint8Array(128).map((_, i) => (i * 
     check("the simulator reads a shared song: each place's bars and parts, Once", run("song", [
       "loadobj 0 " + path.join(dir, "bank_new.bin"), "loadobj 4 " + path.join(dir, "glob_song.bin"), "seed 0", "reboot", "wait 2000",
       "expect setsl1 23", "expect setbars0 8", "expect setbars1 16", "expect setbars3 4", "expect setbars2 0", "expect setmute1 20", "expect setmute3 31", "expect setend 1"]));
+    // and part two (0.17.14): the places' patterns and energy, in the 100-byte record
+    fs.writeFileSync(path.join(dir, "glob_song2.bin"), M.pcGlobWith(new Uint8Array(0), { ...sset, bars: [8, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], pats: [0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6], moods: [81, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, { tune: 0, midi: 1, theme: 0 }));
+    check("the simulator reads a song's patterns and energy", run("song2", [
+      "loadobj 0 " + path.join(dir, "bank_new.bin"), "loadobj 4 " + path.join(dir, "glob_song2.bin"), "seed 0", "reboot", "wait 2000",
+      "expect setsl1 23", "expect setbars1 16", "expect setpat1 4", "expect setpat15 6", "expect setpat0 0", "expect setmood0 81", "expect setmood2 1", "expect setmood1 0"]));
   }
   console.log(bad ? "web piece: FAILED" : "web piece: ok");
   process.exit(bad ? 1 : 0);

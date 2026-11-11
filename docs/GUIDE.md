@@ -28,7 +28,7 @@ Only a few. The rest can wait.
 | **MASTER** knob | Volume. |
 | **PLAY** | Stop and start the music. |
 | **EDIT** | Move on to the next chord. |
-| The **keys** | Change the notes the music uses. |
+| The **keys** | Play along. Every note fits the music. |
 | **PRESETS** knob | The next piece of music. |
 | **SAVE** | Break the beat down, then build it back up. |
 | **FX** | Effects. |
@@ -43,7 +43,7 @@ Only a few. The rest can wait.
 
 **2. Tap EDIT.** At the start of the next bar the chord changes. The whole band follows: the bass, the pad and the melodies all move to fit. Tap it a few more times.
 
-**3. Tap a few keys.** Each key adds a note to the music or takes one away. Tap any key, listen, tap another. There are no wrong notes to find: the band only ever plays the notes you have left on. Tap a key again to put it back.
+**3. Play a few keys.** The keys play a melody over the band. Every key is a note of the music's scale, so there are no wrong notes: play anything, slowly or fast, and it fits. The piece's chords and scale stay as they are.
 
 **4. Turn PRESETS one click.** A new piece starts: a new key, a new tempo, new sounds. There are ten pieces in each style.
 
@@ -94,7 +94,8 @@ To put a piece back the way it was at the start, go to **GLO** and hold **SEL** 
 You don't need any of this to have fun, but it is there.
 
 - **Turn SELECT** to walk through the pages. Each page has four knobs underneath the screen. The page name tells you what they change: the pad, the bass, the acid, the drums, the reverb and much more.
-- **The Jam page** (turn SELECT past Global) turns the keys into a keyboard you can play along on. It only plays notes that fit, so you can play freely.
+- **The Jam page** (turn SELECT past Global) picks what the keys play: the pluck, the pad, the acid or the bass, single notes or whole chords, and how high. On a part's own pages (the pad's, bass's, acid's or pluck's) the keys play that part instead.
+- **Change the scale** on the **Global** page (press GLO): there, each key puts a note into the music or takes one out, and ALGORITHM picks its mode (a brighter or darker minor, a major). Everywhere else ALGORITHM is the mood.
 - **Hold HOME** for the settings, then turn **SELECT** to go through them. The first two, **FILTERS** and **SCREAM**, change how the
   bass, the acid and the pad sound (SCREAM pushes the acid until it howls). They belong to the piece: save the piece and they come back with it.
 - **The SET page** (one of the settings) has an **Intro** that starts with just a pad and brings the band in one part at a time over a few minutes. Great for mixing in, or for playing over.
@@ -126,7 +127,7 @@ You don't need any of this to have fun, but it is there.
 | **Acid** | The squelchy, twisting line, after the classic Roland TB-303. |
 | **Pluck** | The short, plucked melody on top. |
 | **Chord** | The group of notes the band is playing around right now. EDIT moves it on. |
-| **Scale** | The set of notes the music is allowed to use. The keys switch them on and off. |
+| **Scale** | The set of notes the music is allowed to use. The keys only play these. On the Global page the keys add or remove them. |
 | **Breakdown, build, drop** | Calm down, climb back up, then everything hits at once. SAVE runs them. |
 | **Latch** | An effect that stays on after you tap its key. |
 | **Auto-DJ** | PERF-1 running the breakdowns, builds and drops by itself. |

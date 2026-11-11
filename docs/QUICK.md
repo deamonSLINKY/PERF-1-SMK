@@ -27,7 +27,7 @@
 | **MASTER** | Volume. | | |
 | **SELECT** | The pages, in order (31, stops at the ends). FX menu: the bank. Settings: the next page. Visualizers: the next one. | With **HOME** held: the tempo. | |
 | **PRESETS** | The piece, 1-10 (wraps). | With **GLO** held: the genre. | The piece, on the next bar. |
-| **ALGORITHM** | The mode of the scale. Perform, visualizers: the mood. | | The voice's sound (drum pages: the kit). |
+| **ALGORITHM** | The mood. Chords and Global: the mode of the scale. | | The voice's sound (drum pages: the kit). |
 | **KNOB1-4** | The page's values a, b, c, d. FX menu, Perform, visualizers: Filter, Crush, Throw, Wash. | | Sequencer: Euclid, rotate, chance, length. |
 | **OCT-** / **OCT+** | An octave down / up: on a voice's pages that voice, elsewhere the song. Sequencer: the drum. FX menu: OCT- turns all off. | Both 5 s: update mode. | Sequencer: clear the lane / the piece's own lane back. |
 | **FX** | The FX menu on and off. Twice quickly: the last effect's settings. | | Steps through the effect settings, then back. |
@@ -118,7 +118,7 @@
 
 **Latched effects keep going after you close the menu.** The **FX** button blinks, `FX` shows by the tempo, and the keys play a voice again. **OCT-** in the menu turns everything off: effects, FX knobs, mutes and solos (GLO + `B3` undoes it). The FX knobs Filter, Crush, Throw and Wash are the knobs here, on Perform and on the visualizers (page 4).
 
-**Settings pages.** Each effect with settings has a page that draws it: **SEL + a key** in the menu (that key's effect), **FX twice quickly** (the last one used), **SEL + FX** (all 23 in turn). **SELECT** moves between them and **FX** closes. The effect plays while its page is up, so you hear what you change (a few need a key held). All kept across power-off. The knobs on each page: Gate: Pattern (3-3-3, tres, offbeat, Euclid 5/7/9, waltz, chop, sparse, dense, dotted, 5/10, or your own from its white keys), Length, Targets, Depth (Gate 16 and 8 share it). Phaser and Flanger: Rate, Depth, Feedback, Mix. Vinyl: Level, Crackle, Hiss, Tone. Tape: Wow, Flutter, Drive, Dull. Roll: From, To, Each, Swell. Pump: Depth, Release, Every (1/2 .. 1/16 or KICK), Targets. Riser: Time, Filter, Wash, Echo. Scatter: Chaos, Reverse, Slice, Slices. Brake: Time, Spin back, Return, Dull. Half time: Speed, Slide. Sweep: Every, Depth, Reso, Type. Scratch: Every, Reach, Style. Freeze: Size, Spread, Grains. Rv swell: Length, Mix. Ring mod: Tone, Mix. Talk: Every, Depth, Reso, Mix. Wah: Sens, Range, Reso, Mix. Flex: Quant (off, beat, bar: when it starts), Mode (one shot, or loop until you let go or tap it off), Mix. FILTER, DELAY, PHASE: each has Targets. Snips: Pitch (normal, an octave up or down), Play (while held, or one shot of about a second), Echo (dry, some, lots), Level. Auto DJ, Settings, USB & MIDI: pages 4 and 7.
+**Settings pages.** Each effect with settings has a page that draws it: **SEL + a key** in the menu (that key's effect), **hold FX**, from any page (the last one used), **SEL + FX** (all 23 in turn). **SELECT** moves between them and **FX** closes. The effect plays while its page is up, so you hear what you change (a few need a key held). All kept across power-off. The knobs on each page: Gate: Pattern (3-3-3, tres, offbeat, Euclid 5/7/9, waltz, chop, sparse, dense, dotted, 5/10, or your own from its white keys), Length, Targets, Depth (Gate 16 and 8 share it). Phaser and Flanger: Rate, Depth, Feedback, Mix. Vinyl: Level, Crackle, Hiss, Tone. Tape: Wow, Flutter, Drive, Dull. Roll: From, To, Each, Swell. Pump: Depth, Release, Every (1/2 .. 1/16 or KICK), Targets. Riser: Time, Filter, Wash, Echo. Scatter: Chaos, Reverse, Slice, Slices. Brake: Time, Spin back, Return, Dull. Half time: Speed, Slide. Sweep: Every, Depth, Reso, Type. Scratch: Every, Reach, Style. Freeze: Size, Spread, Grains. Rv swell: Length, Mix. Ring mod: Tone, Mix. Talk: Every, Depth, Reso, Mix. Wah: Sens, Range, Reso, Mix. Flex: Quant (off, beat, bar: when it starts), Mode (one shot, or loop until you let go or tap it off), Mix. FILTER, DELAY, PHASE: each has Targets. Snips: Pitch (normal, an octave up or down), Play (while held, or one shot of about a second), Echo (dry, some, lots), Level. Auto DJ, Settings, USB & MIDI: pages 4 and 7.
 
 ### Bank 2: BEAT FX
 
@@ -190,7 +190,7 @@
 - **Build: tap SAVE again.** A snare roll climbs as the bass opens, for four bars (two in trap, lofi and trip-hop; eight in house). In the last bar the open hat plays every eighth and, in the four-on-the-floor genres, the kick comes back. Then the drop. The header counts `DROP 3`.
 - **Drop: hold SAVE** (0.5 s). Everything is back on the next bar with a ringing crash, mostly on the home chord. SAVE is lit in a breakdown or build and blinks while it waits for the bar.
 - **Freeze: REC.** The chord holds and the reverb rings on until you press REC again. **Next chord: EDIT**, on the next bar.
-- **The scale: the keys on Global** (elsewhere they play a voice). Each adds or removes its note; the root stays. **ALGORITHM** picks a mode (Aeolian is plain minor, Dorian a brighter minor, Phrygian a darker one, Mixolydian major with a flat 7th). Root is on Global.
+- **The scale: the keys on Global** (elsewhere they play a voice). Each adds or removes its note; the root stays. **ALGORITHM** there (and on Chords) picks a mode (Aeolian is plain minor, Dorian a brighter minor, Phrygian a darker one, Mixolydian major with a flat 7th). Root is on Global.
 - **Patterns:** KNOB4 on the Drums page, or SEL + white keys 1-6; the change waits for the bar. Hold a pattern key past 0.25 s and it plays only while held, then the one before comes back.
 - **Pieces:** PRESETS; with SEL held, on the next bar. **Genres:** GLO held + PRESETS, or Global's Genre knob.
 - **Songs aren't saved:** record the audio or MIDI out into your DAW.
@@ -227,7 +227,7 @@ The **SET** settings page (after USB & MIDI): **Rounds** a piece plays before th
 
 ### Mood
 
-On Perform and the visualizers **ALGORITHM** sets the energy: 0 chill, 50 (default) the piece as it is, 100 peak. It nudges the acid's density and cutoff, the hats' and perc's levels, the pad's brightness, the pluck's density, level and decay, the bass's cutoff and drive, reverb and echo (less at peak), Evolve and the drums' level. It changes what plays, not what's stored, and is forgotten at power-off.
+On every page but Chords and Global **ALGORITHM** sets the energy: 0 chill, 50 (default) the piece as it is, 100 peak. It nudges the acid's density and cutoff, the hats' and perc's levels, the pad's brightness, the pluck's density, level and decay, the bass's cutoff and drive, reverb and echo (less at peak), Evolve and the drums' level. It changes what plays, not what's stored, and is forgotten at power-off.
 
 ### Drum drift (SEQ x4)
 
@@ -421,7 +421,7 @@ How hard the FM-1 is working: `CPU 41 XR 0`, with `C2 38` and `S1` or `S2` under
 
 **USB audio.** The FM-1 is a stereo USB audio input (16-bit, 44.1 kHz) carrying the master output. The USB & MIDI page's Level: KNOB (follows MASTER) or FIXED (a recording stays put when you turn the speakers down). Its third knob, **Scanlines**, darkens every other row of the screen, like a CRT.
 
-**MIDI out** (USB): the pad on channel 1, pluck 2, bass 3, acid 4, drums 10 (General MIDI notes), and MIDI clock with start, continue and stop. **MIDI map**, **MIDI IN**: a sampler plays the drums; an MPC, M:S or MPK mini plays PERF (manual, 14). **FILTERS**: pad, bass, acid low/high/band/notch/peak. Notes played by hand go on their voice's channel; the DJ snips aren't sent. On and off on the USB & MIDI page.
+**MIDI out** (USB): the pad on channel 1, pluck 2, bass 3, acid 4, drums 10 (General MIDI notes), and MIDI clock with start, continue and stop. **MIDI map**, **MIDI IN**: a sampler plays the drums; an MPC, M:S or MPK mini plays PERF (manual, 14). **FILTERS**: pad, bass, acid low/high/band/notch/peak; the acid also **303**, a TB-303-style ladder. Notes played by hand go on their voice's channel; the DJ snips aren't sent. On and off on the USB & MIDI page.
 
 **MIDI in:** notes on channel 1 play like the keys (the page's voice, or Jam's, snapped to the scale; on Global they edit the scale). Clock and start / stop drive the tempo (`EXT`). It listens on the USB MIDI port, and the TRS input where your version has it.
 

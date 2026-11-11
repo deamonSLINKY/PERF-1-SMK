@@ -46,7 +46,7 @@ static const char *const VIEW_NAME[NVIEWS] = {"Tempo", "Pad", "Pad env", "Pad LF
 enum { VZ_PLASMA, VZ_KALEIDO, VZ_BARS, VZ_FLUX, VZ_DISCO, VZ_LIFE, VZ_ORBIT, VZ_TRIP, VZ_THEORY, VZ_AUTO, VZ_N };   /* the visualizers (viz.c; TRIP and THEORY 0.16.10, THEORY not in AUTO's turn) */
 static const char *const VZ_NAME[VZ_N] = {"PLASMA", "KALEIDO", "BARS", "FLUX", "DISCO", "LIFE", "ORBIT", "TRIP", "THEORY", "AUTO"};
 /* the knobs of each page: a parameter, or one of these (the sequencer's: the lane's) */
-enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_JSND, K_PLRT, K_DLRT, K_CDPOS, K_CDCHR, K_CDROLL, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_JSND: the sound of the voice JAM plays (0.17.4); K_FX*: the FX menu's own knobs */
+enum { K_LVL = 200, K_TUNE, K_DEC, K_MXT, K_MXL, K_MXP, K_MXS, K_GRT, K_GRD, K_GRS, K_GRA, K_ACT, K_ACD, K_STR, K_STP, K_STV, K_PCOND, K_ASTY, K_ASNO, K_ASOC, K_PSNO, K_PSLV, K_BSTY, K_BSNO, K_BSOC, K_PGSL, K_PGCH, K_PGBR, K_PGPL, K_PGTY, K_SLSL, K_SLGN, K_SLPC, K_SLON, K_GENRE, K_JSND, K_PLRT, K_DLRT, K_CDPOS, K_CDCHR, K_CDROLL, K_SLPT, K_SLEN, K_NONE, K_FXF, K_FXC, K_FXT, K_FXW };   /* K_GENRE: the genre on Global; K_JSND: the sound of the voice JAM plays (0.17.4); K_FX*: the FX menu's own knobs */
 static const char *const FXK_LABEL[4] = {"Filter", "Crush", "Throw", "Wash"};
 
 /* the FX edit pages (SEL + FX walks them; FX alone is the performing menu, or closes): each effect's settings on
@@ -112,7 +112,7 @@ static const char *const SMPG_NAME[4] = {"0.5 S", "1 S", "2 S", "4 S"};
 static const uint16_t SMP_GAP_MS[4] = {500, 1000, 2000, 4000};
 static const char *const MIN_NAME[4] = {"KEYS", "PADS", "M:S", "MPK"};   /* (KEYS was SCALE until 0.17.7: its notes changed the scale anywhere) */
 static const char *const CC_NAME[4] = {"OFF", "IN", "OUT", "IN+OUT"};
-static const char *const FT_NAME[5] = {"LOW", "HIGH", "BAND", "NOTCH", "PEAK"};
+static const char *const FT_NAME[6] = {"LOW", "HIGH", "BAND", "NOTCH", "PEAK", "303"};   /* (303: the acid's alone, 0.17.17) */
 static const char *const SQT_NAME[3] = {"ACID", "BASS", "BOTH"};   /* SCREAM's target (0.16.4) */
 static const char *const AFA_NAME[4] = {"OFF", "GENTLE", "MEDIUM", "WILD"};   /* AUTO FX (0.16.8): how much, how often, how long, which */
 static const char *const AFE_NAME[4] = {"4 BARS", "8 BARS", "16 BARS", "32 BARS"};
@@ -181,7 +181,7 @@ static const struct {
     {"USB & MIDI", 63, 0, {{"Level", KN_NAME, 12, USBL_NAME, 2}, {"MIDI out", KN_PAR, P_MIDI, 0, 0}, {"MIDI map", KN_NAME, 18, EN_MAP_NAME, EN_NMAP}, {"", KN_NONE, 0, 0, 0}}},   /* (Scanlines on SCREEN, 0.16.1) */   /* the cable: the USB audio's level (the knob's, or fixed), MIDI out (it was Global's); the screen's scanlines; and where MIDI out's parts go (GM, or a sampler's own layout) */
     {"SET", 63, 0, {{"Rounds", KN_NAME, 15, ROUNDS_NAME, 4}, {"Ramp", KN_NAME, 16, RAMP_NAME, 5}, {"Intro", KN_NAME, 17, INTRO_NAME, 5}, {"Mix", KN_NAME, 24, XMIX_NAME, 5}}},   /* the set: rounds a piece, the tempo's climb, the intro; the mix into the next piece (0.16.1) */
     {"MIDI IN", 63, 0, {{"Notes", KN_NAME, 20, MIN_NAME, 4}, {"Channel", KN_NAME, 19, MCH_NAME, 17}, {"USB host", KN_NAME, 21, ONOFF_NAME, 2}, {"Knob CCs", KN_NAME, 22, CC_NAME, 4}}},   /* MIDI in's notes: the scale (as before), or PADS (a pad controller plays PERF: pads_in); the channel listened to; the USB port as the host of a USB-MIDI device (not kept: every power-on is a device) */
-    {"FILTERS", FX_SPARE14, 0, {{"Pad", KN_NAME, EN_FXS_FT_PAD, FT_NAME, 5}, {"Bass", KN_NAME, EN_FXS_FT_BASS, FT_NAME, 5}, {"Acid", KN_NAME, EN_FXS_FT_ACID, FT_NAME, 5}, {"", KN_NONE, 0, 0, 0}}},   /* the synths' filter types (0.15.15; a spare effect bit: nothing held) */
+    {"FILTERS", FX_SPARE14, 0, {{"Pad", KN_NAME, EN_FXS_FT_PAD, FT_NAME, 5}, {"Bass", KN_NAME, EN_FXS_FT_BASS, FT_NAME, 5}, {"Acid", KN_NAME, EN_FXS_FT_ACID, FT_NAME, 6}, {"", KN_NONE, 0, 0, 0}}},   /* the synths' filter types (0.15.15; a spare effect bit: nothing held) */
     {"FILTER", FX_TFILT, 0, {{"Type", KN_NAME, EN_FXS_TF_TYPE, FT_NAME, 5}, {"Cutoff", KN_PLAIN, EN_FXS_TF_CUT, 0, 0}, {"Reso", KN_PLAIN, EN_FXS_TF_RESO, 0, 0},
                              {"Targets", KN_NAME, EN_FXS_TF_TGT, EN_PT_NAME, EN_NPT}}},   /* (0.15.19) the punch-ins on tracks: a multimode filter on the tracks chosen */
     {"DELAY", FX_TDELAY, 0, {{"Send", KN_PLAIN, EN_FXS_TD_SEND, 0, 0}, {"Repeats", KN_PLAIN, EN_FXS_TD_FB, 0, 0}, {"Targets", KN_NAME, EN_FXS_TD_TGT, EN_PT_NAME, EN_NPT},
@@ -803,6 +803,7 @@ static int sl_bars_i(int b)
     return i;
 }
 static int sl_exact(void) { return sl_play() && ui.sl_pos < SL_N && glob.sl_bars[ui.sl_pos]; }
+static void mood_apply(void);
 static void sl_parts(int s)                     /* place s's parts: the ones it leaves out muted */
 {
     uint8_t m = 0;
@@ -813,11 +814,32 @@ static void sl_parts(int s)                     /* place s's parts: the ones it 
     ui.trk_m = m;
     ui.trk_s = 0;
     en_trk(m, 0);
+    if (glob.sl_pat[s % SL_N]) {                /* (0.17.14) its pattern (from the next bar) */
+        proj.par[P_PATTERN] = (int16_t)(glob.sl_pat[s % SL_N] - 1);
+        en_set(P_PATTERN, proj.par[P_PATTERN]);
+    }
+    if (glob.sl_mood[s % SL_N]) {               /* and its energy */
+        ui.mood = (uint8_t)(glob.sl_mood[s % SL_N] - 1);
+        mood_apply();
+    }
+}
+static void sl_start(void)                      /* a start from the top (PLAY, power-on, a code): the place playing's bars count from it, its parts, pattern, energy */
+{
+    sl_b0 = 0;
+    sl_fresh = 1;
+    if (sl_play() && ui.sl_pos < SL_N)
+        sl_parts(ui.sl_pos);
+}
+static int sl_differs(int a, int b)             /* places a and b play something different (the piece, its parts, pattern or energy) */
+{
+    return glob.sl[a] != glob.sl[b] || glob.sl_mute[a] != glob.sl_mute[b] || glob.sl_pat[a] != glob.sl_pat[b] || glob.sl_mood[a] != glob.sl_mood[b];
 }
 static void sl_tick(void)                       /* each frame while playing: the place's last bar asks for the next */
 {
+    static uint32_t fill_at = 0xFFFFFFFFu;      /* the bar a fill was asked in (once a place) */
     uint32_t bar;
     int n, s;
+    en_arrange = (uint8_t)!sl_exact();          /* (0.17.16) a place with its own bars is arranged by the player: Song's own rests off */
     if (sl_fresh) {
         if (!en_playing || en_bars >= 16u)
             return;
@@ -827,6 +849,12 @@ static void sl_tick(void)                       /* each frame while playing: the
         return;
     bar = sl_bar_now() - sl_b0;
     n = glob.sl_bars[ui.sl_pos];
+    if ((int)bar == n - 2 && fill_at != sl_b0 + bar) {   /* (0.17.16) the bar before the last: a fill into the next place, if it changes anything */
+        const int nx = sl_step(ui.sl_pos, 1);
+        fill_at = sl_b0 + bar;
+        if (nx >= 0 && !(glob.sl_end && nx <= (int)ui.sl_pos) && sl_differs(ui.sl_pos, nx))
+            en_fill_next();
+    }
     if ((int)bar < n - 1)
         return;
     s = sl_step(ui.sl_pos, 1);
@@ -1058,6 +1086,8 @@ static int view_knob(int i)
             return K_NONE;
         return ui.fx_page ? K_FXP + 4 * (ui.fx_page - 1) + i : K_FXF + i;
     }
+    if (ui.view == V_SETL && (ui.btn >> B_SEL & 1u) && (i == 1 || i == 2))
+        return i == 1 ? K_SLPT : K_SLEN;        /* (0.17.14) SEL held: the place's pattern and energy */
     return VIEW_KNOB[ui.view][i];
 }
 static const char *view_label(int i)
@@ -1066,6 +1096,8 @@ static const char *view_label(int i)
         return FXP[NFXP - 1].c[i].label;
     if (ui.fx_menu)
         return ui.fx_page ? FXP[ui.fx_page - 1].c[i].label : FXK_LABEL[i];
+    if (ui.view == V_SETL && (ui.btn >> B_SEL & 1u) && (i == 1 || i == 2))
+        return i == 1 ? "Pattern" : "Energy";
     return KNOB_LABEL[ui.view][i];
 }
 
@@ -1209,7 +1241,7 @@ static void fxp_text(int k, char *b)
     else if (FXP_CTL(k).kind == KN_TGT || FXP_CTL(k).kind == KN_PTGT)
         s = GX_TGT[v].name;
     else if (FXP_CTL(k).kind == KN_NAME)
-        s = FXP_CTL(k).names[v];
+        s = FXP_CTL(k).idx == EN_FXS_FT_PAD && !en_pad_filtered() ? "NO FILTER" : FXP_CTL(k).names[v];   /* (0.17.18) the pad's sound has none */
     if (s) {
         int n = 0;
         while (*s && n < 9)
@@ -1433,6 +1465,10 @@ static int knob_get(int k)
         return sl_bars_i(glob.sl_bars[ui.slsl % SL_N]);
     if (k == K_SLON)
         return glob.sl_on ? 1 + (glob.sl_end & 1u) : 0;
+    if (k == K_SLPT)
+        return glob.sl_pat[ui.slsl % SL_N];
+    if (k == K_SLEN)                             /* (0 as it is; then 0, 5 .. 100) */
+        return glob.sl_mood[ui.slsl % SL_N] ? (glob.sl_mood[ui.slsl % SL_N] - 1) / 5 + 1 : 0;
     if (k == K_PGTY)
         return pk_get(ui.pgsl & 7);
     if (k == K_PGCH || k == K_PGBR || k == K_PGPL) {
@@ -1506,6 +1542,11 @@ static void knob_range(int k, int *lo, int *hi)
     if (k == K_BSTY || k == K_BSNO || k == K_BSOC) {
         *lo = 0;
         *hi = k == K_BSTY ? 4 : k == K_BSNO ? 7 : 2;
+        return;
+    }
+    if (k == K_SLPT || k == K_SLEN) {
+        *lo = 0;
+        *hi = k == K_SLPT ? EN_NPAT : 21;
         return;
     }
     if (k == K_CDPOS || k == K_CDCHR || k == K_CDROLL) {
@@ -1582,6 +1623,21 @@ static void knob_text(int k, char *b)
     }
     if (k == K_GRA) {
         itoa_u((uint32_t)ui.gr_all, b);
+        return;
+    }
+    if (k == K_SLPT || k == K_SLEN) {            /* a place's pattern (the piece's, 1 .. 6) and energy (as it is, 0 .. 100) */
+        const int v = knob_get(k);
+        if (!v) {
+            const char *s = k == K_SLPT ? "Piece's" : "As is";
+            int n = 0;
+            while (s[n]) {
+                b[n] = s[n];
+                n++;
+            }
+            b[n] = 0;
+            return;
+        }
+        itoa_u(k == K_SLPT ? (uint32_t)v : (uint32_t)(v - 1) * 5u, b);
         return;
     }
     if (k == K_CDPOS || k == K_CDCHR || k == K_CDROLL) {   /* the code: the place (1 .. 9), the letter there, the roll */
@@ -1788,6 +1844,17 @@ static void knob_set(int k, int v)
     }
     if (k == K_CDPOS) {
         code_pos = (uint8_t)(v < 0 ? 0 : v > CODE_N - 1 ? CODE_N - 1 : v);
+        return;
+    }
+    if (k == K_SLPT || k == K_SLEN) {            /* a place's pattern and energy: kept with the list; the place playing hears it at once */
+        const int c = ui.slsl % SL_N;
+        if (k == K_SLPT)
+            glob.sl_pat[c] = (uint8_t)(v < 0 ? 0 : v > EN_NPAT ? EN_NPAT : v);
+        else
+            glob.sl_mood[c] = (uint8_t)(v <= 0 ? 0 : (v > 21 ? 20 : v - 1) * 5 + 1);
+        project_globals();
+        if (sl_play() && c == ui.sl_pos)
+            sl_parts(c);
         return;
     }
     if (k == K_CDCHR || k == K_CDROLL) {         /* a letter typed (the check letter follows the others), or a new roll: the track playing's, another seed */
@@ -2570,6 +2637,7 @@ static void code_start(const tcode_t *t)        /* a track code: its genre, its 
     code_seed = t->seed;
     track_fresh(0, 1);
     af_fresh = 1;
+    sl_start();
     en_play(1);
     code_now(g);
     code_text(g, b);
@@ -3163,12 +3231,6 @@ static void button(int b)
     switch (b) {
     case B_FX: {
         const uint32_t now = plat_ms();
-        if (ui.fx_menu && !ui.fx_page && ui.fx_open_t && now - ui.fx_open_t < 350u) {   /* FX twice quickly: the settings of the effect you used last (the first page if none) */
-            ui.fx_open_t = 0;
-            ui.fx_page = ui.fx_lastpg ? ui.fx_lastpg : 1;
-            say(FXP[ui.fx_page - 1].name, "SETTINGS");
-            break;
-        }
         ui.fx_menu = (uint8_t)!ui.fx_menu;
         ui.fx_page = 0;                          /* (from an edit page too: closed) */
         ui.fx_open_t = ui.fx_menu ? (now ? now : 1u) : 0u;
@@ -3190,10 +3252,7 @@ static void button(int b)
             uint8_t g[CODE_N];
             track_fresh(ui.view != V_CODE, 0);   /* a fresh track (the Code page: the one playing again, from the top) */
             af_fresh = 1;
-            sl_b0 = 0;                           /* (a place's bars from the top) */
-            sl_fresh = 1;
-            if (sl_play() && ui.sl_pos < SL_N)
-                sl_parts(ui.sl_pos);
+            sl_start();
             en_play(1);
             code_now(g);
             code_text(g, t);
@@ -3741,7 +3800,7 @@ static void midi_in(void)
 
 /* HELP CARDS (X0X's): hold one button alone for HELP_HOLD and a card says what it does. A key, a
  * turn or another button puts it away; letting go after its card does nothing else. The buttons whose
- * hold means something else (PLAY, SEL, SEQ, SAVE, FX) have no card. */
+ * hold means something else (PLAY, SEL, SEQ, SAVE, FX: the effects' settings) have no card. */
 static void help_tick(uint32_t btn, uint32_t keys)
 {
     uint32_t now = plat_ms();
@@ -3759,6 +3818,15 @@ static void help_tick(uint32_t btn, uint32_t keys)
         ui.fx_menu = 1;
         ui.fx_page = ST_ORDER[0];                /* the settings' walk (0.16.1: their own; the dial goes through them) */
         say("SETTINGS", "DIAL: NEXT PAGE");
+        return;
+    }
+    if (btn == 1u << B_FX && !(ui.btn_used & btn) && now - ui.down_t[B_FX] >= 500u && (int32_t)(ui.turn_t - ui.down_t[B_FX]) <= 0) {   /* FX held: the effects' settings, from anywhere (0.17.20, as HOME held is the unit's) */
+        ui.btn_used |= btn;                      /* its release now does nothing */
+        ui.fx_menu = 1;
+        ui.lock_mode = 0;
+        ui.fx_open_t = 0;
+        ui.fx_page = ui.fx_lastpg ? ui.fx_lastpg : FX_ORDER[0];   /* the effect you used last, else the first; the dial walks them */
+        say(FXP[ui.fx_page - 1].name, "DIAL: NEXT EFFECT");
         return;
     }
     for (i = 0; i < NB; i++)
@@ -4399,18 +4467,18 @@ static void input(void)
         ui.turn_t = plat_ms();
     }
     if ((e = plat_enc(EN_ALGO)) != 0) {
-        if (perf_like() && !ui.fx_menu && !(btn >> B_SEL & 1u)) {   /* the perform screen (and the visualizers): the mood */
+        if (btn >> B_SEL & 1u) {                      /* shift: the sound of the voice on screen (drums: the kit) */
+            ui.btn_used |= 1u << B_SEL;
+            shift_sound(e > 0 ? 1 : -1);
+        } else if ((ui.view == V_CHORDS || ui.view == V_GLOBAL) && !ui.fx_menu) {   /* (0.17.16) the mode only where the scale is edited */
+            set_mode(proj.par[P_MODE] + (e > 0 ? 1 : -1));
+        } else {                                      /* everywhere else the mood (the maker: a turn changing the scale by accident) */
             int m = ui.mood + 2 * e;
             char t[8];
             ui.mood = (uint8_t)(m < 0 ? 0 : m > 100 ? 100 : m);
             mood_apply();
             itoa_u(ui.mood, t);
             say("MOOD", t);
-        } else if (btn >> B_SEL & 1u) {               /* shift: the sound of the voice on screen (drums: the kit) */
-            ui.btn_used |= 1u << B_SEL;
-            shift_sound(e > 0 ? 1 : -1);
-        } else {
-            set_mode(proj.par[P_MODE] + (e > 0 ? 1 : -1));
         }
         ui.turn_t = plat_ms();
     }
@@ -4510,6 +4578,8 @@ static void input(void)
                 ui.act_t = ui.turn_t = plat_ms();
                 continue;
             }
+            if (ui.view == V_SETL && (i == 1 || i == 2) && (btn >> B_SEL & 1u))
+                ui.btn_used |= 1u << B_SEL;      /* (SEL + KNOB2, KNOB3: the place's pattern and energy, view_knob) */
             if (ui.view == V_TEMPO && i == 3 && (btn >> B_SEL & 1u)) {   /* SEL + Drift: the chord's time in bars (right) or in seconds (left), in any genre; the genre's own is kept as 0 */
                 const int def = en_genre_bars() ? 1 : 2, nw = e > 0 ? 1 : 2;
                 ui.btn_used |= 1u << B_SEL;
@@ -6179,6 +6249,44 @@ static void scope_dot(float u, uint16_t col)     /* the dot at u (0..1 across) r
 static float scope_expo(float t, float k) { return fm_exp2f(-t * k); }
 
 /* the same, for the effects' edit pages: the effect drawn from its settings, moving where it moves */
+/* (0.17.19) a filter type's response at r = f / fc, as the engine's SVF sounds it (q = 1 / k): 0 low, 1 high, 2 band (1 at its centre), 3 notch,
+ * 4 peak (low less high), 5 the 303 (two poles resonant, two flat); two: the 24 dB types, a flat second stage (above the corner for the low-pass,
+ * below for the high-pass, as the voices run it) */
+static float filt_mag(int t, float r, float q, int two)
+{
+    const float a = 1.0f - r * r, d = fm_sqrtf(a * a + r * r / (q * q) + 1e-9f);
+    float m;
+    switch (t) {
+    case 1: m = r * r / d; break;
+    case 2: m = r / q / d; break;
+    case 3: m = fm_fabsf(a) / d; break;
+    case 4: m = (1.0f + r * r) / d; break;
+    default: m = 1.0f / d; break;
+    }
+    if ((two && t <= 1) || t == 5) {
+        const float r2 = t == 1 ? r * 1.2f : r * (1.0f / 1.2f), a2 = 1.0f - r2 * r2, d2 = fm_sqrtf(a2 * a2 + r2 * r2 * 1.44f + 1e-9f);
+        m *= t == 1 ? r2 * r2 / d2 : 1.0f / d2;
+    }
+    return m;
+}
+/* the response over 20 Hz .. 20 kHz into sc_y (h: the trace's height), in decibels: -36 dB at the foot, the top at +6 dB or the peak (with room),
+ * so a flat passband sits at the same height whatever the type and a slope shows beside a resonant peak */
+static float filt_db(int t, int32_t x, float fc, float q, int two)
+{
+    return 6.0206f * fm_log2f(filt_mag(t, 20.0f * fm_exp2f((float)x / (float)(SC_W - 1) * 10.0f) / fc, q, two) + 1e-6f);
+}
+static void filt_curve(int t, float fc, float q, int two, int32_t h)   /* (worked out twice, its top then the trace: no array, RAM is short) */
+{
+    float top = 12.0f;                           /* (0.17.20: the pass band lower, about 60% up; the maker: "a little high") */
+    int32_t x;
+    for (x = 0; x < SC_W; x++) {
+        const float m = filt_db(t, x, fc, q, two);
+        top = m > top ? m : top;
+    }
+    top += 9.0f;
+    for (x = 0; x < SC_W; x++)
+        sc_y[x] = (uint8_t)(fm_clampf((filt_db(t, x, fc, q, two) + 36.0f) / (top + 36.0f), 0.0f, 1.0f) * (float)h);
+}
 static int draw_fxscope(int p)
 {
     const float tk = (float)(scope_tick() % 64u) * (1.0f / 64.0f);
@@ -6316,6 +6424,13 @@ static int draw_fxscope(int p)
             cv_rect(SC_X + x, sc_oy + sc_oh - f2[x] - 1, 1, 2, col);
         return 1;
     }
+    case 27:                                     /* (0.17.19) the punch-in FILTER: its type at its cutoff and resonance */
+        if (FXP[p].bit != FX_TFILT)
+            return 0;
+        filt_curve(ui.fxs[EN_FXS_TF_TYPE] < 5 ? ui.fxs[EN_FXS_TF_TYPE] : 0, 40.0f * fm_exp2f((float)ui.fxs[EN_FXS_TF_CUT] * 0.0864f),
+                   1.0f / (2.0f - 0.0195f * (float)ui.fxs[EN_FXS_TF_RESO]), 0, H - 6);
+        scope_trace(col);
+        return 1;
     case 21:                                     /* wah: the band-pass at its lowest, and where the loudness will push it */
         for (x = 0; x < SC_W; x++) {
             const float k = 0.7f - 0.0058f * (float)ui.fxs[EN_FXS_WH_RESO], f = 20.0f * fm_exp2f((float)x / (float)(SC_W - 1) * 10.0f),
@@ -6668,7 +6783,17 @@ static void draw_scope(int kind)
                 if (cur)
                     cv_rect(x0, y0 + 12, 116, 2, K_ACC);
             }
-            {   /* the chosen place's parts (black keys 1-5): in, lit; out, struck */
+            if (ui.btn >> B_SEL & 1u) {   /* SEL held: the chosen place's pattern and energy (SEL + KNOB2, KNOB3) */
+                const int c = ui.slsl % SL_N;
+                int32_t x = cv_text(4, 133, &FONT_XS, "PATTERN", K_DIM) + 4;
+                if (glob.sl_pat[c])
+                    itoa_u(glob.sl_pat[c], tx);
+                x = cv_text(x, 133, &FONT_XS, glob.sl_pat[c] ? tx : "PIECE'S", K_TEXT) + 10;
+                x = cv_text(x, 133, &FONT_XS, "ENERGY", K_DIM) + 4;
+                if (glob.sl_mood[c])
+                    itoa_u((uint32_t)glob.sl_mood[c] - 1u, tx);
+                cv_text(x, 133, &FONT_XS, glob.sl_mood[c] ? tx : "AS IS", K_TEXT);
+            } else {   /* the chosen place's parts (black keys 1-5): in, lit; out, struck */
                 const int c = ui.slsl % SL_N;
                 int32_t x = 4;
                 int i;
@@ -7108,19 +7233,26 @@ static void draw_scope(int kind)
         const int ac = kind == SCOPE_AFILT, cut = proj.par[ac ? P_AC_CUT : P_DR_CUT], res = proj.par[ac ? P_AC_RES : P_DR_RES],
                   env = ac ? proj.par[P_AC_ENV] : 0;
         int pass;
+        /* (0.17.19) drawn as its FILTERS type sounds: the high-pass's corner where the engine puts it (FT_FC: a quarter of the bass's, half the acid's) */
+        static const char *const FTN[6] = {"LOW", "HIGH", "BAND", "NOTCH", "PEAK", "303"};
+        const int ft = ui.fxs[ac ? EN_FXS_FT_ACID : EN_FXS_FT_BASS], t = (unsigned)ft < (ac ? 6u : 5u) ? ft : 0;
+        const float fcm = t == 1 ? (ac ? 0.5f : 0.25f) : 1.0f;
+        char tl[24];
+        int n = 0;
+        const char *a = ac ? "ACID FILTER: " : "BASS FILTER: ", *b = FTN[t];
+        while (*a)
+            tl[n++] = *a++;
+        while (*b)
+            tl[n++] = *b++;
+        tl[n] = 0;
         col = ac ? K_ACID : K_BASS;
-        title = ac ? "ACID FILTER" : "BASS FILTER";
         sub = ac ? "CUTOFF  RESO  ENV MOD (DIM: PEAK)" : "CUTOFF  RESO";
-        sc_title(title, col);
+        sc_title(tl, col);
         sc_foot(sub, K_DIM);
         for (pass = 0; pass < (ac && env > 4 ? 2 : 1); pass++) {
-            const float oct = 8.4f * (float)cut * 0.01f + (pass ? 4.0f * (float)env * 0.01f : 0.0f), fc = 60.0f * fm_exp2f(oct),
-                        q = 0.6f + (float)res * 0.09f, top = (q > 1.0f ? q : 1.0f) * 1.12f;
-            for (x = 0; x < SC_W; x++) {
-                const float f = 20.0f * fm_exp2f((float)x / (float)(SC_W - 1) * 10.0f), r = f / fc, a = 1.0f - r * r,
-                            m = 1.0f / fm_sqrtf(a * a + r * r / (q * q) + 1e-6f);
-                sc_y[x] = (uint8_t)(fm_clampf(m / top, 0.0f, 1.0f) * (float)(SC_H - 6));
-            }
+            const float oct = 8.4f * (float)cut * 0.01f + (pass ? 4.0f * (float)env * 0.01f : 0.0f), fc = 60.0f * fm_exp2f(oct) * fcm,
+                        q = 0.6f + (float)res * 0.09f;
+            filt_curve(t, fc, q, 1, SC_H - 6);
             scope_trace(pass == 0 && ac && env > 4 ? mix(K_BG, col, 7) : col);
         }
         return;
@@ -7869,7 +8001,9 @@ static void draw_main(void)
             h = hash(h, (uint32_t)ui.slsl | (uint32_t)ui.sl_pos << 8 | (uint32_t)glob.sl_on << 16 | (uint32_t)proj.genre << 17 | (uint32_t)proj.piece << 24 | (uint32_t)ui.sl_q << 28);
             for (s = 0; s < SL_N; s++)
                 h = hash(h, glob.sl_bars[s] | (uint32_t)glob.sl_mute[s] << 8);
-            h = hash(h, glob.sl_end | (en_playing ? sl_bar_now() - sl_b0 : 0u) << 1);
+            h = hash(h, glob.sl_end | (en_playing ? sl_bar_now() - sl_b0 : 0u) << 1 | (ui.btn >> B_SEL & 1u) << 31);
+            for (s = 0; s < SL_N; s++)
+                h = hash(h, glob.sl_pat[s] | (uint32_t)glob.sl_mood[s] << 8);
         }
         if (ui.view == V_PROG) {
             int s;
@@ -8679,7 +8813,7 @@ int ui_restore_valid(uint32_t obj, const uint8_t *b, uint32_t len)
         return obj == OBJ_PROJ && (rd32(b) == BANK_MAGIC || rd32(b) == OLD_KIT_MAGIC);
     }
     if (obj == OBJ_GLOB)
-        return (len == sizeof(glob_t) || len == GLOB_V1 || len == GLOB_OLD) && rd32(b) == GLOB_MAGIC;
+        return (len == sizeof(glob_t) || len == GLOB_V2 || len == GLOB_V1 || len == GLOB_OLD) && rd32(b) == GLOB_MAGIC;
     if (obj == OBJ_KINDS)                        /* the pieces' extras (0.16.28: PCX1), or the chord types alone (KND1, 0.16.6 .. 0.16.27); fewer genres too */
         return (len >= 4u && len <= 4u + EN_NGENRE * NPIECES * EN_PRK_LEN && (len - 4u) % (NPIECES * EN_PRK_LEN) == 0u && rd32(b) == KND_MAGIC) ||
                (len >= PX_HDR && len <= PX_SIZE && b[4] == PX_LEN && (len - PX_HDR) % (NPIECES * PX_LEN) == 0u && rd32(b) == PX_MAGIC);   /* (0.15.21: the set list after the old record) */
@@ -9091,6 +9225,7 @@ void ui_init(void)
         if (!en_playing) {
             track_fresh(1, 1);
             af_fresh = 1;
+            sl_start();
             en_play(1);                          /* it plays from the start */
         }
     }
@@ -9121,6 +9256,7 @@ void ui_frame(void)
         if (!en_playing) {
             track_fresh(1, 1);
             af_fresh = 1;
+            sl_start();
             en_play(1);
         }
     }

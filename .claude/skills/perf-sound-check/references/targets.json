@@ -1,0 +1,73 @@
+{
+ "_about": "Thresholds for soundcheck.py judge(). Each rule: warn_/fail_ below/above, a plain-words 'say', and 'source' ('sourced: ...' or 'heuristic: calibrate'). Genre 'rules' override 'default'. Genres inherit a 'profile' (club, groove, slow, ambient). Rule numbers (#n) refer to the rule table in references/knowledge.md. Calibrate heuristics with `soundcheck.py calibrate` against PERF's own best renders before trusting a fail.",
+ "default": {
+  "artefacts.nan_or_inf": {"fail_above": 0, "say": "NaN or Inf samples in the render: an engine bug (#1)", "source": "sourced: zero tolerance"},
+  "artefacts.clip_runs": {"warn_above": 0, "fail_above": 20, "say": "runs of 3+ samples at full scale: the master clips (#2)", "source": "heuristic: calibrate"},
+  "sample_peak_dbfs": {"warn_above": -0.1, "say": "sample peak at full scale: no headroom before the DAC (#2)", "source": "heuristic: calibrate"},
+  "true_peak_dbtp": {"warn_above": 0.0, "fail_above": 1.2, "say": "true peak over 0 dBTP: inter-sample overs, the DAC or a later encode may distort; club masters reach +1.2 (#3)", "source": "sourced: Spotify (-1 dBTP), TrackSensei club medians +0.5 to +1.2"},
+  "psr_db": {"warn_below": 8, "fail_below": 6, "say": "peak-to-short-term ratio in the loud parts is low: over-limited, transients squashed (#5)", "source": "sourced: Ian Shepherd PSR >= 8"},
+  "plr_db": {"warn_below": 7, "say": "peak-to-loudness ratio under 7 dB: very dense master (#6)", "source": "heuristic: TrackSensei medians ~8.6, calibrate"},
+  "loudness.short_term_jumps_3lu": {"warn_above": 6, "say": "many 3 LU+ steps between seconds: level jumps between sections or pieces (#39)", "source": "heuristic: calibrate"},
+  "stereo.correlation_below_120hz": {"warn_below": 0.97, "fail_below": 0.9, "say": "the bass is not mono: weak on club systems and mono speakers (#12)", "source": "sourced: TrackSensei sub correlation 0.998-1.0; threshold heuristic"},
+  "mono_sum_drop_lu": {"warn_above": 0.5, "fail_above": 1.0, "say": "loudness drops when summed to mono: phase problems (#13)", "source": "sourced: TrackSensei 0.18-0.46 LU; 1 LU rule of thumb"},
+  "stereo.correlation": {"warn_below": 0.3, "fail_below": 0.0, "say": "left and right are too far apart or out of phase (#14)", "source": "heuristic: calibrate"},
+  "artefacts.dc_dbfs": {"warn_above": -60, "say": "DC offset: wastes headroom, thumps at start and stop (#16)", "source": "heuristic"},
+  "spectrum.bands.infra_below_20": {"warn_above": 0.02, "say": "energy below 20 Hz: inaudible rumble eating headroom; add a high-pass on the master (#17)", "source": "heuristic: calibrate"},
+  "artefacts.clicks": {"warn_above": 0, "fail_above": 5, "say": "clicks (single-sample jumps): voice steals, envelope resets or buffer bugs (#22)", "source": "heuristic: calibrate"},
+  "artefacts.clicks_at_block_edge": {"fail_above": 0, "say": "clicks cluster at audio block edges: a buffer or core hand-off bug (#22)", "source": "heuristic"},
+  "stuck_notes": {"fail_above": 0, "say": "note-ons with no note-off in the MIDI out (#23)", "source": "sourced: zero tolerance"},
+  "drum_offset_sd_ms": {"warn_above": 2.0, "say": "drum hits wander off the grid: timing jitter (unless a Feel is on) (#26)", "source": "heuristic"},
+  "in_scale_share": {"warn_below": 0.9, "fail_below": 0.8, "say": "a lot of note time outside the detected scale (#31)", "source": "heuristic: calibrate"}
+ },
+ "profiles": {
+  "club": {
+   "loudness.integrated": {"warn_below": -14, "warn_above": -6.4, "say": "outside the club-master range (-9.9 to -6.4 LUFS) by a lot; PERF has a master knob, so this is a gain-staging hint, not an error (#4)", "source": "sourced: TrackSensei 563 techno/house tracks"},
+   "spectrum.bands.below_250": {"warn_below": 0.7, "warn_above": 0.95, "say": "share of energy below 250 Hz off the club range (78-92%) (#8)", "source": "sourced: TrackSensei; band heuristic"},
+   "spectrum.bands.sub_to_low_ratio": {"warn_below": 0.5, "warn_above": 1.4, "say": "sub (20-60 Hz) vs low (60-250 Hz) off the observed 0.67-1.11 (#9)", "source": "heuristic from TrackSensei"},
+   "spectrum.low_peak_hz": {"warn_below": 41, "warn_above": 70, "say": "the low-end peak (usually the kick) sits off the 48-62 Hz club range (#10)", "source": "sourced: TrackSensei 48-62 Hz; Deruty 808 median 49.5 Hz"},
+   "loudness.lra": {"warn_below": 2, "say": "almost no dynamic arc across the render (#7)", "source": "heuristic"}
+  },
+  "groove": {
+   "loudness.integrated": {"warn_below": -18, "warn_above": -7, "say": "far from typical master levels (#4)", "source": "heuristic"},
+   "spectrum.bands.below_250": {"warn_below": 0.55, "warn_above": 0.95, "say": "low-end share unusual for a groove genre (#8)", "source": "heuristic: calibrate"}
+  },
+  "slow": {
+   "loudness.integrated": {"warn_below": -20, "warn_above": -8, "say": "far from typical levels for this style (#4)", "source": "heuristic"}
+  },
+  "ambient": {
+   "loudness.integrated": {"warn_below": -26, "warn_above": -10, "say": "far from typical ambient levels (#4)", "source": "heuristic"},
+   "psr_db": {"warn_below": 10, "say": "ambient this dense loses its air (#5)", "source": "heuristic"},
+   "stereo.correlation": {"warn_below": 0.1, "fail_below": -0.1, "say": "wide is fine here, out of phase is not (#14)", "source": "heuristic"},
+   "in_scale_share": {"warn_below": 0.85, "say": "drones drifting out of the scale (#31)", "source": "heuristic"}
+  }
+ },
+ "genres": {
+  "techno":      {"profile": "club",   "bpm": [120, 140], "bpm_source": "sourced: Ableton Learning Music", "swing": [50, 54]},
+  "hypno":       {"profile": "club",   "bpm": [125, 135], "bpm_source": "convention", "swing": [50, 54]},
+  "hard_techno": {"profile": "club",   "bpm": [140, 180], "bpm_source": "sourced (range disputed)", "swing": [50, 52]},
+  "acid":        {"profile": "club",   "bpm": [120, 140], "bpm_source": "sourced: techno/house bands", "swing": [50, 58], "rules": {"in_scale_share": {"warn_below": 0.85, "say": "acid lines use chromatic passing notes, but this many is off-key (#31)", "source": "heuristic"}}},
+  "house":       {"profile": "club",   "bpm": [115, 130], "bpm_source": "sourced: Ableton", "swing": [52, 62]},
+  "deep_house":  {"profile": "club",   "bpm": [115, 125], "bpm_source": "sourced: house band", "swing": [54, 62]},
+  "dub_techno":  {"profile": "club",   "bpm": [118, 128], "bpm_source": "convention (often confused with dub)", "swing": [50, 56]},
+  "trance":      {"profile": "club",   "bpm": [125, 140], "bpm_source": "sourced: Ableton", "swing": [50, 52]},
+  "psytrance":   {"profile": "club",   "bpm": [135, 150], "bpm_source": "sourced (138-145 or 135-150)", "swing": [50, 52]},
+  "industrial":  {"profile": "club",   "bpm": [125, 150], "bpm_source": "convention", "swing": [50, 54]},
+  "ebm":         {"profile": "club",   "bpm": [115, 135], "bpm_source": "convention", "swing": [50, 54]},
+  "electro":     {"profile": "club",   "bpm": [120, 135], "bpm_source": "convention", "swing": [50, 56]},
+  "breaks":      {"profile": "club",   "bpm": [125, 140], "bpm_source": "convention", "swing": [50, 58]},
+  "dnb":         {"profile": "club",   "bpm": [160, 180], "bpm_source": "sourced: Ableton", "swing": [50, 54], "signature": {"kick": "x.........x.....", "snare": "....x.......x..."}},
+  "jungle":      {"profile": "club",   "bpm": [160, 175], "bpm_source": "sourced: 165-174", "swing": [50, 56]},
+  "dubstep":     {"profile": "club",   "bpm": [135, 145], "bpm_source": "sourced: Ableton (half-time feel)", "swing": [50, 56], "signature": {"snare": "........x......."}},
+  "garage":      {"profile": "club",   "bpm": [130, 140], "bpm_source": "convention", "swing": [58, 66], "signature": {"kick": "x.........x....."}},
+  "footwork":    {"profile": "club",   "bpm": [155, 165], "bpm_source": "sourced: ~160", "swing": [50, 60]},
+  "amapiano":    {"profile": "groove", "bpm": [110, 115], "bpm_source": "sourced: ~112", "swing": [54, 62]},
+  "afro_house":  {"profile": "groove", "bpm": [118, 125], "bpm_source": "convention", "swing": [54, 60]},
+  "reggaeton":   {"profile": "groove", "bpm": [90, 100],  "bpm_source": "sourced", "swing": [50, 54]},
+  "dub":         {"profile": "slow",   "bpm": [60, 90],   "bpm_source": "sourced: Ableton", "swing": [52, 62]},
+  "hiphop":      {"profile": "groove", "bpm": [60, 100],  "bpm_source": "sourced: Ableton", "swing": [54, 66]},
+  "lofi":        {"profile": "slow",   "bpm": [60, 95],   "bpm_source": "sourced: hip-hop band", "swing": [56, 66], "rules": {"in_scale_share": {"warn_below": 0.85, "say": "lo-fi jazz colour is fine, but this much is off-key (#31)", "source": "heuristic"}}},
+  "triphop":     {"profile": "slow",   "bpm": [70, 100],  "bpm_source": "convention", "swing": [52, 62]},
+  "synthwave":   {"profile": "groove", "bpm": [80, 118],  "bpm_source": "convention", "swing": [50, 52]},
+  "ambient":     {"profile": "ambient","bpm": null, "swing": null}
+ }
+}

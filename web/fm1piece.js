@@ -194,11 +194,13 @@ export function pcSetEncode(set) {
     if (pc.fx) x[i] = Array.from(pc.fx);
     if (pc.bass && pc.bass.some((v) => v)) sb[i] = Array.from(pc.bass);
   });
-  const { k: _old, x: _oldx, s: _olds, sb: _osb, sm: _osm, se: _ose, ...m0 } = set.meta || {};
+  const { k: _old, x: _oldx, s: _olds, sb: _osb, sm: _osm, se: _ose, sp: _osp, sv: _osv, ...m0 } = set.meta || {};
   const m1 = { ...m0 };
   if (set.bars && set.bars.some((v) => v)) m1.sb = set.bars.slice(0, 16);     // (0.17.13, song mode) its places' bars,
   if (set.mutes && set.mutes.some((v) => v)) m1.sm = set.mutes.slice(0, 16);   // the parts each leaves out,
   if (set.end) m1.se = 1;                                                       // and Once
+  if (set.pats && set.pats.some((v) => v)) m1.sp = set.pats.slice(0, 16);     // (0.17.14) the pattern each plays (0 the piece's),
+  if (set.moods && set.moods.some((v) => v)) m1.sv = set.moods.slice(0, 16);  // and its energy (0 as is, else mood + 1)
   if (Object.keys(k).length) m1.k = k;
   if (Object.keys(x).length) m1.x = x;
   if (Object.keys(sb).length) m1.s = sb;
@@ -241,28 +243,32 @@ export function pcSetDecode(buf) {
   let meta = {};
   try { meta = JSON.parse(new TextDecoder().decode(buf.subarray(p, p + ml))) || {}; } catch (_) { meta = {}; }
   for (const pc of pieces) if (pc.vidx >= 0 && pc.vidx < voices.length) pc.voice = voices[pc.vidx];
-  const { k, x, s, sb, sm, se, ...rest } = meta && typeof meta === "object" ? meta : {};
+  const { k, x, s, sb, sm, se, sp, sv, ...rest } = meta && typeof meta === "object" ? meta : {};
   const arr16 = (a, max) => (Array.isArray(a) && a.length === 16 && a.every((v) => Number.isInteger(v) && v >= 0 && v <= max) ? a.slice() : new Array(16).fill(0));
   pieces.forEach((pc, i) => {
     pc.kinds = k && kindsOk(k[i]) && k[i].some((v) => v) ? Uint8Array.from(k[i]) : null;
     pc.fx = x && bytesOk(x[i], PC_PX_NFX) ? Uint8Array.from(x[i]) : null;
     pc.bass = s && bytesOk(s[i], PC_BS_LEN) && s[i].some((v) => v) ? Uint8Array.from(s[i]) : null;
   });
-  return { kind: "set", list, on, mix, bars: arr16(sb, 255), mutes: arr16(sm, 31), end: se ? 1 : 0, pieces, voices, meta: rest };
+  return { kind: "set", list, on, mix, bars: arr16(sb, 255), mutes: arr16(sm, 31), end: se ? 1 : 0, pats: arr16(sp, 6), moods: arr16(sv, 101), pieces, voices, meta: rest };
 }
 // the set list's places as genre and piece (null: empty)
 export const pcSetPlaces = (list) => list.map((x) => (x ? { genre: Math.floor((x - 1) / 10), slot: (x - 1) % 10 } : null));
 
 // the player's record (OBJ_GLOB, project.c glob_t: magic, tune, midi, theme, rsv, sl[16], sl_on, sl_rsv[3] = zoom, mix, bits; 0.17.13, song mode: sl_bars[16]
 // (0 Auto, else exactly that many bars), sl_mute[16] (the parts a place leaves out: bit 0 pad, 1 bass, 2 acid, 3 pluck, 4 drums), sl_end (0 Loop, 1 Once),
-// 3 spare) with a set's list, Play and Mix, and its places' bars and parts and its end when it has them. An empty record (or the old 12 bytes) takes the
-// defaults given (tune, midi, theme). The record is written at 68 bytes when it was that long or the set has song settings, else at 32 (as before:
-// a firmware before 0.17.13 reads only those); a new list's places start Auto with every part in unless the set says otherwise.
-export const PC_GLOB_LEN = 32, PC_GLOB_SONG = 68;
-const songOf = (set) => !!((set.bars && set.bars.some((v) => v)) || (set.mutes && set.mutes.some((v) => v)) || set.end);
+// 3 spare; 0.17.14: sl_pat[16] (0 the piece's pattern, 1..6), sl_mood[16] (0 the energy as it is, else mood + 1, 1..101)) with a set's list, Play and
+// Mix, and its places' bars, parts, patterns and energy and its end when it has them. An empty record (or the old 12 bytes) takes the defaults given (tune,
+// midi, theme). The record is written at 100 bytes when it was that long or a place has a pattern or energy, at 68 when it was that long or the set has
+// bars, parts or Once, else at 32 (as before: an older firmware reads only what it knows); a new list's places start Auto with every part in, the piece's
+// pattern and the energy as it is, unless the set says otherwise.
+export const PC_GLOB_LEN = 32, PC_GLOB_SONG = 68, PC_GLOB_SONG2 = 100;
+const any = (a) => !!(a && a.some((v) => v));
+const songOf = (set) => !!(any(set.bars) || any(set.mutes) || set.end);
+const song2Of = (set) => any(set.pats) || any(set.moods);
 export function pcGlobWith(glob, set, defs) {
-  const ok = glob && glob.length >= 12 && rd32(glob, 0) === 0x4C474D50;
-  const out = new Uint8Array(songOf(set) || (ok && glob.length >= PC_GLOB_SONG) ? PC_GLOB_SONG : PC_GLOB_LEN);
+  const ok = glob && glob.length >= 12 && rd32(glob, 0) === 0x4C474D50, had = ok ? glob.length : 0;
+  const out = new Uint8Array(song2Of(set) || had >= PC_GLOB_SONG2 ? PC_GLOB_SONG2 : songOf(set) || had >= PC_GLOB_SONG ? PC_GLOB_SONG : PC_GLOB_LEN);
   if (ok) out.set(glob.subarray(0, Math.min(glob.length, out.length)));
   else { wr32(out, 0, 0x4C474D50); wr16(out, 4, defs.tune & 0xFFFF); wr16(out, 6, defs.midi & 0xFFFF); wr16(out, 8, defs.theme & 0xFFFF); }
   out.set(set.list.slice(0, 16), 12);
@@ -274,14 +280,21 @@ export function pcGlobWith(glob, set, defs) {
     if (set.mutes) out.set(set.mutes.slice(0, 16).map((v) => v & 31), 48);
     if (set.end !== undefined) out[64] = set.end ? 1 : 0;
   }
+  if (out.length >= PC_GLOB_SONG2) {
+    out.fill(0, 68, 100);
+    if (set.pats) out.set(set.pats.slice(0, 16).map((v) => (v > 6 ? 0 : v)), 68);
+    if (set.moods) out.set(set.moods.slice(0, 16).map((v) => (v > 101 ? 0 : v)), 84);
+  }
   return out;
 }
 export function pcGlobList(glob) {
-  const none = { list: new Array(16).fill(0), on: false, mix: 0, bars: new Array(16).fill(0), mutes: new Array(16).fill(0), end: 0 };
+  const z = () => new Array(16).fill(0);
+  const none = { list: z(), on: false, mix: 0, bars: z(), mutes: z(), end: 0, pats: z(), moods: z() };
   if (!glob || glob.length < PC_GLOB_LEN || rd32(glob, 0) !== 0x4C474D50) return none;
-  const song = glob.length >= PC_GLOB_SONG;
+  const song = glob.length >= PC_GLOB_SONG, song2 = glob.length >= PC_GLOB_SONG2;
   return { list: Array.from(glob.slice(12, 28)), on: !!glob[28], mix: glob[30], bars: song ? Array.from(glob.slice(32, 48)) : none.bars,
-           mutes: song ? Array.from(glob.slice(48, 64)) : none.mutes, end: song ? glob[64] & 1 : 0 };
+           mutes: song ? Array.from(glob.slice(48, 64)) : none.mutes, end: song ? glob[64] & 1 : 0,
+           pats: song2 ? Array.from(glob.slice(68, 84)) : none.pats, moods: song2 ? Array.from(glob.slice(84, 100)) : none.moods };
 }
 
 // a set's voices into the voices' object: each to a voice already loaded, else the next empty slot; the answer maps the set's voice i to a slot (-1: no room)

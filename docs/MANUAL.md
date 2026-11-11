@@ -41,7 +41,7 @@ Only a few. The rest can wait.
 | **MASTER** knob | Volume. |
 | **PLAY** | Stop and start the music. Each start is a fresh track with its own code (see Track codes). |
 | **EDIT** | Move on to the next chord. |
-| The **keys** | Change the notes the music uses. |
+| The **keys** | Play along. Every note fits the music. |
 | **PRESETS** knob | The next piece of music. |
 | **SAVE** | Break the beat down, then build it back up. |
 | **FX** | Effects. |
@@ -56,7 +56,7 @@ Only a few. The rest can wait.
 
 **2. Tap EDIT.** At the start of the next bar the chord changes. The whole band follows: the bass, the pad and the melodies all move to fit. Tap it a few more times.
 
-**3. Tap a few keys.** Each key adds a note to the music or takes one away. Tap any key, listen, tap another. There are no wrong notes to find: the band only ever plays the notes you have left on. Tap a key again to put it back.
+**3. Play a few keys.** The keys play a melody over the band. Every key is a note of the music's scale, so there are no wrong notes: play anything, slowly or fast, and it fits. The piece's chords and scale stay as they are.
 
 **4. Turn PRESETS one click.** A new piece starts: a new key, a new tempo, new sounds. There are ten pieces in each style.
 
@@ -107,7 +107,8 @@ To put a piece back the way it was at the start, go to **GLO** and hold **SEL** 
 You don't need any of this to have fun, but it is there.
 
 - **Turn SELECT** to walk through the pages. Each page has four knobs underneath the screen. The page name tells you what they change: the pad, the bass, the acid, the drums, the reverb and much more.
-- **The Jam page** (turn SELECT past Global) turns the keys into a keyboard you can play along on. It only plays notes that fit, so you can play freely.
+- **The Jam page** (turn SELECT past Global) picks what the keys play: the pluck, the pad, the acid or the bass, single notes or whole chords, and how high. On a part's own pages (the pad's, bass's, acid's or pluck's) the keys play that part instead.
+- **Change the scale** on the **Global** page (press GLO): there, each key puts a note into the music or takes one out, and ALGORITHM picks its mode (a brighter or darker minor, a major). Everywhere else ALGORITHM is the mood.
 - **Hold HOME** for the settings.
 - **The SET page** has an **Intro** that starts with just a pad and brings the band in one part at a time over a few minutes. Great for mixing in, or for playing over. You get there by holding **SEL** and pressing **FX**, then turning SELECT.
 
@@ -134,7 +135,7 @@ You don't need any of this to have fun, but it is there.
 | **Acid** | The squelchy, twisting line, after the classic Roland TB-303. |
 | **Pluck** | The short, plucked melody on top. |
 | **Chord** | The group of notes the band is playing around right now. EDIT moves it on. |
-| **Scale** | The set of notes the music is allowed to use. The keys switch them on and off. |
+| **Scale** | The set of notes the music is allowed to use. The keys only play these. On the Global page the keys add or remove them. |
 | **Breakdown, build, drop** | Calm down, climb back up, then everything hits at once. SAVE runs them. |
 | **Latch** | An effect that stays on after you tap its key. |
 | **Auto-DJ** | PERF-1 running the breakdowns, builds and drops by itself. |
@@ -308,11 +309,11 @@ short version.
 | **MASTER** | Volume. |
 | **SELECT** | Steps through the pages in order. With **HOME** held: the tempo, from any page. In the FX menu: the bank (FX, BEAT FX, FLEX BEAT, DJ SNIPS), or inside an effect's settings, the next settings page. On the visualizers: the next one. |
 | **PRESETS** | The piece, 1 to 10. With **SEL** held, the new piece starts on the next bar. With **GLO** held: the genre. |
-| **ALGORITHM** | The mode of the scale, which sets its mood (Aeolian is the natural minor, Dorian a brighter minor, Phrygian a darker one, Mixolydian a major with a flat seventh). With **SEL** held: the sound of the voice on screen (on the drum pages, the whole kit). On the Perform screen and the visualizers: the mood. |
+| **ALGORITHM** | The mood, on every page but two (so a turn never changes the scale by accident). On the **Chords** page and **Global**: the mode of the scale (Aeolian is the natural minor, Dorian a brighter minor, Phrygian a darker one, Mixolydian a major with a flat seventh). With **SEL** held: the sound of the voice on screen (on the drum pages, the whole kit). |
 | **KNOB1**-**KNOB4** | The four values (a, b, c, d) of the page on screen. |
 | **OCT-** | Down an octave, to -3. On a voice's pages it moves that voice (pad, bass or acid; the pluck goes down to -2). On any other page it moves the whole song. In the sequencer it picks the previous drum. In the FX menu it turns every effect off. |
 | **OCT+** | Up an octave, to +3, the same way. In the sequencer it picks the next drum. |
-| **FX** | Opens and closes the effects menu. Press it twice quickly for the settings of the effect you used last. |
+| **FX** | Opens and closes the effects menu. Held: the settings of the effect you used last, from any page. |
 | **SEL** | Shift: hold it while you use another control (section 12). |
 | **ENV** | The Pad page. Again: Pad env, Pad LFO, Chords, Progression. With **SEL** held: takes the voice on screen off its automatic part so you play it by hand (again: hands it back). |
 | **LFO** | The Bass page. Again: Bass env, Bass LFO, Bass line, Bass steps. |
@@ -338,13 +339,13 @@ back to the page you were last on in that group.
 | Hold **SAVE** | 0.5 s | The drop, straight away on the next bar. |
 | Hold **SEL** + **SAVE** on Global | 1.5 s | Puts the piece back to factory. From 0.4 s a card says `KEEP HOLDING: FACTORY`. A plain **SAVE** on Global only stores. |
 | Hold **HOME** | 0.7 s | The settings pages (**SELECT** walks them). |
+| Hold **FX** | 0.5 s | The effects' settings, from the one you used last (**SELECT** walks them). |
 | Hold **GLO** | 0.4 s | The mix map. |
 | Hold **SEL** alone | 0.4 s | A card shows what shift does on this page. |
 | Hold **EDIT** | 0.4 s | The Progression page. |
 | Hold another button alone | 0.9 s | A card says what it does (**ENV**, **LFO**, **ARP**, **REC**, **OCT-**, **OCT+**). |
 | Tap an effect key | under 0.25 s | Latches the effect on. Hold it longer and it plays only while held. |
 | Hold a scene key | 0.6 s | Stores the scene. A tap recalls it. |
-| **FX**, **FX** | within 0.35 s | The settings of the effect you used last. |
 | **HOME**, **HOME** | within 0.45 s | The visualizers. |
 | **OCT-** + **OCT+** | 5 s | Update mode. |
 
@@ -570,18 +571,19 @@ and Drift, or **EDIT**). The **Chords** page (**ENV** four times) sets what kind
 | 9ths | The 1st, 3rd, 7th and 9th, with the fifth left out (four notes): Am9, CM9, G9 |
 | Sus | The 1st, 4th, 5th and 7th: A7sus4 (CM7sus4 where the seventh is major; a sus2 where the fourth would be sharp, as on F in A minor). Open and unresolved. |
 | Dub | The same minor 9 shape on every chord, whatever the scale says. These are the parallel chord stabs of dub techno. |
-| Fourths | Notes stacked in fourths (shown as A4ths), an m11 sound. Deep, hollow and modal. |
+| Fourths | The scale's notes stacked in fourths (shown as A4ths on the home chord of a minor key), an m11 sound. Where the scale's next fourth would be a tritone it takes the note below, as in the "So What" chord. Deep, hollow and modal. |
 
-**Filter types.** The pad's saw sounds, the bass and the acid each run through a resonant filter, low-pass as
+**Filter types.** The pad's saw sounds (Strings, Dub, Trance, Poly, Rave, Brass, Fat, Pluck: on the others the page says NO FILTER), the bass and the acid each run through a resonant filter, low-pass as
 standard. The **FILTERS** settings page (hold **HOME**, then turn **SELECT** past MIDI IN) changes each one's type:
 
 | Type | Sounds like |
 |---|---|
 | Low | As before: the top rolled off, Cutoff closes it down. |
-| High | The bottom taken away: thin, airy, good for a build or a lead that cuts through. |
+| High | The bottom taken away: thin, airy, good for a build or a lead that cuts through. On the bass and the pad its corner sits lower than the low-pass's, so it thins them rather than taking them away. |
 | Band | Only a band around the cutoff: nasal, telephone-like, great with resonance. |
 | Notch | A gap at the cutoff: hollow and phasey as the cutoff moves. |
 | Peak | The cutoff's band boosted against the rest: a vowel-like bite. |
+| 303 | The acid only: a ladder filter after the Roland TB-303's. Four stages that bend as they are driven, the resonance singing at the cutoff while the bass underneath stays full (its low end is kept out of the resonance, as on the original). Rounder and more liquid than Low, and it squeals rather than whistles when Reso and SCREAM are high. |
 
 **Making it scream.** The **SCREAM** settings page (the next one after FILTERS) pushes the acid's and the bass's filters into the raw, screaming sound of an acid line through a distortion pedal. It is for all pieces (it is kept with the settings, not with a piece), and at 0 everything sounds as it did:
 
@@ -619,7 +621,7 @@ heard, so you can start from those.
 | Knob | Does |
 |---|---|
 | Chord | The slot's chord, picked from the chords of the scale. The page shows each as a numeral (I to VII, small for a minor chord) and its name, like Am7. **Hold** leaves the slot empty: the chord before keeps playing for its bars. |
-| Type | The kind of chord this slot plays. **Piece's** follows the Chord setting on the Pad's Chords page, like every slot did before. The others give the slot its own: **Triad** (three notes), **7th**, **9th**, **Sus** (the third swapped for the fourth), **Dub** (a minor ninth stab), **Fourths** (stacked fourths) or **11th** (root, seventh, ninth and eleventh). All of them use only notes of the scale. |
+| Type | The kind of chord this slot plays. **Piece's** follows the Chord setting on the Pad's Chords page, like every slot did before. The others give the slot its own: **Triad** (three notes), **7th**, **9th**, **Sus** (the third swapped for the fourth), **Dub** (a minor ninth stab), **Fourths** (the scale's fourths stacked) or **11th** (root, seventh, ninth and eleventh). All of them but Dub use only notes of the scale. |
 | Bars | How long the slot's chord lasts: 1, 2, 4 or 8 bars. |
 | Play | **Walk**: the genre picks the chords, as usual. **Loop**: your slots play in turn. |
 
@@ -1370,9 +1372,9 @@ The 27 keys run from `F3` to `G5`. On the screen they're laid out in three colum
 | A3 | Freeze | Grabs the sound and holds it as a steady drone, built from tiny repeated grains of it. |
 | A#3 | Gate pattern | The gate playing its own rhythm, which you set on the Gate page. |
 | B3 | Reverse swell | The last beat or so plays backwards once, getting louder as it goes. |
-| C4 | Talk | Makes the whole mix "talk" by sweeping it through the vowels A E I O U. |
+| C4 | Talk | Makes the whole mix "talk" by sweeping it through the vowels A E I O U. The kick and bass underneath stay as they are. |
 | C#4 | Phaser | A swirling, sweeping sound. |
-| D4 | Wah | An auto-wah: a filter that opens up as the music gets louder. |
+| D4 | Wah | An auto-wah: a filter that opens up as the music gets louder. The kick and bass underneath stay as they are. |
 | D#4 | Flanger | A jet-plane whoosh. |
 | E4 | Reverse | Plays the music backwards. |
 | F4 | Tape stop | The music slows down and stops, like a tape machine switched off. |
@@ -1515,7 +1517,7 @@ While the Snips page is up, the keys play the snips, so you can try them out.
 Every effect that has settings has its own page, with a picture of what the effect is doing. You can get to a page in four ways:
 
 - In the FX menu, hold **SEL** and press a key. You get the page for that key's effect. If the effect has no settings, the screen says so.
-- Press **FX** twice quickly for the page of the effect you used last.
+- Hold **FX** (half a second), from any page, for the page of the effect you used last (the first one if you haven't used any).
 - Press **SEL** + **FX** to step through all the effects' pages, then back to the keys. Talk and Wah come right after the phaser and the flanger. (The unit's own settings, such as Auto DJ, SET and MIDI IN, are a separate walk: hold **HOME**, section 13.)
 - Once you're on a settings page, turn the **SELECT** dial to move to the next or previous one. It stops at the ends.
 
@@ -1708,7 +1710,9 @@ A set list is the pieces you want to play, in your order, from any genres. Press
 
 **Black keys 1-5** take a part out of the slot, or put it back: pad, bass, acid, pluck, drums. The parts line along the bottom shows the slot you're editing, with the parts left out struck through.
 
-**A song from the set list.** Give each slot bars and parts and the list plays as a song: each slot for exactly its bars, from the bar it comes in on, with only its parts, then the next. For example: slot 1 a piece for 8 bars with only the pad and the pluck (an intro), slot 2 the same piece for 32 bars with everything, slot 3 for 16 bars without the drums (a break), slot 4 for 32 bars, and Play on *Once*. Press **PLAY** and it plays through and stops, with the first slot ready again. The slot playing shows how far it is with a line along its bottom.
+**Hold SEL** for two more: **KNOB2** is the slot's **Pattern** (*Piece's*: whatever it plays, or drum pattern 1-6) and **KNOB3** its **Energy** (*As is*, or the mood from 0, chill, to 100, peak: the same macro as Perform's mood fader). They take effect when the slot comes in. While SEL is held, the line along the bottom shows them.
+
+**A song from the set list.** Give each slot bars and parts and the list plays as a song: each slot for exactly its bars, from the bar it comes in on, with only its parts, then the next. For example: slot 1 a piece for 8 bars with only the pad and the pluck at energy 30 (an intro), slot 2 the same piece for 32 bars with everything on pattern 1, slot 3 for 16 bars without the drums (a break), slot 4 for 32 bars on pattern 3 at energy 85 (the peak), and Play on *Once*. When the next slot is the same piece, it carries on without starting again: only the parts, the pattern and the energy change, on the bar line. Press **PLAY** and it plays through and stops, with the first slot ready again. The slot playing shows how far it is with a line along its bottom.
 
 With **Play** on:
 
@@ -1743,7 +1747,7 @@ The set list is kept with the theme, Tune and MIDI out. It plays your stored pie
 
 ### Mood
 
-Mood is one control that makes the whole piece calmer or more intense. On the Perform screen and the visualizers, **ALGORITHM** sets it. 0 is chill, 100 is peak, and 50 (the middle, and the default) leaves the piece as it is.
+Mood is one control that makes the whole piece calmer or more intense. **ALGORITHM** sets it on every page except Chords and Global, where it picks the mode. 0 is chill, 100 is peak, and 50 (the middle, and the default) leaves the piece as it is.
 
 The further you turn from 50, the more it changes these:
 
@@ -1887,7 +1891,7 @@ The Settings page:
 |---|---|
 | Key | A key change for the drop: same, +2, +3, +5 or +7 semitones. When a breakdown or build ends and the groove comes back in, the whole piece moves up by this much for that round. The next breakdown, a stop or another piece moves it back. `KEY` shows in the header while it's on. |
 | Voices | Which set of DX7 voices the pluck uses: **DY**, thirty human-made voices from public-domain banks (the default), or **DX**, the thirty built-in ones. |
-| Form | **Song** (the default): a piece moves through its own drum patterns, a new one every 8 bars (16 in the slower genres), with a fill just before each change, so it plays like a track. **Loop**: it stays on its first pattern, for when you want to steer it yourself. If you set Drum drift (**SEQ** x4), yours plays instead, in either. |
+| Form | **Song** (the default): a piece moves through its own drum patterns, a new one every 8 bars (16 in the slower genres), with a fill just before each change, so it plays like a track. Song also arranges the parts: now and then a phrase rests the pluck or the acid (or both) for half of it, and the bass may sit out the fill bar and land on the change. The pad always plays. A set-list slot with its own bars leaves the arranging to you. **Loop**: it stays on its first pattern, for when you want to steer it yourself. If you set Drum drift (**SEQ** x4), yours plays instead, in either. |
 | Start | **Last** (the default): the FM-1 switches on to the piece you last played, as it is saved (unsaved changes are not kept: save with **GLO**, then **SAVE**). **Random**: a piece of HYPNO at random, the old way. |
 
 ### The SCREEN page

@@ -648,6 +648,15 @@ static int expect(const char *what, const char *val)
         got = (int)clock_out_count;
     else if (!strcmp(what, "sixteenths"))
         got = (int)en_bars;
+    else if (!strcmp(what, "fillq")) {           /* (0.17.16) fills asked of the engine (the song place's last bar) */
+        extern int en_host_fillq;
+        got = en_host_fillq;
+    } else if (!strcmp(what, "arrange"))         /* (0.17.16) Song's arrangement on (a set-list place with bars: off) */
+        got = en_arrange;
+    else if (!strcmp(what, "arrm")) {            /* the tracks it rests now */
+        extern int en_host_arrm(void);
+        got = en_host_arrm();
+    }
     else if (!strcmp(what, "hashsame"))           /* (0.17.11) the notes since the armed start as those kept (and some were played) */
         got = nh == nh_keep && nh_n > 20u;
     else if (!strcmp(what, "notes"))              /* the notes hashed */
@@ -842,6 +851,10 @@ static int expect(const char *what, const char *val)
         got = glob.sl_mute[atoi(what + 7) % SL_N];
     else if (!strcmp(what, "setend"))
         got = glob.sl_end;
+    else if (!strncmp(what, "setpat", 6))         /* (0.17.14) place N's pattern (0 the piece's), its energy (0 as is, else mood + 1) */
+        got = glob.sl_pat[atoi(what + 6) % SL_N];
+    else if (!strncmp(what, "setmood", 7))
+        got = glob.sl_mood[atoi(what + 7) % SL_N];
     else if (!strcmp(what, "setbar"))             /* the bar of the place playing (from 0) */
         got = en_playing ? (int)(sl_bar_now() - sl_b0) : -1;
     else if (!strcmp(what, "djon"))               /* the auto-DJ: on */
@@ -1288,6 +1301,11 @@ int main(int argc, char **argv)
             autopilot = atoi(a);
         } else if (!strcmp(cmd, "splash")) {         /* splash MS: the next boot's RedtailWorks card */
             ui_splash_ms = (uint32_t)strtoul(a, 0, 10);
+        } else if (!strcmp(cmd, "fxpageset")) {      /* (0.17.19) fxpageset N: the effects' page N up (as the walk reaches it), for pictures */
+            ui.fx_page = (uint8_t)atoi(a);
+        } else if (!strcmp(cmd, "setfxs")) {         /* (0.17.19) setfxs N V: the effects' setting N (EN_FXS_*), as its page sets it */
+            ui.fxs[atoi(a)] = (uint8_t)atoi(b);
+            en_fxs(atoi(a), atoi(b));
         } else if (!strcmp(cmd, "setpar")) {         /* setpar N V: parameter N set as its knob sets it */
             ui_param_set(atoi(a), atoi(b));
         } else if (!strcmp(cmd, "oldimage")) {       /* the first genre's stored bank marked as written before the pluck's DX voices were thirty (the sounds renumber on the next load) */

@@ -77,11 +77,60 @@ class Amb extends AudioWorkletProcessor {
       else ok = this.ex.web_st_code_now();
       const s = String.fromCharCode(...txt.slice(0, txt.indexOf(0) < 0 ? 15 : txt.indexOf(0)));
       this.port.postMessage({ type: "st", id: m.id, ok, code: s, io: new Uint8Array(this.mem.buffer, this.ex.web_st_io(), this.ex.web_st_io_len()).slice() });
-    } else if (this.studio && (m.type === "st_open" || m.type === "st_put" || m.type === "st_read")) {
+    } else if (this.studio && m.type === "st_vox" && this.ex.web_st_vox) {
+      // the DX7 voice editor: a slot read ("get"), a voice put in a slot ("put"), a built-in DX sound read ("dx"); the answer: the result, how many
+      // slots are loaded, the bytes
+      const vb = () => new Uint8Array(this.mem.buffer, this.ex.web_st_vox(), 160);
+      let ok = 0;
+      if (m.op === "get") ok = this.ex.web_st_vox_get(m.slot | 0);
+      else if (m.op === "dx") ok = this.ex.web_st_vox_dx(m.idx | 0);
+      else if (m.op === "put") { vb().set(new Uint8Array(m.vox).subarray(0, 128)); ok = this.ex.web_st_vox_put(m.slot | 0, m.keep ? 1 : 0); }
+      this.port.postMessage({ type: "st", id: m.id, ok, n: this.ex.web_st_vox_n(), vox: vb().slice() });
+    } else if (this.studio && m.type === "st_par" && this.ex.web_st_par) {
+      this.port.postMessage({ type: "st", id: m.id, ok: 1, v: this.ex.web_st_par(m.p | 0, m.v | 0) });
+    } else if (this.studio && m.type === "st_fx" && this.ex.web_st_fx_lock) {
+      // the FX view: the effects latched (set when m.lo/m.hi come), a page's setting set (m.page, m.i, m.v), and (m.all) the menu's keys, the names
+      // and every page; the answer: the latched mask and every page's settings as they are now
+      const ex = this.ex, str = (ptr) => { const b = new Uint8Array(this.mem.buffer, ptr, 64); let s = ""; for (let i = 0; i < 64 && b[i]; i++) s += String.fromCharCode(b[i]); return s; };
+      if (m.page !== undefined) ex.web_st_fxp_set(m.page | 0, m.i | 0, m.v | 0);
+      const lo = ex.web_st_fx_lock(m.lo !== undefined ? 1 : 0, m.lo | 0, m.hi | 0) >>> 0, hi = ex.web_st_fx_lock_hi() >>> 0, pages = [];
+      const desc = (p) => {
+        const c = [];
+        for (let i = 0; i < 4; i++) {
+          const kind = ex.web_st_fxp_num(p, i, 2);
+          c.push(kind < 0 ? null : { label: str(ex.web_st_fxp_str(p, i, 1)), kind, lo: ex.web_st_fxp_num(p, i, 3), hi: ex.web_st_fxp_num(p, i, 4), v: ex.web_st_fxp_num(p, i, 5), t: str(ex.web_st_fxp_str(p, i, 2)) });
+        }
+        return { name: str(ex.web_st_fxp_str(p, 0, 0)), bit: ex.web_st_fxp_num(p, 0, 0), hold: ex.web_st_fxp_num(p, 0, 1), c };
+      };
+      if (m.light) {                                    // (light: the page set, or the mask alone: little work on this thread while it plays)
+        const r = { type: "st", id: m.id, ok: 1, lo, hi };
+        if (m.page !== undefined) r.one = { page: m.page | 0, desc: desc(m.page | 0) };
+        this.port.postMessage(r);
+        return;
+      }
+      for (let p = 0; p < ex.web_st_fxp_n(); p++) {
+        const c = [];
+        for (let i = 0; i < 4; i++) {
+          const kind = ex.web_st_fxp_num(p, i, 2);
+          c.push(kind < 0 ? null : { label: str(ex.web_st_fxp_str(p, i, 1)), kind, lo: ex.web_st_fxp_num(p, i, 3), hi: ex.web_st_fxp_num(p, i, 4), v: ex.web_st_fxp_num(p, i, 5), t: str(ex.web_st_fxp_str(p, i, 2)) });
+        }
+        pages.push({ name: str(ex.web_st_fxp_str(p, 0, 0)), bit: ex.web_st_fxp_num(p, 0, 0), hold: ex.web_st_fxp_num(p, 0, 1), c });
+      }
+      const r = { type: "st", id: m.id, ok: 1, lo, hi, pages };
+      if (m.all) {
+        r.keys = [0, 1].map((b) => Array.from({ length: ex.web_st_fx_nkeys() }, (_, k) => ex.web_st_fx_key(b, k)));
+        r.names = Array.from({ length: 64 }, (_, b) => str(ex.web_st_fx_name(b)));
+        r.pageOf = Array.from({ length: 64 }, (_, b) => ex.web_st_fx_page(b));
+      }
+      this.port.postMessage(r);
+    } else if (this.studio && m.type === "st_trk") {
+      this.port.postMessage({ type: "st", id: m.id, ok: this.ex.web_st_trk ? this.ex.web_st_trk(m.mute | 0, m.solo | 0) : 0 });
+    } else if (this.studio && (m.type === "st_open" || m.type === "st_go" || m.type === "st_put" || m.type === "st_read")) {
       // the studio: a piece taken up (genre, piece), an edited one put into play (its bytes), or the playing one read out; the answer is its bytes
       const io = () => new Uint8Array(this.mem.buffer, this.ex.web_st_io(), this.ex.web_st_io_len());
       let ok;
       if (m.type === "st_open") ok = this.ex.web_st_open(m.genre | 0, m.piece | 0);
+      else if (m.type === "st_go") ok = this.ex.web_st_go ? this.ex.web_st_go(m.place | 0) : 0;
       else if (m.type === "st_put") { io().set(new Uint8Array(m.io).subarray(0, this.ex.web_st_io_len())); ok = this.ex.web_st_put(); }
       else ok = this.ex.web_st_read();
       this.port.postMessage({ type: "st", id: m.id, ok, io: io().slice() });
