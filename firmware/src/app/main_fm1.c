@@ -670,6 +670,9 @@ static void smk_tel(void)
 #endif
 static void tel_service(void)
 {
+#if BOARD_SMK37
+    static uint8_t inputs;                          /* the inputs frame too (asked with c = 3): only for smklog, as the status page needs the queue */
+#endif
     static uint8_t on, extra;
     static uint32_t until, next, seq;
     uint8_t r = usb.tel_req;
@@ -688,6 +691,11 @@ static void tel_service(void)
     }
     if (r) {
         usb.tel_req = 0;
+#if BOARD_SMK37
+        inputs = r == 4u;
+        if (r == 4u)
+            r = 2u;
+#endif
         on = r == 2u;
         until = fm1_ms + 10000u;
         if (on)
@@ -700,7 +708,8 @@ static void tel_service(void)
         return;
     }
 #if BOARD_SMK37
-    smk_tel();                                      /* the inputs frame, ten a second */
+    if (inputs)
+        smk_tel();                                  /* the inputs frame, ten a second */
 #endif
     if (extra == 1) {                               /* the second frame (F0 7D 50 5A): the slowest chunk's stages and when it was, the histogram of renders, the slowest half dissected */
         uint32_t w[40], i, o = 4;

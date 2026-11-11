@@ -14,7 +14,7 @@ import struct
 import sys
 import time
 
-ARM = [0x7D, 0x50, 0x46, 0x01]
+ARM = [0x7D, 0x50, 0x46, 0x03]   # telemetry on with the SMK's inputs frame (c = 3; 1 is the status alone)
 NW = 22
 BTN = ["KNOB BANK", "FADER BANK", "<", ">", "OCTAVE-", "OCTAVE+", "ARP", "NOTE REPEAT", "SCALE", "CHORD",
        "GLOBE", "BT", "PATCH", "PARA", "FX", "SEQ", "SEQ PLAY", "SEQ REC"]

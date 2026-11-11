@@ -1,5 +1,11 @@
 # PERF-1
 
+> **PERF-1 SMK (test builds): PERF-1 on the M-Vave SMK-37 Pro.** Install it from <https://deamonslinky.github.io/PERF-1-SMK/>
+> (Chrome or Edge on a computer; M-Vave's own firmware can always go back on from the same page or with M-UPGRADE).
+> The SMK's controls, the FOLLOWERS (drones on the chord) and CALL AND RESPONSE: [docs/SMK37.md](docs/SMK37.md).
+> Report what you find in this repository's Issues, with the page's Live status CSV. This branch is PERF-1's
+> development tree plus the SMK board layer; the FM-1's releases stay at <https://github.com/deamonSLINKY/PERF-1>.
+
 **Custom live-performance firmware for the M-VAVE FM-1.** Nineteen genres of music that plays itself while you steer it: an auto-DJ, a drum sequencer with real depth, an acid line that answers itself, DX7-style FM voices (and your own), effects you can edit page by page, a mixer and a real compressor and limiter, a Jam page to play along on, scenes, and a screen that shows you what the music is doing. By **deamonSLINKY**. DEMO VIDEO https://youtu.be/NSJR3SOgDXo
 
 <p align="center"><img src="docs/img/readme-hero.png" width="760" alt="Three screens: the home screen (a summoning circle that turns to the chord's root and draws the chord), the master bus page (the compressor's curve, the limiter and the output meter) and one of the visualizers."></p>
